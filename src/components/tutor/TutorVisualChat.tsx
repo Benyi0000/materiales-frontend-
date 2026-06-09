@@ -18,9 +18,18 @@ interface TutorVisualChatProps {
   addToCart: (product: Product, quantity?: number) => void;
   isPremium: boolean;
   apiBaseUrl: string;
+  isAdmin: boolean;
+  googleApiKeyConfigured: boolean;
 }
 
-export default function TutorVisualChat({ products, addToCart, isPremium, apiBaseUrl }: TutorVisualChatProps) {
+export default function TutorVisualChat({ 
+  products, 
+  addToCart, 
+  isPremium, 
+  apiBaseUrl,
+  isAdmin,
+  googleApiKeyConfigured
+}: TutorVisualChatProps) {
   const [chatMessages, setChatMessages] = useState<any[]>([
     {
       sender: "ai",
@@ -101,10 +110,23 @@ export default function TutorVisualChat({ products, addToCart, isPremium, apiBas
       });
 
       if (!res.ok) {
-        const errData = await res.json();
+        let errMsg = "Error desconocido.";
+        try {
+          const errData = await res.json();
+          errMsg = errData.error || errData.detail || JSON.stringify(errData);
+        } catch (e) {
+          try {
+            const textMsg = await res.text();
+            if (textMsg) {
+              errMsg = textMsg.length > 200 ? textMsg.substring(0, 200) + "..." : textMsg;
+            }
+          } catch (textErr) {
+            errMsg = "No se pudo leer el cuerpo de la respuesta.";
+          }
+        }
         setChatMessages(prev => [...prev, { 
           sender: "ai", 
-          text: `Error al conectar con el asistente de IA: ${errData.error || "Error desconocido."}` 
+          text: `Error al conectar con el asistente de IA: ${errMsg}` 
         }]);
         setIsTyping(false);
         return;
@@ -228,6 +250,19 @@ export default function TutorVisualChat({ products, addToCart, isPremium, apiBas
         </h2>
         <p className="text-xs text-gray-400">Asistente avanzado conectado a RAG, cálculo de insumos y guías de obra.</p>
       </div>
+
+      {isAdmin && !googleApiKeyConfigured && (
+        <div className="bg-rose-500/10 border border-rose-500/20 text-rose-300 rounded-2xl p-4 flex flex-col gap-2 shadow-lg max-w-4xl">
+          <div className="flex items-center gap-2">
+            <Sparkles size={16} className="text-rose-500" />
+            <span className="font-bold text-xs uppercase tracking-wider">Establecer clave API KEY (Administrador)</span>
+          </div>
+          <p className="text-[11px] text-gray-300">
+            La clave de Google Gemini (<code>GOOGLE_API_KEY</code>) no está configurada en el servidor.
+            Por favor, agrégala en el archivo <code>.env</code> de tu servidor para activar el Tutor Visual IA.
+          </p>
+        </div>
+      )}
 
       {!isPremium ? (
         <div className="flex-1 flex flex-col items-center justify-center text-center p-12 border border-[rgba(245,158,11,0.15)] bg-amber-500/5 rounded-3xl max-w-2xl mx-auto my-8 gap-4">

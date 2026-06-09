@@ -128,16 +128,17 @@ export default function Dashboard() {
     checkBackendAPI();
   }, []);
 
-  // Sincronizar el estado premium de la sesión local según los perfiles activos del usuario actual
+  // Sincronizar el estado premium de la sesión local según los permisos activos del usuario actual
   useEffect(() => {
     if (!currentUser) {
       setIsPremium(false);
       return;
     }
-    const hasPremiumProfile = (currentUser.assignments || []).some(
-      (asg: any) => asg.profile_name === "Tutor Visual IA" && asg.is_active && !asg.has_expired
-    );
-    setIsPremium(hasPremiumProfile);
+    const hasPremiumPermission = currentUser.active_permissions && 
+      typeof currentUser.active_permissions === "object" &&
+      "tutor.acceder" in currentUser.active_permissions;
+    const isSuper = currentUser.is_superuser;
+    setIsPremium(hasPremiumPermission || isSuper);
   }, [currentUser]);
 
   // Sincronizar el estado de administrador de la sesión local
@@ -511,6 +512,8 @@ export default function Dashboard() {
               addToCart={addToCart}
               isPremium={isPremium}
               apiBaseUrl={API_BASE_URL}
+              isAdmin={isAdmin}
+              googleApiKeyConfigured={currentUser?.google_api_key_configured ?? false}
             />
           )}
 
