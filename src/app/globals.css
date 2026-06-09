@@ -1,26 +1,164 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --background: #0d0e12;
+  --foreground: #f3f4f6;
+  --card-bg: rgba(22, 24, 33, 0.7);
+  --card-border: rgba(255, 255, 255, 0.08);
+  --primary: #f59e0b; /* Ambar para temática construcción/acero */
+  --primary-hover: #d97706;
+  --accent: #3b82f6;
+  --success: #10b981;
+  --danger: #ef4444;
+  --muted: #9ca3af;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans), system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+/* Scrollbar personalizado */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #11131a;
+}
+::-webkit-scrollbar-thumb {
+  background: #2b2f3f;
+  border-radius: 3px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* Efecto de degradado premium */
+.premium-gradient-bg {
+  background: radial-gradient(circle at 50% 0%, #1e1b18 0%, #0d0e12 100%);
+}
+
+.gradient-text {
+  background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.accent-gradient-text {
+  background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Estilo Glassmorphism */
+.glass-panel {
+  background: var(--card-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--card-border);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+.premium-card {
+  background: rgba(30, 32, 45, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.premium-card:hover {
+  transform: translateY(-4px);
+  border-color: rgba(245, 158, 11, 0.3);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* Botones Premium */
+.btn-primary {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #0d0e12;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  box-shadow: 0 4px 14px rgba(245, 158, 11, 0.2);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+/* Estilos de Chat del Tutor */
+.chat-container {
+  height: calc(100vh - 200px);
+}
+
+.bubble-user {
+  background: #2b2f3f;
+  border-radius: 16px 16px 2px 16px;
+}
+
+.bubble-ai {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+  border-radius: 16px 16px 16px 2px;
+}
+
+/* Checkbox personalizados para el Panel de Permisos */
+.custom-checkbox {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.custom-checkbox:checked {
+  background-color: var(--primary);
+  border-color: var(--primary);
+}
+
+.custom-checkbox:checked::after {
+  content: "✓";
+  position: absolute;
+  color: #0d0e12;
+  font-size: 12px;
+  font-weight: bold;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* Micro-animaciones */
+@keyframes pulse-slow {
+  0%, 100% { opacity: 0.8; }
+  50% { opacity: 0.4; }
+}
+
+.animate-pulse-slow {
+  animation: pulse-slow 2s infinite ease-in-out;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+.animate-float {
+  animation: float 4s infinite ease-in-out;
 }
