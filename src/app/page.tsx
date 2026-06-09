@@ -510,6 +510,7 @@ export default function Dashboard() {
               products={products}
               addToCart={addToCart}
               isPremium={isPremium}
+              apiBaseUrl={API_BASE_URL}
             />
           )}
 
