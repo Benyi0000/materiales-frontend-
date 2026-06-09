@@ -148,7 +148,7 @@ export default function ProfileSecurity({
                 <p className="text-xs text-gray-400">Marcar o desmarcar para asignar/revocar perfiles en tiempo real:</p>
                 
                 {profiles.map(profile => {
-                  const assignment = (selectedAdminUser.assignments || []).find((asg: any) => asg.profile === profile.id);
+                  const assignment = (selectedAdminUser.assignments || []).find((asg: any) => asg.profile === profile.id && asg.is_active && !asg.has_expired);
                   const isAssigned = !!assignment;
                   
                   return (

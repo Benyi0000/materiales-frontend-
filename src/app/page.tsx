@@ -259,8 +259,10 @@ export default function Dashboard() {
   const toggleUserProfile = async (user: any, profileId: number) => {
     const profile = profiles.find(p => p.id === profileId);
     if (!profile) return;
-    const existingIndex = (user.assignments || []).findIndex((asg: any) => asg.profile === profileId);
-    let actionType: "assign" | "revoke" = existingIndex > -1 ? "revoke" : "assign";
+    const existing = (user.assignments || []).find(
+      (asg: any) => asg.profile === profileId && asg.is_active && !asg.has_expired
+    );
+    let actionType: "assign" | "revoke" = existing ? "revoke" : "assign";
     const expirationDate = profileExpirations[profileId];
     const expiresAt = expirationDate ? new Date(expirationDate).toISOString() : null;
 
