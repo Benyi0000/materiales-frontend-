@@ -108,10 +108,10 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin} className="flex flex-col gap-4">
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-gray-400 font-medium">Correo Electrónico</label>
+            <label className="text-xs text-gray-400 font-medium">Usuario o Correo Electrónico</label>
             <input
-              type="email"
-              placeholder="ejemplo@correo.com"
+              type="text"
+              placeholder="admin o ejemplo@correo.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
