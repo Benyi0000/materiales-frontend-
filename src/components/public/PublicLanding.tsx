@@ -12,7 +12,9 @@ import {
   Menu,
   X,
   Building2,
+  LogOut
 } from 'lucide-react';
+import Cart from '../catalog/Cart';
 
 /* ------------------------------------------------------------------ */
 /*  Tipos                                                              */
@@ -47,6 +49,13 @@ interface Category {
 interface PublicLandingProps {
   products?: Product[];
   categories?: Category[];
+  currentUser?: any;
+  onLogout?: () => void;
+  cart?: { product: any; quantity: number }[];
+  addToCart?: (product: any, quantity?: number) => void;
+  updateCartQty?: (productId: number, newQty: number) => void;
+  removeFromCart?: (productId: number) => void;
+  handleCheckout?: () => void;
 }
 
 /* ------------------------------------------------------------------ */
@@ -56,6 +65,13 @@ interface PublicLandingProps {
 export default function PublicLanding({
   products: initialProducts = [],
   categories: initialCategories = [],
+  currentUser,
+  onLogout,
+  cart = [],
+  addToCart,
+  updateCartQty,
+  removeFromCart,
+  handleCheckout
 }: PublicLandingProps) {
   const router = useRouter();
 
@@ -131,7 +147,13 @@ export default function PublicLanding({
 
   const goToLogin = () => router.push('/auth/login');
 
-  const handleAddToCart = () => setShowLoginPrompt(true);
+  const handleAddToCart = (p: Product) => {
+    if (currentUser && addToCart) {
+      addToCart(p);
+    } else {
+      setShowLoginPrompt(true);
+    }
+  };
 
   const getSubcategories = (cat: Category): SubCategory[] =>
     cat.children ?? cat.subcategories ?? [];
@@ -184,22 +206,37 @@ export default function PublicLanding({
 
           {/* Acciones — desktop */}
           <div className="hidden md:flex items-center gap-3">
-            <button
-              type="button"
-              onClick={goToLogin}
-              className="p-2 rounded-lg text-[#1a1a2e]/60 hover:text-[#E8612D] hover:bg-orange-50 transition-colors"
-              title="Carrito"
-            >
-              <ShoppingCart size={20} />
-            </button>
-            <button
-              type="button"
-              onClick={goToLogin}
-              className="p-2 rounded-lg text-[#1a1a2e]/60 hover:text-[#E8612D] hover:bg-orange-50 transition-colors"
-              title="Iniciar sesión"
-            >
-              <User size={20} />
-            </button>
+            {currentUser ? (
+              <>
+                <button
+                  type="button"
+                  className="relative p-2 rounded-lg text-[#1a1a2e]/60 hover:text-[#E8612D] hover:bg-orange-50 transition-colors group"
+                  title="Usuario"
+                >
+                  <div className="flex items-center gap-2">
+                    <User size={20} />
+                    <span className="text-sm font-semibold">{currentUser.username}</span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="p-2 rounded-lg text-[#1a1a2e]/60 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  title="Cerrar sesión"
+                >
+                  <LogOut size={20} />
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                onClick={goToLogin}
+                className="p-2 rounded-lg text-[#1a1a2e]/60 hover:text-[#E8612D] hover:bg-orange-50 transition-colors"
+                title="Iniciar sesión"
+              >
+                <User size={20} />
+              </button>
+            )}
           </div>
 
           {/* Hamburguesa — mobile */}
@@ -245,21 +282,29 @@ export default function PublicLanding({
             >
               <Filter size={16} /> Categorías
             </button>
-            <div className="flex gap-3 pt-1">
-              <button
-                type="button"
-                onClick={goToLogin}
-                className="flex items-center gap-2 text-sm text-[#1a1a2e]/70 hover:text-[#E8612D]"
-              >
-                <ShoppingCart size={18} /> Carrito
-              </button>
-              <button
-                type="button"
-                onClick={goToLogin}
-                className="flex items-center gap-2 text-sm text-[#1a1a2e]/70 hover:text-[#E8612D]"
-              >
-                <User size={18} /> Iniciar sesión
-              </button>
+            <div className="flex flex-col gap-3 pt-1">
+              {currentUser ? (
+                <>
+                  <div className="flex items-center gap-2 text-sm text-[#1a1a2e]/70 font-semibold px-2">
+                    <User size={18} /> {currentUser.username}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={onLogout}
+                    className="flex items-center gap-2 text-sm text-red-500 hover:text-red-600 px-2"
+                  >
+                    <LogOut size={18} /> Cerrar sesión
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={goToLogin}
+                  className="flex items-center gap-2 text-sm text-[#1a1a2e]/70 hover:text-[#E8612D] px-2"
+                >
+                  <User size={18} /> Iniciar sesión
+                </button>
+              )}
             </div>
           </div>
         )}
@@ -536,16 +581,12 @@ export default function PublicLanding({
                           </p>
                           <button
                             type="button"
-                            disabled={outOfStock}
-                            onClick={handleAddToCart}
-                            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
-                              outOfStock
-                                ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                                : 'bg-[#E8612D] text-white hover:bg-[#d4551f] active:scale-95 shadow-sm hover:shadow-md'
-                            }`}
+                            onClick={() => handleAddToCart(prod)}
+                            disabled={prod.stock === 0}
+                            className="w-full mt-4 bg-[#E8612D] hover:bg-[#d4561f] disabled:bg-gray-200 disabled:text-gray-400 text-white py-2 rounded-lg text-sm font-semibold transition-all flex justify-center items-center gap-2"
                           >
-                            <ShoppingCart size={14} />
-                            <span>{outOfStock ? 'Sin Stock' : 'Agregar'}</span>
+                            <ShoppingCart size={16} />
+                            {prod.stock === 0 ? 'Sin Stock' : 'Agregar'}
                           </button>
                         </div>
                       </div>
@@ -558,44 +599,55 @@ export default function PublicLanding({
         </div>
       </section>
 
-      {/* ============================================================ */}
-      {/*  MODAL / TOAST — Login prompt                                 */}
-      {/* ============================================================ */}
-      {showLoginPrompt && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-          {/* Backdrop */}
+      {/* Modal / Toast de Login Requerido */}
+      {showLoginPrompt && !currentUser && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
           <div
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 bg-[#1a1a2e]/40 backdrop-blur-sm"
             onClick={() => setShowLoginPrompt(false)}
           />
-          {/* Card */}
-          <div className="relative z-10 bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
-            <div className="w-14 h-14 mx-auto mb-4 rounded-full bg-[#E8612D]/10 flex items-center justify-center">
-              <User size={28} className="text-[#E8612D]" />
-            </div>
-            <h3 className="text-lg font-bold text-[#1a1a2e]">
-              Iniciá sesión
-            </h3>
-            <p className="mt-2 text-sm text-gray-500 leading-relaxed">
-              Debes iniciar sesión para agregar productos al carrito.
-            </p>
-            <div className="mt-6 flex flex-col gap-2">
-              <button
-                type="button"
-                onClick={goToLogin}
-                className="w-full bg-[#E8612D] text-white font-semibold py-2.5 rounded-lg hover:bg-[#d4551f] transition-colors"
-              >
-                Ir a Iniciar Sesión
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowLoginPrompt(false)}
-                className="w-full text-sm text-gray-400 hover:text-gray-600 py-2 transition-colors"
-              >
-                Seguir explorando
-              </button>
+          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden animate-[slideUp_0.3s_ease]">
+            <div className="p-6 text-center">
+              <div className="mx-auto w-12 h-12 bg-orange-50 rounded-full flex items-center justify-center text-[#E8612D] mb-4">
+                <ShoppingCart size={24} />
+              </div>
+              <h3 className="text-xl font-bold text-[#1a1a2e] mb-2">
+                Inicia sesión
+              </h3>
+              <p className="text-sm text-[#1a1a2e]/70 mb-6">
+                Debes iniciar sesión o crear una cuenta para agregar productos al
+                carrito y realizar tu pedido.
+              </p>
+              <div className="flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={goToLogin}
+                  className="w-full bg-[#E8612D] text-white py-2.5 rounded-xl font-semibold hover:bg-[#d4561f] transition-colors"
+                >
+                  Ir al Login
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPrompt(false)}
+                  className="w-full bg-gray-50 text-[#1a1a2e]/70 py-2.5 rounded-xl font-semibold hover:bg-gray-100 transition-colors"
+                >
+                  Cancelar
+                </button>
+              </div>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Carrito de Compras (Si está autenticado) */}
+      {currentUser && updateCartQty && removeFromCart && handleCheckout && (
+        <div className="fixed top-20 right-8 z-[60] w-80 max-h-[80vh] overflow-hidden flex shadow-2xl rounded-xl">
+          <Cart 
+            cart={cart}
+            updateCartQty={updateCartQty}
+            removeFromCart={removeFromCart}
+            handleCheckout={handleCheckout}
+          />
         </div>
       )}
 

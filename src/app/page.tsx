@@ -156,12 +156,30 @@ export default function Dashboard() {
     )
   );
 
-  // Redirigir al administrador de la pestaña catálogo a la pestaña roles al iniciar sesión
+  // Determinar si el usuario debe entrar al Dashboard Interno (tiene algún perfil aparte de 'Comprar en la tienda' o es superuser)
+  const isDashboardUser = currentUser && (
+    currentUser.is_superuser ||
+    (currentUser.assignments || []).some(
+      (asg: any) => asg.profile_name !== "Comprar en la tienda" && asg.is_active && !asg.has_expired
+    )
+  );
+
+  const canViewCatalog = currentUser?.is_superuser || (
+    currentUser?.active_permissions &&
+    typeof currentUser.active_permissions === "object" &&
+    "catalogo.ver_catalogo" in currentUser.active_permissions
+  );
+
+  // Redirigir la pestaña por defecto
   useEffect(() => {
-    if (isAdmin && activeTab === "catalog") {
-      setActiveTab("profiles");
+    if (currentUser && activeTab === "catalog") {
+      if (isAdmin) {
+        setActiveTab("profiles");
+      } else if (!canViewCatalog) {
+        setActiveTab("tutor");
+      }
     }
-  }, [isAdmin, activeTab]);
+  }, [currentUser, isAdmin, canViewCatalog, activeTab]);
 
   // ----------------------------------------------------
   // LÓGICA DEL CARRITO
@@ -486,8 +504,16 @@ export default function Dashboard() {
           <p className="text-sm text-[#6b7280]">Cargando...</p>
         </div>
       </div>
-    ) : isAuthenticated === false ? (
-      <PublicLanding />
+    ) : isAuthenticated === false || !isDashboardUser ? (
+      <PublicLanding 
+        currentUser={currentUser}
+        onLogout={handleLogout}
+        cart={cart}
+        addToCart={addToCart}
+        updateCartQty={updateCartQty}
+        removeFromCart={removeFromCart}
+        handleCheckout={handleCheckout}
+      />
     ) : (
     <div className="min-h-screen flex flex-col bg-[#f5f5f5]">
       {/* HEADER DE LA APLICACIÓN */}
