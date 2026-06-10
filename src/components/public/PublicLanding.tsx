@@ -80,7 +80,10 @@ export default function PublicLanding({
   /* ---- Estado ---- */
   const [products, setProducts] = useState<Product[]>(initialProducts);
   const [categories, setCategories] = useState<Category[]>(initialCategories);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchInput, setSearchInput] = useState('');
+  const [appliedSearch, setAppliedSearch] = useState('');
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showCartView, setShowCartView] = useState(false);
@@ -147,10 +150,18 @@ export default function PublicLanding({
       setSelectedProduct(prod);
       setShowCartView(false);
     } else {
-      window.history.pushState({}, '', window.location.pathname);
-      setSelectedProduct(null);
-      setShowCartView(false);
+      resetCatalog();
     }
+  };
+
+  const resetCatalog = () => {
+    window.history.pushState({}, '', window.location.pathname);
+    setSelectedProduct(null);
+    setShowCartView(false);
+    setSearchInput('');
+    setAppliedSearch('');
+    setSelectedCategory(null);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
   const openCartView = () => {
@@ -164,14 +175,43 @@ export default function PublicLanding({
   /* ---- Utilidades ---- */
   const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
+  const executeSearch = (query: string) => {
+    setSearchInput(query);
+    setShowSuggestions(false);
+    setSelectedProduct(null);
+    setShowCartView(false);
+    setMobileMenuOpen(false);
+
+    // Animación de actualización (simulada)
+    setIsSearching(true);
+    setTimeout(() => {
+      setAppliedSearch(query);
+      setIsSearching(false);
+    }, 400); // 400ms de delay para el "refresh"
+  };
+
+  const searchSuggestions = useMemo(() => {
+    const q = searchInput.trim().toLowerCase();
+    if (q.length < 2) return [];
+    
+    const uniqueNames = new Set<string>();
+    products.forEach(p => {
+      if (p.name.toLowerCase().includes(q)) {
+        uniqueNames.add(p.name);
+      }
+    });
+    return Array.from(uniqueNames).slice(0, 5);
+  }, [searchInput, products]);
+
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      /* búsqueda (3+ chars) */
-      const q = searchQuery.trim().toLowerCase();
-      const matchesSearch =
-        q.length < 3 ||
-        p.name.toLowerCase().includes(q) ||
-        p.sku.toLowerCase().includes(q);
+      /* búsqueda (explícita) */
+      const sq = appliedSearch.trim().toLowerCase();
+      if (sq.length > 0) {
+        if (!p.name.toLowerCase().includes(sq) && !p.sku.toLowerCase().includes(sq)) {
+          return false;
+        }
+      }
 
       /* categoría */
       const matchesCat =
@@ -179,9 +219,9 @@ export default function PublicLanding({
         p.category_name === selectedCategory ||
         (p.subcategory_names && p.subcategory_names.includes(selectedCategory));
 
-      return matchesSearch && matchesCat;
+      return matchesCat;
     });
-  }, [products, searchQuery, selectedCategory]);
+  }, [products, appliedSearch, selectedCategory]);
 
   /* ---- Helpers ---- */
   const toggleCategoryExpand = (catId: number) => {
@@ -228,7 +268,10 @@ export default function PublicLanding({
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
 
           {/* Logo */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div 
+            className="flex items-center gap-2 shrink-0 cursor-pointer"
+            onClick={() => selectProductHistory(null)}
+          >
             <div className="bg-[#E8612D] p-1.5 rounded-lg text-white">
               <Building2 size={22} />
             </div>
@@ -245,42 +288,76 @@ export default function PublicLanding({
           </nav>
 
           {/* Barra de búsqueda — desktop */}
-          <div className="hidden md:flex flex-1 max-w-md mx-4">
+          <div className="hidden md:flex flex-1 max-w-md mx-4 relative">
             <div className="relative w-full">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
+              <button 
+                onClick={() => executeSearch(searchInput)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#E8612D] transition-colors"
+              >
+                <Search size={16} />
+              </button>
               <input
                 type="text"
                 placeholder="Buscar materiales, herramientas..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchInput}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  setShowSuggestions(true);
+                  if (e.target.value.trim() === '') {
+                    setAppliedSearch('');
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    executeSearch(searchInput);
+                  }
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 className="w-full pl-9 pr-4 py-2 rounded-full border border-gray-200 bg-gray-50 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#E8612D]/30 focus:border-[#E8612D] transition-all"
               />
             </div>
+            {/* Sugerencias desktop */}
+            {showSuggestions && searchSuggestions.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-xl shadow-lg border border-gray-100 overflow-hidden z-50 animate-[fadeIn_0.1s_ease]">
+                <ul className="py-2">
+                  {searchSuggestions.map((sug, idx) => (
+                    <li key={idx}>
+                      <button
+                        type="button"
+                        onClick={() => executeSearch(sug)}
+                        className="w-full text-left px-4 py-2 text-sm text-[#1a1a2e] hover:bg-gray-50 transition-colors"
+                      >
+                        <Search size={12} className="inline-block mr-2 text-gray-400" />
+                        {sug}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
           </div>
 
           {/* Acciones — desktop */}
           <div className="hidden md:flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => currentUser ? openCartView() : setShowLoginPrompt(true)}
+              className="relative p-2 text-[#1a1a2e]/70 hover:text-[#E8612D] transition-colors"
+            >
+              <ShoppingCart size={24} />
+              {totalCartItems > 0 && (
+                <span className="absolute top-0 right-0 bg-[#E8612D] text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
+                  {totalCartItems}
+                </span>
+              )}
+            </button>
             {currentUser ? (
               <>
                 <div className="flex items-center gap-2 px-2 py-1 bg-orange-50 rounded-lg text-[#E8612D] mr-2">
                   <User size={18} />
                   <span className="text-sm font-semibold">{currentUser.username}</span>
                 </div>
-                <button
-                  type="button"
-                  onClick={openCartView}
-                  className="relative p-2 text-[#1a1a2e]/70 hover:text-[#E8612D] transition-colors"
-                >
-                  <ShoppingCart size={24} />
-                  {totalCartItems > 0 && (
-                    <span className="absolute top-0 right-0 bg-[#E8612D] text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
-                      {totalCartItems}
-                    </span>
-                  )}
-                </button>
                 <button
                   type="button"
                   onClick={onLogout}
@@ -317,17 +394,51 @@ export default function PublicLanding({
           <div className="md:hidden border-t border-gray-100 bg-white px-4 pb-4 pt-2 space-y-3 animate-[slideDown_0.2s_ease]">
             {/* Búsqueda mobile */}
             <div className="relative">
-              <Search
-                size={16}
-                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-              />
+              <button 
+                onClick={() => executeSearch(searchInput)}
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-[#E8612D]"
+              >
+                <Search size={16} />
+              </button>
               <input
                 type="text"
                 placeholder="Buscar materiales, herramientas..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
+                value={searchInput}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  setShowSuggestions(true);
+                  if (e.target.value.trim() === '') {
+                    setAppliedSearch('');
+                  }
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    executeSearch(searchInput);
+                  }
+                }}
+                onFocus={() => setShowSuggestions(true)}
+                onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                 className="w-full pl-9 pr-4 py-2 rounded-full border border-gray-200 bg-gray-50 text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-[#E8612D]/30 focus:border-[#E8612D]"
               />
+              {/* Sugerencias mobile */}
+              {showSuggestions && searchSuggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-md border border-gray-100 overflow-hidden z-50">
+                  <ul className="py-1">
+                    {searchSuggestions.map((sug, idx) => (
+                      <li key={idx}>
+                        <button
+                          type="button"
+                          onClick={() => executeSearch(sug)}
+                          className="w-full text-left px-4 py-2 text-sm text-[#1a1a2e] hover:bg-gray-50 transition-colors"
+                        >
+                          <Search size={12} className="inline-block mr-2 text-gray-400" />
+                          {sug}
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             </div>
             <a
               href="#catalogo"
@@ -345,16 +456,33 @@ export default function PublicLanding({
             >
               <Filter size={16} /> Categorías
             </button>
-            <div className="flex flex-col gap-3 pt-1">
+            <div className="flex flex-col gap-3 pt-1 border-t border-gray-100 mt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  currentUser ? openCartView() : setShowLoginPrompt(true);
+                }}
+                className="flex items-center justify-between py-2 text-sm font-medium text-[#1a1a2e]/70 hover:text-[#E8612D]"
+              >
+                <div className="flex items-center gap-2">
+                  <ShoppingCart size={18} /> Carrito
+                </div>
+                {totalCartItems > 0 && (
+                  <span className="bg-[#E8612D] text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    {totalCartItems}
+                  </span>
+                )}
+              </button>
               {currentUser ? (
                 <>
-                  <div className="flex items-center gap-2 text-sm text-[#1a1a2e]/70 font-semibold px-2">
-                    <User size={18} /> {currentUser.username}
+                  <div className="flex items-center gap-2 py-2 text-sm text-[#1a1a2e]/70 font-semibold">
+                    <User size={18} /> Mi Perfil ({currentUser.username})
                   </div>
                   <button
                     type="button"
                     onClick={onLogout}
-                    className="flex items-center gap-2 text-sm text-red-500 hover:text-red-600 px-2"
+                    className="flex items-center gap-2 py-2 text-sm text-red-500 hover:text-red-600"
                   >
                     <LogOut size={18} /> Cerrar sesión
                   </button>
@@ -363,7 +491,7 @@ export default function PublicLanding({
                 <button
                   type="button"
                   onClick={goToLogin}
-                  className="flex items-center gap-2 text-sm text-[#1a1a2e]/70 hover:text-[#E8612D] px-2"
+                  className="flex items-center gap-2 py-2 text-sm text-[#1a1a2e]/70 hover:text-[#E8612D]"
                 >
                   <User size={18} /> Iniciar sesión
                 </button>
@@ -381,11 +509,7 @@ export default function PublicLanding({
           cart={cart}
           updateCartQty={updateCartQty}
           removeFromCart={removeFromCart}
-          onBack={() => {
-            window.history.pushState({}, '', window.location.pathname);
-            setShowCartView(false);
-            window.scrollTo({ top: 0, behavior: 'smooth' });
-          }}
+          onBack={resetCatalog}
           onCheckout={handleCheckout}
         />
       ) : selectedProduct ? (
@@ -404,32 +528,34 @@ export default function PublicLanding({
           {/* ============================================================ */}
           {/*  HERO BANNER                                                  */}
           {/* ============================================================ */}
-          <section className="relative w-full h-[380px] md:h-[440px] flex items-center justify-center overflow-hidden">
-        {/* Imagen de fondo */}
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/hero_banner.png')" }}
-        />
-        {/* Overlay oscuro */}
-        <div className="absolute inset-0 bg-black/55" />
+          {appliedSearch.trim() === '' && !selectedCategory && (
+            <section className="relative w-full h-[380px] md:h-[440px] flex items-center justify-center overflow-hidden">
+              {/* Imagen de fondo */}
+              <div
+                className="absolute inset-0 bg-cover bg-center"
+                style={{ backgroundImage: "url('/hero_banner.png')" }}
+              />
+              {/* Overlay oscuro */}
+              <div className="absolute inset-0 bg-black/55" />
 
-        {/* Contenido */}
-        <div className="relative z-10 text-center px-6 max-w-2xl">
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight">
-            Construye mejor con{' '}
-            <span className="text-[#E8612D]">CraftIAr</span>
-          </h1>
-          <p className="mt-4 text-base sm:text-lg text-gray-200 leading-relaxed">
-            Materiales de construcción premium con herramientas de estimación basadas en IA.
-          </p>
-          <a
-            href="#catalogo"
-            className="mt-6 inline-block bg-white text-[#1a1a2e] font-semibold px-7 py-3 rounded-full text-sm shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
-          >
-            Ver Promociones
-          </a>
-        </div>
-      </section>
+              {/* Contenido */}
+              <div className="relative z-10 text-center px-6 max-w-2xl">
+                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight">
+                  Construye mejor con{' '}
+                  <span className="text-[#E8612D]">CraftIAr</span>
+                </h1>
+                <p className="mt-4 text-base sm:text-lg text-gray-200 leading-relaxed">
+                  Materiales de construcción premium con herramientas de estimación basadas en IA.
+                </p>
+                <a
+                  href="#catalogo"
+                  className="mt-6 inline-block bg-white text-[#1a1a2e] font-semibold px-7 py-3 rounded-full text-sm shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+                >
+                  Ver Promociones
+                </a>
+              </div>
+            </section>
+          )}
 
       {/* ============================================================ */}
       {/*  C) CATÁLOGO                                                  */}
@@ -620,11 +746,22 @@ export default function PublicLanding({
 
           {/* ---------- Grilla de productos ---------- */}
           <div className="flex-1 min-w-0">
-            {filteredProducts.length === 0 ? (
+            {isSearching ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-pulse">
+                {[1, 2, 3, 4, 5, 6].map((i) => (
+                  <div key={i} className="border border-gray-100 rounded-2xl h-80 bg-gray-100 flex flex-col p-4 gap-4">
+                    <div className="w-full h-32 bg-gray-200 rounded-xl"></div>
+                    <div className="w-3/4 h-4 bg-gray-200 rounded"></div>
+                    <div className="w-1/2 h-4 bg-gray-200 rounded"></div>
+                    <div className="w-1/3 h-6 bg-gray-200 rounded mt-auto"></div>
+                  </div>
+                ))}
+              </div>
+            ) : filteredProducts.length === 0 ? (
               <div className="text-center py-20 text-gray-400">
                 <Search size={40} className="mx-auto mb-3 text-gray-300" />
-                <p className="text-lg font-medium">No se encontraron productos</p>
-                <p className="text-sm mt-1">Probá con otro término de búsqueda o categoría.</p>
+                <p className="text-lg font-medium">No encontramos resultados para tu búsqueda</p>
+                <p className="text-sm mt-1">Probá con otra palabra o borrá la barra para ver el catálogo completo.</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
