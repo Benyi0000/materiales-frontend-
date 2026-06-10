@@ -179,14 +179,6 @@ export default function CatalogView({
         </div>
       </div>
       )}
-
-      {/* CARRITO DE COMPRAS */}
-      <Cart
-        cart={cart}
-        updateCartQty={updateCartQty}
-        removeFromCart={removeFromCart}
-        handleCheckout={handleCheckout}
-      />
     </div>
   );
 }

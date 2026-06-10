@@ -142,14 +142,21 @@ export default function PublicLanding({
 
       if (view === 'cart') {
         setShowCartView(true);
+        setShowTutorView(false);
+        setSelectedProduct(null);
+      } else if (view === 'tutor') {
+        setShowTutorView(true);
+        setShowCartView(false);
         setSelectedProduct(null);
       } else if (productId) {
         const prod = products.find(p => p.id === parseInt(productId, 10));
         setSelectedProduct(prod || null);
         setShowCartView(false);
+        setShowTutorView(false);
       } else {
         setSelectedProduct(null);
         setShowCartView(false);
+        setShowTutorView(false);
       }
     };
 
@@ -184,6 +191,16 @@ export default function PublicLanding({
   const openCartView = () => {
     window.history.pushState({}, '', `?view=cart`);
     setShowCartView(true);
+    setShowTutorView(false);
+    setSelectedProduct(null);
+    setCartDrawerOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const openTutorView = () => {
+    window.history.pushState({}, '', `?view=tutor`);
+    setShowTutorView(true);
+    setShowCartView(false);
     setSelectedProduct(null);
     setCartDrawerOpen(false);
     window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -380,7 +397,7 @@ export default function PublicLanding({
                 {isPremium && (
                   <button
                     type="button"
-                    onClick={() => setShowTutorView(true)}
+                    onClick={openTutorView}
                     className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
                       showTutorView ? 'bg-amber-100 text-amber-700' : 'text-amber-600 bg-amber-50 hover:bg-amber-100'
                     }`}
@@ -622,7 +639,7 @@ export default function PublicLanding({
                   type="button"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    setShowTutorView(true);
+                    openTutorView();
                   }}
                   className="flex items-center gap-2 py-2 text-sm font-medium text-amber-600"
                 >
