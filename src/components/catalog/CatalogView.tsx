@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Search, Building2, ShoppingCart } from "lucide-react";
 import Cart from "./Cart";
+import ProductDetail from "../public/ProductDetail";
 
 interface Product {
   id: number;
@@ -40,6 +41,33 @@ export default function CatalogView({
 }: CatalogViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+
+  React.useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const productId = urlParams.get('product');
+      if (productId) {
+        const prod = products.find(p => p.id === parseInt(productId, 10));
+        setSelectedProduct(prod || null);
+      } else {
+        setSelectedProduct(null);
+      }
+    };
+    handlePopState();
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [products]);
+
+  const selectProductHistory = (prod: Product | null) => {
+    if (prod) {
+      window.history.pushState({}, '', `?product=${prod.id}`);
+      setSelectedProduct(prod);
+    } else {
+      window.history.pushState({}, '', window.location.pathname);
+      setSelectedProduct(null);
+    }
+  };
 
   const categories = ["Todos", ...Array.from(new Set(products.map(p => p.category_name)))];
 
@@ -53,8 +81,21 @@ export default function CatalogView({
 
   return (
     <div className="flex-1 flex gap-8 text-left">
-      {/* LISTADO DE PRODUCTOS */}
-      <div className="flex-1 flex flex-col gap-6">
+      {selectedProduct ? (
+        <div className="flex-1 overflow-y-auto">
+          <ProductDetail
+            product={selectedProduct}
+            products={products}
+            onBack={() => {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+              selectProductHistory(null);
+            }}
+            onAddToCart={addToCart}
+            onSelectProduct={selectProductHistory}
+          />
+        </div>
+      ) : (
+        <div className="flex-1 flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-2xl font-bold tracking-tight text-[#1a1a2e]">Catálogo de Materiales</h2>
@@ -94,12 +135,19 @@ export default function CatalogView({
         {/* Grilla de Productos */}
         <div className="grid grid-cols-3 gap-6">
           {filteredProducts.map(prod => (
-            <div key={prod.id} className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow">
-              <div className="h-44 bg-gray-50 relative overflow-hidden flex items-center justify-center">
+            <div 
+              key={prod.id} 
+              onClick={() => {
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+                selectProductHistory(prod);
+              }}
+              className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+            >
+              <div className="h-44 bg-gray-50 relative overflow-hidden flex items-center justify-center p-4">
                 <img 
                   src={prod.image_url?.replace("via.placeholder.com", "placehold.co")} 
                   alt={prod.name} 
-                  className="object-cover w-full h-full"
+                  className="object-contain mix-blend-multiply w-full h-full"
                   onError={(e) => {
                     e.currentTarget.src = `https://placehold.co/300x200?text=${encodeURIComponent(prod.sku || prod.name)}`;
                   }}
@@ -122,23 +170,15 @@ export default function CatalogView({
                 <div className="flex items-center justify-between mt-auto">
                   <div>
                     <p className="text-[10px] text-[#9ca3af]">Precio unitario</p>
-                    <p className="font-bold text-base text-[#1a1a2e]">${prod.price.toLocaleString('es-AR')}</p>
+                    <p className="font-bold text-lg text-[#1a1a2e]">${prod.price.toLocaleString('es-AR')}</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => addToCart(prod)}
-                    disabled={prod.stock === 0}
-                    className="bg-[#E8612D] hover:bg-[#d4551f] disabled:bg-gray-200 disabled:text-gray-400 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
-                  >
-                    <ShoppingCart size={14} />
-                    <span>{prod.stock === 0 ? "Sin Stock" : "Comprar"}</span>
-                  </button>
                 </div>
               </div>
             </div>
           ))}
         </div>
       </div>
+      )}
 
       {/* CARRITO DE COMPRAS */}
       <Cart

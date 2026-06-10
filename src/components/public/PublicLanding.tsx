@@ -15,6 +15,8 @@ import {
   LogOut
 } from 'lucide-react';
 import Cart from '../catalog/Cart';
+import ProductDetail from './ProductDetail';
+import CartView from './CartView';
 
 /* ------------------------------------------------------------------ */
 /*  Tipos                                                              */
@@ -80,7 +82,11 @@ export default function PublicLanding({
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [showCartView, setShowCartView] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
+  const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [lastAddedItem, setLastAddedItem] = useState<{product: Product, quantity: number} | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -108,7 +114,56 @@ export default function PublicLanding({
     fetchData();
   }, []);
 
-  /* ---- Filtrado ---- */
+  /* ---- Sincronización de Historial (Botón Atrás) ---- */
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = new URLSearchParams(window.location.search);
+      const view = urlParams.get('view');
+      const productId = urlParams.get('product');
+
+      if (view === 'cart') {
+        setShowCartView(true);
+        setSelectedProduct(null);
+      } else if (productId) {
+        const prod = products.find(p => p.id === parseInt(productId, 10));
+        setSelectedProduct(prod || null);
+        setShowCartView(false);
+      } else {
+        setSelectedProduct(null);
+        setShowCartView(false);
+      }
+    };
+
+    // Al montar, ver si hay ID en URL
+    handlePopState();
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [products]);
+
+  const selectProductHistory = (prod: Product | null) => {
+    if (prod) {
+      window.history.pushState({}, '', `?product=${prod.id}`);
+      setSelectedProduct(prod);
+      setShowCartView(false);
+    } else {
+      window.history.pushState({}, '', window.location.pathname);
+      setSelectedProduct(null);
+      setShowCartView(false);
+    }
+  };
+
+  const openCartView = () => {
+    window.history.pushState({}, '', `?view=cart`);
+    setShowCartView(true);
+    setSelectedProduct(null);
+    setCartDrawerOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  /* ---- Utilidades ---- */
+  const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);
+
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
       /* búsqueda (3+ chars) */
@@ -147,9 +202,11 @@ export default function PublicLanding({
 
   const goToLogin = () => router.push('/auth/login');
 
-  const handleAddToCart = (p: Product) => {
+  const handleAddToCart = (p: Product, quantity: number = 1) => {
     if (currentUser && addToCart) {
-      addToCart(p);
+      addToCart(p, quantity);
+      setLastAddedItem({ product: p, quantity });
+      setCartDrawerOpen(true);
     } else {
       setShowLoginPrompt(true);
     }
@@ -208,15 +265,21 @@ export default function PublicLanding({
           <div className="hidden md:flex items-center gap-3">
             {currentUser ? (
               <>
+                <div className="flex items-center gap-2 px-2 py-1 bg-orange-50 rounded-lg text-[#E8612D] mr-2">
+                  <User size={18} />
+                  <span className="text-sm font-semibold">{currentUser.username}</span>
+                </div>
                 <button
                   type="button"
-                  className="relative p-2 rounded-lg text-[#1a1a2e]/60 hover:text-[#E8612D] hover:bg-orange-50 transition-colors group"
-                  title="Usuario"
+                  onClick={openCartView}
+                  className="relative p-2 text-[#1a1a2e]/70 hover:text-[#E8612D] transition-colors"
                 >
-                  <div className="flex items-center gap-2">
-                    <User size={20} />
-                    <span className="text-sm font-semibold">{currentUser.username}</span>
-                  </div>
+                  <ShoppingCart size={24} />
+                  {totalCartItems > 0 && (
+                    <span className="absolute top-0 right-0 bg-[#E8612D] text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
+                      {totalCartItems}
+                    </span>
+                  )}
                 </button>
                 <button
                   type="button"
@@ -311,9 +374,37 @@ export default function PublicLanding({
       </header>
 
       {/* ============================================================ */}
-      {/*  B) HERO BANNER                                               */}
+      {/*  B) CUERPO DINÁMICO (CARRITO / DETALLE / CATÁLOGO)            */}
       {/* ============================================================ */}
-      <section className="relative w-full h-[380px] md:h-[440px] flex items-center justify-center overflow-hidden">
+      {showCartView ? (
+        <CartView
+          cart={cart}
+          updateCartQty={updateCartQty}
+          removeFromCart={removeFromCart}
+          onBack={() => {
+            window.history.pushState({}, '', window.location.pathname);
+            setShowCartView(false);
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+          }}
+          onCheckout={handleCheckout}
+        />
+      ) : selectedProduct ? (
+        <ProductDetail
+          product={selectedProduct}
+          products={products}
+          onBack={() => {
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+            selectProductHistory(null);
+          }}
+          onAddToCart={handleAddToCart}
+          onSelectProduct={selectProductHistory}
+        />
+      ) : (
+        <>
+          {/* ============================================================ */}
+          {/*  HERO BANNER                                                  */}
+          {/* ============================================================ */}
+          <section className="relative w-full h-[380px] md:h-[440px] flex items-center justify-center overflow-hidden">
         {/* Imagen de fondo */}
         <div
           className="absolute inset-0 bg-cover bg-center"
@@ -513,9 +604,9 @@ export default function PublicLanding({
                                       : 'text-[#1a1a2e]/50 hover:text-[#1a1a2e]/70 hover:bg-gray-50'
                                   }`}
                                 >
-                                  {sub.name}
-                                </button>
-                              </li>
+                                {sub.name}
+                              </button>
+                            </li>
                             ))}
                           </ul>
                         )}
@@ -543,14 +634,18 @@ export default function PublicLanding({
                   return (
                     <div
                       key={prod.id}
-                      className="group border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col transition-shadow duration-200 hover:shadow-lg"
+                      onClick={() => {
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                        selectProductHistory(prod);
+                      }}
+                      className="group border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col transition-shadow duration-200 hover:shadow-lg cursor-pointer"
                     >
                       {/* Imagen */}
-                      <div className="relative h-48 bg-gray-100 overflow-hidden">
+                      <div className="relative h-48 bg-gray-100 overflow-hidden p-4">
                         <img
                           src={prod.image_url || `https://placehold.co/400x300/f5f5f5/999?text=${encodeURIComponent(prod.name)}`}
                           alt={prod.name}
-                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                          className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-300"
                           onError={(e) => {
                             e.currentTarget.src = `https://placehold.co/400x300/f5f5f5/999?text=${encodeURIComponent(prod.sku || prod.name)}`;
                           }}
@@ -575,19 +670,10 @@ export default function PublicLanding({
                           </h3>
                         </div>
 
-                        <div className="mt-auto flex items-center justify-between">
-                          <p className="text-lg font-bold text-[#1a1a2e]">
+                        <div className="mt-auto pt-2">
+                          <p className="text-xl font-black text-[#1a1a2e]">
                             {formatPrice(prod.price)}
                           </p>
-                          <button
-                            type="button"
-                            onClick={() => handleAddToCart(prod)}
-                            disabled={prod.stock === 0}
-                            className="w-full mt-4 bg-[#E8612D] hover:bg-[#d4561f] disabled:bg-gray-200 disabled:text-gray-400 text-white py-2 rounded-lg text-sm font-semibold transition-all flex justify-center items-center gap-2"
-                          >
-                            <ShoppingCart size={16} />
-                            {prod.stock === 0 ? 'Sin Stock' : 'Agregar'}
-                          </button>
                         </div>
                       </div>
                     </div>
@@ -598,6 +684,8 @@ export default function PublicLanding({
           </div>
         </div>
       </section>
+      </>
+      )}
 
       {/* Modal / Toast de Login Requerido */}
       {showLoginPrompt && !currentUser && (
@@ -639,15 +727,85 @@ export default function PublicLanding({
         </div>
       )}
 
-      {/* Carrito de Compras (Si está autenticado) */}
-      {currentUser && updateCartQty && removeFromCart && handleCheckout && (
-        <div className="fixed top-20 right-8 z-[60] w-80 max-h-[80vh] overflow-hidden flex shadow-2xl rounded-xl">
-          <Cart 
-            cart={cart}
-            updateCartQty={updateCartQty}
-            removeFromCart={removeFromCart}
-            handleCheckout={handleCheckout}
+      {/* Drawer de Carrito (Panel lateral de confirmación) */}
+      {cartDrawerOpen && lastAddedItem && (
+        <div className="fixed inset-0 z-[100] flex justify-end">
+          {/* Backdrop */}
+          <div 
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm" 
+            style={{ animation: 'fadeInBackdrop 0.3s ease forwards' }}
+            onClick={() => setCartDrawerOpen(false)}
           />
+          
+          {/* Panel Lateral */}
+          <div 
+            className="relative w-full max-w-sm bg-white h-full shadow-2xl flex flex-col"
+            style={{ animation: 'slideInRight 0.3s ease forwards' }}
+          >
+            {/* Header Drawer */}
+            <div className="px-6 py-4 border-b border-[#e5e7eb] flex items-center justify-between bg-white shrink-0">
+              <h2 className="text-lg font-bold text-[#1a1a2e] flex items-center gap-2">
+                <ShoppingCart size={20} className="text-[#E8612D]" />
+                Agregado al carrito
+              </h2>
+              <button 
+                onClick={() => setCartDrawerOpen(false)}
+                className="text-gray-400 hover:text-[#1a1a2e] transition-colors p-1"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            {/* Contenido Drawer */}
+            <div className="p-6 flex-1 overflow-y-auto">
+              <div className="flex gap-4 mb-6">
+                <div className="w-20 h-20 bg-gray-50 border border-[#e5e7eb] rounded-xl flex items-center justify-center p-2 shrink-0">
+                  <img 
+                    src={lastAddedItem.product.image_url || `https://placehold.co/400x300/f5f5f5/999?text=${encodeURIComponent(lastAddedItem.product.name)}`} 
+                    alt={lastAddedItem.product.name} 
+                    className="w-full h-full object-contain mix-blend-multiply"
+                    onError={(e) => {
+                      e.currentTarget.src = `https://placehold.co/400x300/f5f5f5/999?text=${encodeURIComponent(lastAddedItem.product.sku || lastAddedItem.product.name)}`;
+                    }}
+                  />
+                </div>
+                <div className="flex flex-col justify-center">
+                  <h3 className="text-sm font-bold text-[#1a1a2e] leading-snug line-clamp-2">
+                    {lastAddedItem.product.name}
+                  </h3>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Cantidad añadida: <span className="font-bold text-[#1a1a2e]">{lastAddedItem.quantity}</span>
+                  </p>
+                  <p className="text-[#E8612D] font-bold text-sm mt-1">
+                    Subtotal: ${ (lastAddedItem.product.price * lastAddedItem.quantity).toLocaleString('es-AR') }
+                  </p>
+                </div>
+              </div>
+              
+              <div className="bg-gray-50 rounded-xl p-4 border border-[#e5e7eb]">
+                 <div className="flex justify-between text-sm">
+                   <span className="text-gray-500">Total en carrito:</span>
+                   <span className="font-bold text-[#1a1a2e]">{totalCartItems} {totalCartItems === 1 ? 'artículo' : 'artículos'}</span>
+                 </div>
+              </div>
+            </div>
+            
+            {/* Footer Drawer */}
+            <div className="p-6 border-t border-[#e5e7eb] bg-white shrink-0 flex flex-col gap-3">
+              <button 
+                onClick={openCartView}
+                className="w-full bg-[#E8612D] text-white hover:bg-[#d4561f] font-bold py-3 rounded-xl transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
+              >
+                Ver Carrito Completo
+              </button>
+              <button 
+                onClick={() => setCartDrawerOpen(false)}
+                className="w-full bg-white text-[#1a1a2e] border border-[#e5e7eb] hover:bg-gray-50 font-bold py-3 rounded-xl transition-all active:scale-[0.98]"
+              >
+                Seguir Comprando
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

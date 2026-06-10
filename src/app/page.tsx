@@ -170,16 +170,12 @@ export default function Dashboard() {
     "catalogo.ver_catalogo" in currentUser.active_permissions
   );
 
-  // Redirigir la pestaña por defecto
+  // Redirigir la pestaña por defecto si no tiene permisos
   useEffect(() => {
-    if (currentUser && activeTab === "catalog") {
-      if (isAdmin) {
-        setActiveTab("profiles");
-      } else if (!canViewCatalog) {
-        setActiveTab("tutor");
-      }
+    if (currentUser && activeTab === "catalog" && !canViewCatalog) {
+      setActiveTab("tutor");
     }
-  }, [currentUser, isAdmin, canViewCatalog, activeTab]);
+  }, [currentUser, canViewCatalog, activeTab]);
 
   // ----------------------------------------------------
   // LÓGICA DEL CARRITO

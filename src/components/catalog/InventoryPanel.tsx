@@ -550,19 +550,25 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
 
       {/* MODAL DE CREACIÓN / EDICIÓN */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
-          <div className="bg-white border border-[#e5e7eb] rounded-xl p-6 w-full max-w-2xl shadow-xl relative my-8 text-left">
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 text-[#9ca3af] hover:text-[#1a1a2e] transition-all text-sm font-bold"
-            >
-              ✕
-            </button>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-white border border-[#e5e7eb] rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden relative text-left">
+            {/* Header Fijo */}
+            <div className="px-6 py-4 border-b border-[#e5e7eb] flex justify-between items-center bg-white shrink-0 z-10">
+              <h3 className="text-lg font-bold text-[#E8612D] flex items-center gap-2">
+                <Sparkles size={18} />
+                <span>{isEditing ? `Editar Producto: ${formName}` : "Registrar Nuevo Producto"}</span>
+              </h3>
+              <button
+                type="button"
+                onClick={() => setShowModal(false)}
+                className="text-[#9ca3af] hover:text-[#1a1a2e] transition-all text-sm font-bold"
+              >
+                ✕
+              </button>
+            </div>
 
-            <h3 className="text-lg font-bold text-[#E8612D] flex items-center gap-2 mb-4">
-              <Sparkles size={18} />
-              <span>{isEditing ? `Editar Producto: ${formName}` : "Registrar Nuevo Producto"}</span>
-            </h3>
+            {/* Contenido con Scroll */}
+            <div className="p-6 overflow-y-auto flex-1">
 
             {loadingCategories ? (
               <div className="py-12 flex flex-col items-center justify-center gap-2 text-[#6b7280] text-xs">
@@ -571,7 +577,7 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
               </div>
             ) : (
               <form onSubmit={handleSaveProduct} className="flex flex-col gap-4">
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* SKU */}
                   <div className="flex flex-col gap-1">
                     <label className="text-[10px] text-[#6b7280] font-bold uppercase">SKU (Código único)*</label>
@@ -754,6 +760,7 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                 </div>
               </form>
             )}
+            </div>
           </div>
         </div>
       )}

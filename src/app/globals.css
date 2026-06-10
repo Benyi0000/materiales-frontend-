@@ -175,6 +175,16 @@ body {
   animation: float 4s infinite ease-in-out;
 }
 
+@keyframes slideInRight {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+@keyframes fadeInBackdrop {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
 /* ===========================
    Landing Pública - Modo Claro
    =========================== */
