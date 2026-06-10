@@ -156,11 +156,14 @@ export default function Dashboard() {
     )
   );
 
-  // Determinar si el usuario debe entrar al Dashboard Interno (tiene algún perfil aparte de 'Comprar en la tienda' o es superuser)
+  // Determinar si el usuario debe entrar al Dashboard Interno (tiene algún perfil aparte de los de cliente o es superuser)
   const isDashboardUser = currentUser && (
     currentUser.is_superuser ||
     (currentUser.assignments || []).some(
-      (asg: any) => asg.profile_name !== "Comprar en la tienda" && asg.is_active && !asg.has_expired
+      (asg: any) => {
+        const pName = (asg.profile_name || "").toLowerCase();
+        return pName !== "comprar en la tienda" && pName !== "chat bot" && asg.is_active && !asg.has_expired;
+      }
     )
   );
 
@@ -509,6 +512,8 @@ export default function Dashboard() {
         updateCartQty={updateCartQty}
         removeFromCart={removeFromCart}
         handleCheckout={handleCheckout}
+        isPremium={isPremium}
+        apiBaseUrl={API_BASE_URL}
       />
     ) : (
     <div className="min-h-screen flex flex-col bg-[#f5f5f5]">

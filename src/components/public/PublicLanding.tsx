@@ -12,11 +12,13 @@ import {
   Menu,
   X,
   Building2,
-  LogOut
+  LogOut,
+  Sparkles
 } from 'lucide-react';
 import Cart from '../catalog/Cart';
 import ProductDetail from './ProductDetail';
 import CartView from './CartView';
+import TutorVisualChat from '@/components/tutor/TutorVisualChat';
 
 /* ------------------------------------------------------------------ */
 /*  Tipos                                                              */
@@ -58,6 +60,8 @@ interface PublicLandingProps {
   updateCartQty?: (productId: number, newQty: number) => void;
   removeFromCart?: (productId: number) => void;
   handleCheckout?: () => void;
+  isPremium?: boolean;
+  apiBaseUrl?: string;
 }
 
 /* ------------------------------------------------------------------ */
@@ -73,7 +77,9 @@ export default function PublicLanding({
   addToCart,
   updateCartQty,
   removeFromCart,
-  handleCheckout
+  handleCheckout,
+  isPremium = false,
+  apiBaseUrl = "http://localhost:8000/api",
 }: PublicLandingProps) {
   const router = useRouter();
 
@@ -84,11 +90,13 @@ export default function PublicLanding({
   const [appliedSearch, setAppliedSearch] = useState('');
   const [isSearching, setIsSearching] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showCartView, setShowCartView] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
+  const [tutorDrawerOpen, setTutorDrawerOpen] = useState(false);
   const [lastAddedItem, setLastAddedItem] = useState<{product: Product, quantity: number} | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -116,6 +124,10 @@ export default function PublicLanding({
     }
     fetchData();
   }, []);
+
+  useEffect(() => {
+    setHighlightedIndex(-1);
+  }, [searchInput]);
 
   /* ---- Sincronización de Historial (Botón Atrás) ---- */
   useEffect(() => {
@@ -308,8 +320,24 @@ export default function PublicLanding({
                   }
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    executeSearch(searchInput);
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setHighlightedIndex((prev) => 
+                      prev < searchSuggestions.length - 1 ? prev + 1 : prev
+                    );
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (highlightedIndex >= 0 && highlightedIndex < searchSuggestions.length) {
+                      executeSearch(searchSuggestions[highlightedIndex]);
+                    } else {
+                      executeSearch(searchInput);
+                    }
+                  } else if (e.key === 'Escape') {
+                    setShowSuggestions(false);
+                    setHighlightedIndex(-1);
                   }
                 }}
                 onFocus={() => setShowSuggestions(true)}
@@ -326,7 +354,9 @@ export default function PublicLanding({
                       <button
                         type="button"
                         onClick={() => executeSearch(sug)}
-                        className="w-full text-left px-4 py-2 text-sm text-[#1a1a2e] hover:bg-gray-50 transition-colors"
+                        className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                          idx === highlightedIndex ? 'bg-gray-100 text-[#E8612D]' : 'text-[#1a1a2e] hover:bg-gray-50'
+                        }`}
                       >
                         <Search size={12} className="inline-block mr-2 text-gray-400" />
                         {sug}
@@ -340,6 +370,17 @@ export default function PublicLanding({
 
           {/* Acciones — desktop */}
           <div className="hidden md:flex items-center gap-3">
+            {isPremium && (
+              <button
+                type="button"
+                onClick={() => setTutorDrawerOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 rounded-lg text-amber-600 bg-amber-50 hover:bg-amber-100 transition-colors font-medium mr-2"
+                title="Tutor de IA"
+              >
+                <Sparkles size={18} className="text-amber-500" />
+                <span className="hidden lg:inline text-sm">Tutor IA</span>
+              </button>
+            )}
             <button
               type="button"
               onClick={() => currentUser ? openCartView() : setShowLoginPrompt(true)}
@@ -412,8 +453,24 @@ export default function PublicLanding({
                   }
                 }}
                 onKeyDown={(e) => {
-                  if (e.key === 'Enter') {
-                    executeSearch(searchInput);
+                  if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    setHighlightedIndex((prev) => 
+                      prev < searchSuggestions.length - 1 ? prev + 1 : prev
+                    );
+                  } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : -1));
+                  } else if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (highlightedIndex >= 0 && highlightedIndex < searchSuggestions.length) {
+                      executeSearch(searchSuggestions[highlightedIndex]);
+                    } else {
+                      executeSearch(searchInput);
+                    }
+                  } else if (e.key === 'Escape') {
+                    setShowSuggestions(false);
+                    setHighlightedIndex(-1);
                   }
                 }}
                 onFocus={() => setShowSuggestions(true)}
@@ -429,7 +486,9 @@ export default function PublicLanding({
                         <button
                           type="button"
                           onClick={() => executeSearch(sug)}
-                          className="w-full text-left px-4 py-2 text-sm text-[#1a1a2e] hover:bg-gray-50 transition-colors"
+                          className={`w-full text-left px-4 py-2 text-sm transition-colors ${
+                            idx === highlightedIndex ? 'bg-gray-100 text-[#E8612D]' : 'text-[#1a1a2e] hover:bg-gray-50'
+                          }`}
                         >
                           <Search size={12} className="inline-block mr-2 text-gray-400" />
                           {sug}
@@ -474,6 +533,18 @@ export default function PublicLanding({
                   </span>
                 )}
               </button>
+              {isPremium && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    setTutorDrawerOpen(true);
+                  }}
+                  className="flex items-center gap-2 py-2 text-sm font-medium text-amber-600"
+                >
+                  <Sparkles size={18} /> Tutor IA
+                </button>
+              )}
               {currentUser ? (
                 <>
                   <div className="flex items-center gap-2 py-2 text-sm text-[#1a1a2e]/70 font-semibold">
@@ -959,6 +1030,43 @@ export default function PublicLanding({
           </p>
         </div>
       </footer>
+      {/* ============================================================ */}
+      {/*  TUTOR DRAWER                                                  */}
+      {/* ============================================================ */}
+      {tutorDrawerOpen && (
+        <div className="fixed inset-0 z-[60] flex justify-end">
+          <div
+            className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-[fadeInBackdrop_0.3s_ease]"
+            onClick={() => setTutorDrawerOpen(false)}
+          />
+          <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-[slideInRight_0.3s_ease]">
+            <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
+              <div className="flex items-center gap-2 text-[#1a1a2e] font-semibold">
+                <Sparkles className="text-amber-500" size={20} />
+                <span>Tutor de Inteligencia Artificial</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setTutorDrawerOpen(false)}
+                className="p-2 text-gray-400 hover:text-[#1a1a2e] rounded-lg hover:bg-gray-200 transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="flex-1 overflow-hidden">
+               <TutorVisualChat 
+                 products={products}
+                 addToCart={addToCart}
+                 isPremium={isPremium}
+                 apiBaseUrl={apiBaseUrl}
+                 isAdmin={false}
+                 googleApiKeyConfigured={currentUser?.google_api_key_configured ?? false}
+               />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
