@@ -5,6 +5,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Users } from "lucide-react";
 
+
 // Componentes Modularizados
 import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
@@ -26,6 +27,7 @@ export default function Dashboard() {
   // ESTADOS PRINCIPALES
   // ----------------------------------------------------
   const [activeTab, setActiveTab] = useState<"catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory">("catalog");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cart, setCart] = useState<{ product: any; quantity: number }[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -478,16 +480,16 @@ export default function Dashboard() {
     <>
     {/* BIFURCACIÓN: Landing Pública vs Dashboard Interno */}
     {isAuthenticated === null ? (
-      <div className="min-h-screen flex items-center justify-center premium-gradient-bg">
+      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f5]">
         <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm text-gray-400">Cargando...</p>
+          <div className="w-8 h-8 border-2 border-[#E8612D] border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm text-[#6b7280]">Cargando...</p>
         </div>
       </div>
     ) : isAuthenticated === false ? (
       <PublicLanding />
     ) : (
-    <div className="min-h-screen flex flex-col premium-gradient-bg">
+    <div className="min-h-screen flex flex-col bg-[#f5f5f5]">
       {/* HEADER DE LA APLICACIÓN */}
       <Header
         currentUser={currentUser}
@@ -496,22 +498,24 @@ export default function Dashboard() {
         loadingAPI={loadingAPI}
         checkBackendAPI={checkBackendAPI}
         onLogout={handleLogout}
+        onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+      />
+
+      {/* SIDEBAR OVERLAY */}
+      <Sidebar
+        isOpen={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+        isAdmin={isAdmin}
+        isPremium={isPremium}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
+        currentUser={currentUser}
       />
 
       {/* DASHBOARD PRINCIPAL */}
       <div className="flex-1 flex">
-        {/* NAV LATERAL */}
-        <Sidebar
-          isAdmin={isAdmin}
-          isPremium={isPremium}
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          currentUser={currentUser}
-          togglePremiumSubscription={togglePremiumSubscription}
-        />
-
         {/* CONTENIDO PRINCIPAL */}
-        <main className="flex-1 p-8 flex flex-col overflow-y-auto max-h-[calc(100vh-80px)]">
+        <main className="flex-1 p-6 sm:p-8 flex flex-col overflow-y-auto max-h-[calc(100vh-64px)] w-full">
           {/* TAB 1: CATÁLOGO DE PRODUCTOS (E-COMMERCE) */}
           {activeTab === "catalog" && (
             <CatalogView
@@ -574,14 +578,14 @@ export default function Dashboard() {
           {activeTab === "create-user" && (
             <div className="flex-grow flex flex-col gap-6 text-left max-w-2xl mx-auto w-full">
               <div>
-                <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-                  <Users className="text-amber-500" />
+                <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2 text-[#1a1a2e]">
+                  <Users className="text-[#E8612D]" />
                   <span>Alta de Usuario</span>
                 </h2>
-                <p className="text-xs text-gray-400">Creación de usuarios internos del sistema y asignación de perfiles iniciales con expiración.</p>
+                <p className="text-xs text-[#6b7280]">Creación de usuarios internos del sistema y asignación de perfiles iniciales con expiración.</p>
               </div>
 
-              <div className="bg-gray-950/40 border border-gray-900 rounded-3xl p-8 flex flex-col gap-6 shadow-xl">
+              <div className="bg-white border border-[#e5e7eb] rounded-xl p-8 flex flex-col gap-6 shadow-sm">
                 <UserCreateForm
                   profiles={profiles}
                   onSubmit={handleCreateUserSubmit}
@@ -599,8 +603,8 @@ export default function Dashboard() {
       </div>
 
       {/* FOOTER */}
-      <footer className="border-t border-[rgba(255,255,255,0.06)] py-4 px-6 flex items-center justify-between text-xs text-gray-500 bg-gray-950/20 mt-auto">
-        <p>© 2026 Materiales Inteligentes E-commerce. Todos los derechos reservados.</p>
+      <footer className="border-t border-[#e5e7eb] py-4 px-6 flex items-center justify-between text-xs text-[#9ca3af] bg-white mt-auto">
+        <p>© 2026 CraftIAr. Todos los derechos reservados.</p>
         <p className="font-mono">Next.js 15.1 + Django REST Framework + pgvector</p>
       </footer>
     </div>

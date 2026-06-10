@@ -57,18 +57,18 @@ export default function CatalogView({
       <div className="flex-1 flex flex-col gap-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-2xl font-bold tracking-tight">Catálogo de Materiales</h2>
-            <p className="text-xs text-gray-400">Navegación e indexación web optimizada para SEO mediante SSR.</p>
+            <h2 className="text-2xl font-bold tracking-tight text-[#1a1a2e]">Catálogo de Materiales</h2>
+            <p className="text-xs text-[#6b7280]">Navegación e indexación web optimizada para SEO mediante SSR.</p>
           </div>
           {/* Buscador */}
-          <div className="flex items-center bg-gray-900/80 border border-gray-800 rounded-lg px-3 py-2 w-72">
-            <Search size={16} className="text-gray-500 mr-2" />
+          <div className="flex items-center bg-gray-50 border border-[#e5e7eb] rounded-lg px-3 py-2 w-72">
+            <Search size={16} className="text-[#9ca3af] mr-2" />
             <input 
               type="text" 
               placeholder="Buscar por nombre o SKU..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="bg-transparent border-none outline-none text-xs text-white placeholder-gray-500 w-full"
+              className="bg-transparent border-none outline-none text-xs text-[#1a1a2e] placeholder-gray-400 w-full"
             />
           </div>
         </div>
@@ -82,8 +82,8 @@ export default function CatalogView({
               onClick={() => setSelectedCategory(cat)}
               className={`px-4 py-1.5 rounded-full text-xs font-semibold transition-all ${
                 selectedCategory === cat 
-                  ? "bg-amber-500 text-black" 
-                  : "bg-gray-900 border border-gray-800 text-gray-400 hover:text-white"
+                  ? "bg-[#E8612D] text-white" 
+                  : "bg-gray-50 border border-[#e5e7eb] text-[#6b7280] hover:text-[#1a1a2e] hover:bg-gray-100"
               }`}
             >
               {cat}
@@ -94,41 +94,41 @@ export default function CatalogView({
         {/* Grilla de Productos */}
         <div className="grid grid-cols-3 gap-6">
           {filteredProducts.map(prod => (
-            <div key={prod.id} className="premium-card rounded-2xl overflow-hidden flex flex-col">
-              <div className="h-44 bg-gray-950/60 relative overflow-hidden flex items-center justify-center">
+            <div key={prod.id} className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden flex flex-col shadow-sm hover:shadow-md transition-shadow">
+              <div className="h-44 bg-gray-50 relative overflow-hidden flex items-center justify-center">
                 <img 
                   src={prod.image_url?.replace("via.placeholder.com", "placehold.co")} 
                   alt={prod.name} 
-                  className="object-cover w-full h-full opacity-80"
+                  className="object-cover w-full h-full"
                   onError={(e) => {
                     e.currentTarget.src = `https://placehold.co/300x200?text=${encodeURIComponent(prod.sku || prod.name)}`;
                   }}
                 />
-                <span className="absolute top-3 left-3 bg-black/60 border border-white/10 text-white text-[9px] px-2 py-0.5 rounded font-mono">
+                <span className="absolute top-3 left-3 bg-white/80 border border-[#e5e7eb] text-[#1a1a2e] text-[9px] px-2 py-0.5 rounded font-mono font-semibold">
                   {prod.sku}
                 </span>
                 {prod.stock <= 20 && (
-                  <span className="absolute top-3 right-3 bg-red-500/20 border border-red-500/30 text-red-400 text-[8px] font-bold px-1.5 py-0.5 rounded">
+                  <span className="absolute top-3 right-3 bg-red-50 border border-red-200 text-red-500 text-[8px] font-bold px-1.5 py-0.5 rounded">
                     Bajo Stock: {prod.stock} u
                   </span>
                 )}
               </div>
               <div className="p-4 flex-1 flex flex-col justify-between gap-4">
                 <div>
-                  <p className="text-[10px] text-amber-500 font-bold uppercase tracking-wider">{prod.category_name}</p>
-                  <h3 className="font-bold text-sm text-white mt-1 leading-snug line-clamp-1">{prod.name}</h3>
-                  <p className="text-xs text-gray-400 mt-2 line-clamp-2 leading-relaxed">{prod.description}</p>
+                  <p className="text-[10px] text-[#E8612D] font-bold uppercase tracking-wider">{prod.category_name}</p>
+                  <h3 className="font-bold text-sm text-[#1a1a2e] mt-1 leading-snug line-clamp-1">{prod.name}</h3>
+                  <p className="text-xs text-[#6b7280] mt-2 line-clamp-2 leading-relaxed">{prod.description}</p>
                 </div>
                 <div className="flex items-center justify-between mt-auto">
                   <div>
-                    <p className="text-[10px] text-gray-500">Precio unitario</p>
-                    <p className="font-bold text-base text-white">${prod.price.toLocaleString('es-AR')}</p>
+                    <p className="text-[10px] text-[#9ca3af]">Precio unitario</p>
+                    <p className="font-bold text-base text-[#1a1a2e]">${prod.price.toLocaleString('es-AR')}</p>
                   </div>
                   <button
                     type="button"
                     onClick={() => addToCart(prod)}
                     disabled={prod.stock === 0}
-                    className="bg-amber-500 hover:bg-amber-600 disabled:bg-gray-800 text-black px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
+                    className="bg-[#E8612D] hover:bg-[#d4551f] disabled:bg-gray-200 disabled:text-gray-400 text-white px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5"
                   >
                     <ShoppingCart size={14} />
                     <span>{prod.stock === 0 ? "Sin Stock" : "Comprar"}</span>

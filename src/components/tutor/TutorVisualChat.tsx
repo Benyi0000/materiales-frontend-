@@ -245,19 +245,19 @@ export default function TutorVisualChat({
     <div className="flex-1 flex flex-col gap-4 text-left">
       <div>
         <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Bot className="text-amber-500" />
+          <Bot className="text-[#E8612D]" />
           <span>Tutor Visual IA</span>
         </h2>
-        <p className="text-xs text-gray-400">Asistente avanzado conectado a RAG, cálculo de insumos y guías de obra.</p>
+        <p className="text-xs text-[#6b7280]">Asistente avanzado conectado a RAG, cálculo de insumos y guías de obra.</p>
       </div>
 
       {isAdmin && !googleApiKeyConfigured && (
-        <div className="bg-rose-500/10 border border-rose-500/20 text-rose-300 rounded-2xl p-4 flex flex-col gap-2 shadow-lg max-w-4xl">
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-4 flex flex-col gap-2 shadow-sm max-w-4xl">
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-rose-500" />
             <span className="font-bold text-xs uppercase tracking-wider">Establecer clave API KEY (Administrador)</span>
           </div>
-          <p className="text-[11px] text-gray-300">
+          <p className="text-[11px] text-[#6b7280]">
             La clave de Google Gemini (<code>GOOGLE_API_KEY</code>) no está configurada en el servidor.
             Por favor, agrégala en el archivo <code>.env</code> de tu servidor para activar el Tutor Visual IA.
           </p>
@@ -265,24 +265,24 @@ export default function TutorVisualChat({
       )}
 
       {!isPremium ? (
-        <div className="flex-1 flex flex-col items-center justify-center text-center p-12 border border-[rgba(245,158,11,0.15)] bg-amber-500/5 rounded-3xl max-w-2xl mx-auto my-8 gap-4">
-          <div className="bg-amber-500/10 p-4 rounded-full text-amber-500 border border-amber-500/20">
+        <div className="flex-1 flex flex-col items-center justify-center text-center p-12 border border-[#E8612D]/15 bg-[#fff7ed] rounded-xl max-w-2xl mx-auto my-8 gap-4">
+          <div className="bg-[#fff7ed] p-4 rounded-full text-[#E8612D] border border-[#E8612D]/20">
             <Lock size={36} />
           </div>
-          <h3 className="text-lg font-bold text-white">Módulo Exclusivo para Usuarios Premium</h3>
-          <p className="text-sm text-gray-400 max-w-md">
+          <h3 className="text-lg font-bold text-[#1a1a2e]">Módulo Exclusivo para Usuarios Premium</h3>
+          <p className="text-sm text-[#6b7280] max-w-md">
             El Tutor Visual IA realiza búsquedas semánticas y ejecuta cálculos matemáticos de dosificación según tus medidas para sugerir los materiales precisos del catálogo.
           </p>
-          <p className="text-xs text-gray-500 italic mt-2">
+          <p className="text-xs text-[#9ca3af] italic mt-2">
             (Solicite a un administrador la asignación del perfil "Tutor Visual IA" en la pestaña de Configuración de Seguridad y Perfiles para obtener acceso)
           </p>
         </div>
       ) : (
         <div className="flex-grow flex gap-8 items-stretch">
           {/* CHAT INTERACTIVE PANEL */}
-          <div className="flex-1 flex flex-col bg-gray-950/40 border border-gray-900 rounded-3xl overflow-hidden p-6 gap-4 min-h-[450px]">
+          <div className="flex-1 flex flex-col bg-white border border-[#e5e7eb] rounded-xl overflow-hidden p-6 gap-4 min-h-[450px] shadow-sm">
             {/* Advertencia obligatoria de límites */}
-            <div className="bg-blue-500/10 border border-blue-500/20 text-blue-400 rounded-xl p-3 text-[11px] flex gap-2">
+            <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-3 text-[11px] flex gap-2">
               <HelpCircle size={16} className="shrink-0" />
               <p>
                 <strong>Advertencia:</strong> Los cálculos provistos por el Tutor Visual son estimaciones basadas en fórmulas generales de construcción y no reemplazan el criterio certificado de un profesional o ingeniero.
@@ -290,8 +290,8 @@ export default function TutorVisualChat({
             </div>
 
             {creatingSession ? (
-              <div className="flex-grow flex flex-col items-center justify-center gap-2 text-gray-400 text-xs">
-                <Loader size={24} className="animate-spin text-amber-500" />
+              <div className="flex-grow flex flex-col items-center justify-center gap-2 text-[#6b7280] text-xs">
+                <Loader size={24} className="animate-spin text-[#E8612D]" />
                 <span>Iniciando sesión del asistente RAG...</span>
               </div>
             ) : (
@@ -301,18 +301,18 @@ export default function TutorVisualChat({
                   {chatMessages.map((msg, idx) => (
                     <div 
                       key={idx} 
-                      className={`max-w-[85%] p-4 ${
+                      className={`max-w-[85%] p-4 rounded-xl ${
                         msg.sender === "user" 
-                          ? "self-end bubble-user text-white" 
-                          : "self-start bubble-ai text-gray-200"
+                          ? "self-end bg-gray-100 text-[#1a1a2e]" 
+                          : "self-start bg-[#fff7ed] border border-[#E8612D]/20 text-[#1a1a2e]"
                       }`}
                     >
                       <p className="text-xs leading-relaxed whitespace-pre-wrap">{msg.text}</p>
                       
                       {/* Listado de Materiales Sugeridos */}
                       {msg.materials && msg.materials.length > 0 && (
-                        <div className="border-t border-[rgba(245,158,11,0.15)] pt-3 mt-3 flex flex-col gap-2">
-                          <p className="text-[10px] font-bold text-amber-500 uppercase tracking-wider flex items-center gap-1">
+                        <div className="border-t border-[#E8612D]/15 pt-3 mt-3 flex flex-col gap-2">
+                          <p className="text-[10px] font-bold text-[#E8612D] uppercase tracking-wider flex items-center gap-1">
                             <Sparkles size={12} />
                             <span>Materiales Detectados en Respuesta:</span>
                           </p>
@@ -320,19 +320,19 @@ export default function TutorVisualChat({
                             {msg.materials.map((mat: any, mIdx: number) => {
                               const prod = products.find(p => p.sku === mat.sku);
                               return (
-                                <div key={mIdx} className="flex items-center justify-between bg-black/40 p-2 rounded-lg border border-[rgba(255,255,255,0.03)]">
+                                <div key={mIdx} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg border border-[#e5e7eb]">
                                   <div className="text-left">
-                                    <p className="text-xs font-semibold text-white">{prod ? prod.name : mat.sku}</p>
-                                    <p className="text-[10px] text-gray-400 mt-0.5">{mat.desc}</p>
+                                    <p className="text-xs font-semibold text-[#1a1a2e]">{prod ? prod.name : mat.sku}</p>
+                                    <p className="text-[10px] text-[#6b7280] mt-0.5">{mat.desc}</p>
                                   </div>
                                   <div className="flex items-center gap-2 shrink-0">
-                                    <span className="bg-amber-500/10 text-amber-500 font-bold text-xs px-2 py-0.5 rounded">
+                                    <span className="bg-[#fff7ed] text-[#E8612D] font-bold text-xs px-2 py-0.5 rounded">
                                       Cant: {mat.qty}
                                     </span>
                                     <button
                                       type="button"
                                       onClick={() => prod && addToCart(prod, mat.qty)}
-                                      className="bg-amber-500 text-black p-1 rounded hover:bg-amber-600 transition-all"
+                                      className="bg-[#E8612D] text-white p-1 rounded hover:bg-[#d4551f] transition-all"
                                     >
                                       <Plus size={12} />
                                     </button>
@@ -344,7 +344,7 @@ export default function TutorVisualChat({
                           <button
                             type="button"
                             onClick={() => addCalculatedMaterialsToCart(msg.materials)}
-                            className="w-full mt-2 bg-amber-500/20 hover:bg-amber-500/30 text-amber-500 border border-amber-500/30 text-[11px] font-bold py-2 rounded-lg transition-all"
+                            className="w-full mt-2 bg-[#E8612D]/10 hover:bg-[#E8612D]/20 text-[#E8612D] border border-[#E8612D]/30 text-[11px] font-bold py-2 rounded-lg transition-all"
                           >
                             Agregar Todos al Carrito
                           </button>
@@ -354,28 +354,28 @@ export default function TutorVisualChat({
                   ))}
 
                   {isTyping && (
-                    <div className="self-start bubble-ai p-4 flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-bounce"></span>
-                      <span className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                      <span className="w-2.5 h-2.5 bg-amber-500 rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                    <div className="self-start bg-[#fff7ed] border border-[#E8612D]/20 rounded-xl p-4 flex items-center gap-2">
+                      <span className="w-2.5 h-2.5 bg-[#E8612D] rounded-full animate-bounce"></span>
+                      <span className="w-2.5 h-2.5 bg-[#E8612D] rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                      <span className="w-2.5 h-2.5 bg-[#E8612D] rounded-full animate-bounce [animation-delay:0.4s]"></span>
                     </div>
                   )}
                 </div>
 
                 {/* Input de Mensaje */}
-                <div className="flex gap-2 border-t border-gray-900 pt-4 mt-auto">
+                <div className="flex gap-2 border-t border-[#e5e7eb] pt-4 mt-auto">
                   <input 
                     type="text" 
                     placeholder="Pregúntale a tu RAG... Ej: Necesito materiales para levantar una pared de 4x3 metros"
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                    className="flex-grow bg-gray-900/60 border border-gray-800 rounded-xl px-4 py-3 text-xs text-white placeholder-gray-500 outline-none focus:border-amber-500/40 transition-all"
+                    className="flex-grow bg-gray-50 border border-[#e5e7eb] rounded-xl px-4 py-3 text-xs text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40 transition-all"
                   />
                   <button
                     type="button"
                     onClick={handleSendMessage}
-                    className="bg-amber-500 hover:bg-amber-600 text-black px-4 py-3 rounded-xl text-xs font-bold transition-all"
+                    className="bg-[#E8612D] hover:bg-[#d4551f] text-white px-4 py-3 rounded-xl text-xs font-bold transition-all"
                   >
                     Consultar RAG
                   </button>
@@ -386,32 +386,32 @@ export default function TutorVisualChat({
 
           {/* SIDEBAR CON EJEMPLOS Y GUÍAS DE USO */}
           <div className="w-72 flex flex-col gap-6">
-            <div className="bg-gray-950/20 border border-gray-900 p-5 rounded-3xl text-left">
-              <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                <Sparkles size={16} className="text-amber-500" />
+            <div className="bg-white border border-[#e5e7eb] p-5 rounded-xl text-left shadow-sm">
+              <h4 className="text-sm font-bold text-[#1a1a2e] flex items-center gap-2">
+                <Sparkles size={16} className="text-[#E8612D]" />
                 <span>Consultas RAG de prueba</span>
               </h4>
-              <p className="text-[10px] text-gray-400 mt-1">Sugerencias para enviar al asistente:</p>
+              <p className="text-[10px] text-[#6b7280] mt-1">Sugerencias para enviar al asistente:</p>
               
               <div className="flex flex-col gap-2 mt-4">
                 <button 
                   type="button"
                   onClick={() => setChatInput("Necesito materiales para una pared de ladrillos huecos de 10m²")}
-                  className="bg-gray-900/40 hover:bg-gray-900/80 border border-gray-800 p-2.5 rounded-xl text-left text-xs text-gray-300 transition-all"
+                  className="bg-gray-50 hover:bg-gray-100 border border-[#e5e7eb] p-2.5 rounded-xl text-left text-xs text-[#6b7280] transition-all"
                 >
                   "Pared de ladrillos huecos (10m²)"
                 </button>
                 <button 
                   type="button"
                   onClick={() => setChatInput("¿Cómo coloco porcelanato en una habitación de 5x5 metros?")}
-                  className="bg-gray-900/40 hover:bg-gray-900/80 border border-gray-800 p-2.5 rounded-xl text-left text-xs text-gray-300 transition-all"
+                  className="bg-gray-50 hover:bg-gray-100 border border-[#e5e7eb] p-2.5 rounded-xl text-left text-xs text-[#6b7280] transition-all"
                 >
                   "Colocar porcelanato en cuarto (5x5m)"
                 </button>
                 <button 
                   type="button"
                   onClick={() => setChatInput("¿Qué es un tabique de durlock y qué insumos lleva?")}
-                  className="bg-gray-900/40 hover:bg-gray-900/80 border border-gray-800 p-2.5 rounded-xl text-left text-xs text-gray-300 transition-all"
+                  className="bg-gray-50 hover:bg-gray-100 border border-[#e5e7eb] p-2.5 rounded-xl text-left text-xs text-[#6b7280] transition-all"
                 >
                   "Tabique de Durlock e Insumos"
                 </button>

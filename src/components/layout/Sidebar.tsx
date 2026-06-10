@@ -1,22 +1,24 @@
 import React from "react";
-import { Building2, Bot, ShieldCheck, Users, Clock, Lock, ChevronRight, Package } from "lucide-react";
+import { Building2, Bot, ShieldCheck, Users, Clock, ChevronRight, Package, X } from "lucide-react";
 
 interface SidebarProps {
+  isOpen: boolean;
+  onClose: () => void;
   isAdmin: boolean;
   isPremium: boolean;
   activeTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory";
   setActiveTab: (tab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory") => void;
   currentUser: any;
-  togglePremiumSubscription: () => void;
 }
 
 export default function Sidebar({
+  isOpen,
+  onClose,
   isAdmin,
   isPremium,
   activeTab,
   setActiveTab,
   currentUser,
-  togglePremiumSubscription,
 }: SidebarProps) {
   const canManageCatalog = currentUser?.is_superuser || (
     currentUser?.active_permissions &&
@@ -25,136 +27,161 @@ export default function Sidebar({
      "catalogo.editar_producto" in currentUser.active_permissions)
   );
 
+  const handleTabClick = (tab: typeof activeTab) => {
+    setActiveTab(tab);
+    onClose();
+  };
+
   return (
-    <aside className="w-64 border-r border-[rgba(255,255,255,0.06)] bg-gray-950/20 p-4 flex flex-col gap-2">
-      <p className="text-[10px] font-bold text-gray-500 px-3 py-2 uppercase tracking-wider text-left">Módulos del MVP</p>
-      
-      {!isAdmin && (
-        <button
-          type="button"
-          onClick={() => setActiveTab("catalog")}
-          className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-            activeTab === "catalog" 
-              ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" 
-              : "text-gray-400 hover:bg-gray-900/40 hover:text-white"
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Building2 size={18} />
-            <span>Catálogo E-commerce</span>
-          </div>
-          <ChevronRight size={14} className="opacity-50" />
-        </button>
+    <>
+      {/* Backdrop */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/40 z-40 transition-opacity"
+          onClick={onClose}
+        />
       )}
 
-      <button
-        type="button"
-        onClick={() => setActiveTab("tutor")}
-        className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-          activeTab === "tutor" 
-            ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" 
-            : "text-gray-400 hover:bg-gray-900/40 hover:text-white"
+      {/* Sidebar Panel */}
+      <aside
+        className={`fixed top-0 left-0 h-full w-72 bg-white border-r border-[#e5e7eb] shadow-xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${
+          isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >
-        <div className="flex items-center gap-3">
-          <Bot size={18} />
-          <span>Tutor Visual IA</span>
-        </div>
-        {isPremium ? (
-          <span className="bg-amber-500 text-black text-[9px] font-bold px-1.5 py-0.5 rounded">PREMIUM</span>
-        ) : (
-          <Lock size={12} className="text-gray-500" />
-        )}
-      </button>
-
-      {canManageCatalog && (
-        <button
-          type="button"
-          onClick={() => setActiveTab("inventory")}
-          className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-            activeTab === "inventory" 
-              ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" 
-              : "text-gray-400 hover:bg-gray-900/40 hover:text-white"
-          }`}
-        >
-          <div className="flex items-center gap-3">
-            <Package size={18} />
-            <span>Gestión de Inventario</span>
-          </div>
-          <ChevronRight size={14} className="opacity-50" />
-        </button>
-      )}
-
-      {isAdmin && (
-        <>
-          <p className="text-[10px] font-bold text-gray-500 px-3 py-2 uppercase tracking-wider mt-4 text-left">Usuarios</p>
-          
-          <button
-            type="button"
-            onClick={() => setActiveTab("profiles")}
-            className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-              activeTab === "profiles" 
-                ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" 
-                : "text-gray-400 hover:bg-gray-900/40 hover:text-white"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <ShieldCheck size={18} />
-              <span>Gestión de perfiles</span>
+        {/* Header del sidebar */}
+        <div className="h-16 flex items-center justify-between px-4 border-b border-[#e5e7eb] shrink-0">
+          <div className="flex items-center gap-2">
+            <div className="bg-[#E8612D] p-1.5 rounded-lg text-white">
+              <Building2 size={20} />
             </div>
-            <ChevronRight size={14} className="opacity-50" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("create-user")}
-            className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-              activeTab === "create-user" 
-                ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" 
-                : "text-gray-400 hover:bg-gray-900/40 hover:text-white"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Users size={18} />
-              <span>Alta de usuario</span>
-            </div>
-            <ChevronRight size={14} className="opacity-50" />
-          </button>
-
-          <button
-            type="button"
-            onClick={() => setActiveTab("audits")}
-            className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-              activeTab === "audits" 
-                ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" 
-                : "text-gray-400 hover:bg-gray-900/40 hover:text-white"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Clock size={18} />
-              <span>Logs de Auditoría</span>
-            </div>
-            <ChevronRight size={14} className="opacity-50" />
-          </button>
-        </>
-      )}
-
-      {/* ESTADO DE SUSCRIPCIÓN DEL USUARIO */}
-      {currentUser && (
-        <div className="mt-auto p-4 rounded-xl glass-panel text-left flex flex-col gap-2 border border-white/5">
-          <div className="flex items-center justify-between text-xs font-semibold">
-            <span className="text-gray-400">Plan actual:</span>
-            <span className={isPremium ? "text-amber-500 font-bold" : "text-gray-400"}>
-              {isPremium ? "Premium" : "Estándar"}
+            <span className="text-base font-bold tracking-tight text-[#1a1a2e]">
+              Craft<span className="text-[#E8612D]">IAr</span>
             </span>
           </div>
-          <p className="text-[10px] text-gray-500">
-            {isPremium 
-              ? "Tienes acceso completo al Tutor Visual IA." 
-              : "Accede al Tutor Visual IA obteniendo el perfil de suscripción correspondiente."}
-          </p>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-1.5 rounded-lg text-[#6b7280] hover:text-[#E8612D] hover:bg-orange-50 transition-all"
+          >
+            <X size={20} />
+          </button>
         </div>
-      )}
-    </aside>
+
+        {/* Opciones de navegación */}
+        <nav className="flex-1 p-4 flex flex-col gap-1 overflow-y-auto">
+          <p className="text-[10px] font-bold text-[#9ca3af] px-3 py-2 uppercase tracking-wider text-left">Módulos del Sistema</p>
+          
+          {!isAdmin && (
+            <button
+              type="button"
+              onClick={() => handleTabClick("catalog")}
+              className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "catalog" 
+                  ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
+                  : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Building2 size={18} />
+                <span>Catálogo E-commerce</span>
+              </div>
+              <ChevronRight size={14} className="opacity-50" />
+            </button>
+          )}
+
+          <button
+            type="button"
+            onClick={() => handleTabClick("tutor")}
+            className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
+              activeTab === "tutor" 
+                ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
+                : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
+            }`}
+          >
+            <div className="flex items-center gap-3">
+              <Bot size={18} />
+              <span>Tutor Visual IA</span>
+            </div>
+            {isPremium ? (
+              <span className="bg-[#E8612D] text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PREMIUM</span>
+            ) : (
+              <span className="text-[#9ca3af] text-[9px]">🔒</span>
+            )}
+          </button>
+
+          {canManageCatalog && (
+            <button
+              type="button"
+              onClick={() => handleTabClick("inventory")}
+              className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "inventory" 
+                  ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
+                  : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Package size={18} />
+                <span>Gestión de Inventario</span>
+              </div>
+              <ChevronRight size={14} className="opacity-50" />
+            </button>
+          )}
+
+          {isAdmin && (
+            <>
+              <p className="text-[10px] font-bold text-[#9ca3af] px-3 py-2 uppercase tracking-wider mt-4 text-left">Usuarios</p>
+              
+              <button
+                type="button"
+                onClick={() => handleTabClick("profiles")}
+                className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === "profiles" 
+                    ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
+                    : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <ShieldCheck size={18} />
+                  <span>Gestión de perfiles</span>
+                </div>
+                <ChevronRight size={14} className="opacity-50" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleTabClick("create-user")}
+                className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === "create-user" 
+                    ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
+                    : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Users size={18} />
+                  <span>Alta de usuario</span>
+                </div>
+                <ChevronRight size={14} className="opacity-50" />
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleTabClick("audits")}
+                className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
+                  activeTab === "audits" 
+                    ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
+                    : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <Clock size={18} />
+                  <span>Logs de Auditoría</span>
+                </div>
+                <ChevronRight size={14} className="opacity-50" />
+              </button>
+            </>
+          )}
+        </nav>
+      </aside>
+    </>
   );
 }

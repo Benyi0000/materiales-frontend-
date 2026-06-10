@@ -57,71 +57,71 @@ export default function UserCreateForm({ profiles, onSubmit, onCancel }: UserCre
     <form onSubmit={handleSubmit} className="flex flex-col gap-4 text-left">
       <div className="grid grid-cols-2 gap-4 text-xs">
         <div className="flex flex-col gap-1.5">
-          <label className="text-gray-400 font-medium">Nombre de Usuario (Obligatorio)</label>
+          <label className="text-[#6b7280] font-medium">Nombre de Usuario (Obligatorio)</label>
           <input
             type="text"
             placeholder="Ej: jgomez"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             required
-            className="bg-gray-900/60 border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500/40 transition-all"
+            className="bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-xs text-[#1a1a2e] outline-none focus:border-[#E8612D] focus:ring-1 focus:ring-[#E8612D] transition-all"
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-gray-400 font-medium">Correo Electrónico (Obligatorio)</label>
+          <label className="text-[#6b7280] font-medium">Correo Electrónico (Obligatorio)</label>
           <input
             type="email"
             placeholder="ejemplo@tienda.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
-            className="bg-gray-900/60 border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500/40 transition-all"
+            className="bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-xs text-[#1a1a2e] outline-none focus:border-[#E8612D] focus:ring-1 focus:ring-[#E8612D] transition-all"
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-gray-400 font-medium">Nombre (Opcional)</label>
+          <label className="text-[#6b7280] font-medium">Nombre (Opcional)</label>
           <input
             type="text"
             placeholder="Juan"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
-            className="bg-gray-900/60 border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500/40 transition-all"
+            className="bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-xs text-[#1a1a2e] outline-none focus:border-[#E8612D] focus:ring-1 focus:ring-[#E8612D] transition-all"
           />
         </div>
         <div className="flex flex-col gap-1.5">
-          <label className="text-gray-400 font-medium">Apellido (Opcional)</label>
+          <label className="text-[#6b7280] font-medium">Apellido (Opcional)</label>
           <input
             type="text"
             placeholder="Gómez"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
-            className="bg-gray-900/60 border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500/40 transition-all"
+            className="bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-xs text-[#1a1a2e] outline-none focus:border-[#E8612D] focus:ring-1 focus:ring-[#E8612D] transition-all"
           />
         </div>
       </div>
       
       <div className="flex flex-col gap-1.5 text-xs">
-        <label className="text-gray-400 font-medium">Contraseña (Obligatorio)</label>
+        <label className="text-[#6b7280] font-medium">Contraseña (Obligatorio)</label>
         <input
           type="password"
           placeholder="••••••••"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          className="bg-gray-900/60 border border-gray-800 rounded-xl px-3 py-2.5 text-xs text-white outline-none focus:border-amber-500/40 transition-all"
+          className="bg-white border border-gray-300 rounded-lg px-3 py-2.5 text-xs text-[#1a1a2e] outline-none focus:border-[#E8612D] focus:ring-1 focus:ring-[#E8612D] transition-all"
         />
       </div>
       
       {/* Checkboxes de Perfiles a Asignar en Creación con Expiración por Perfil (RF 6.5) */}
-      <div className="flex flex-col gap-2 text-xs border-t border-gray-900 pt-4 mt-2">
-        <label className="text-gray-400 font-bold uppercase tracking-wider text-[10px]">Perfiles Iniciales y Expiración</label>
+      <div className="flex flex-col gap-2 text-xs border-t border-[#e5e7eb] pt-4 mt-2">
+        <label className="text-[#6b7280] font-bold uppercase tracking-wider text-[10px]">Perfiles Iniciales y Expiración</label>
         <div className="flex flex-col gap-3 max-h-48 overflow-y-auto pr-2 mt-1">
           {profiles.map(p => {
             const selectedProfile = selectedProfiles.find(sp => sp.id === p.id);
             const isSelected = !!selectedProfile;
             
             return (
-              <div key={p.id} className="bg-black/20 border border-gray-900 rounded-xl p-3 flex flex-col gap-2">
+              <div key={p.id} className="bg-gray-50 border border-[#e5e7eb] rounded-lg p-3 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
                   <label className="flex items-center gap-3 cursor-pointer">
                     <input
@@ -137,15 +137,15 @@ export default function UserCreateForm({ profiles, onSubmit, onCancel }: UserCre
                       className="custom-checkbox shrink-0"
                     />
                     <div className="text-left">
-                      <span className="text-xs text-white font-bold">{p.name}</span>
-                      <p className="text-[10px] text-gray-500 mt-0.5">{p.description}</p>
+                      <span className="text-xs text-[#1a1a2e] font-bold">{p.name}</span>
+                      <p className="text-[10px] text-[#6b7280] mt-0.5">{p.description}</p>
                     </div>
                   </label>
                 </div>
                 
                 {isSelected && (
-                  <div className="flex items-center justify-between border-t border-gray-800/60 pt-2 text-[10px]">
-                    <span className="text-gray-400">Fecha de Expiración (Opcional):</span>
+                  <div className="flex items-center justify-between border-t border-[#e5e7eb] pt-2 text-[10px]">
+                    <span className="text-[#6b7280]">Fecha de Expiración (Opcional):</span>
                     <input
                       type="date"
                       value={selectedProfile.expires_at}
@@ -156,7 +156,7 @@ export default function UserCreateForm({ profiles, onSubmit, onCancel }: UserCre
                           )
                         );
                       }}
-                      className="bg-gray-900 border border-gray-800 text-[10px] rounded px-2 py-1 text-gray-300 outline-none w-36"
+                      className="bg-white border border-gray-300 text-[10px] rounded-lg px-2 py-1 text-[#1a1a2e] outline-none w-36"
                     />
                   </div>
                 )}
@@ -166,18 +166,18 @@ export default function UserCreateForm({ profiles, onSubmit, onCancel }: UserCre
         </div>
       </div>
 
-      <div className="flex gap-4 border-t border-gray-900 pt-6 mt-2">
+      <div className="flex gap-4 border-t border-[#e5e7eb] pt-6 mt-2">
         <button
           type="button"
           onClick={onCancel}
-          className="flex-1 bg-gray-900 border border-gray-800 text-gray-400 hover:text-white text-xs font-bold py-3 rounded-xl transition-all"
+          className="flex-1 bg-white border border-[#e5e7eb] text-[#6b7280] hover:text-[#1a1a2e] hover:bg-gray-50 text-xs font-bold py-3 rounded-xl transition-all"
         >
           Cancelar
         </button>
         <button
           type="submit"
           disabled={loading}
-          className="flex-1 bg-amber-500 hover:bg-amber-600 text-black text-xs font-bold py-3 rounded-xl transition-all disabled:opacity-50"
+          className="flex-1 bg-[#E8612D] hover:bg-[#d4551f] text-white text-xs font-bold py-3 rounded-xl transition-all disabled:opacity-50"
         >
           {loading ? "Creando..." : "Crear Usuario"}
         </button>

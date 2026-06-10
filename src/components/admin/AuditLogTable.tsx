@@ -20,15 +20,15 @@ export default function AuditLogTable({ auditLogs }: AuditLogTableProps) {
     <div className="flex-grow flex flex-col gap-6 text-left">
       <div>
         <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Clock className="text-amber-500" />
+          <Clock className="text-[#E8612D]" />
           <span>Log de Auditoría de Seguridad</span>
         </h2>
-        <p className="text-xs text-gray-400">Historial completo e inmutable de asignación y revocación de perfiles (RF 6.3).</p>
+        <p className="text-xs text-[#6b7280]">Historial completo e inmutable de asignación y revocación de perfiles (RF 6.3).</p>
       </div>
 
-      <div className="bg-gray-950/40 border border-gray-900 rounded-3xl overflow-hidden">
-        <table className="w-full text-xs text-left text-gray-400 border-collapse">
-          <thead className="bg-gray-950/60 text-white font-semibold border-b border-gray-800">
+      <div className="bg-white border border-[#e5e7eb] rounded-xl shadow-sm overflow-hidden">
+        <table className="w-full text-xs text-left text-[#6b7280] border-collapse">
+          <thead className="bg-gray-50 text-[#1a1a2e] font-semibold border-b border-[#e5e7eb]">
             <tr>
               <th className="p-4">Fecha y Hora</th>
               <th className="p-4">Usuario Destino</th>
@@ -38,15 +38,15 @@ export default function AuditLogTable({ auditLogs }: AuditLogTableProps) {
               <th className="p-4">Notas</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-900/60">
+          <tbody className="divide-y divide-gray-100">
             {auditLogs.map((log) => (
-              <tr key={log.id} className="hover:bg-gray-900/10">
-                <td className="p-4 font-mono text-[10px] text-gray-500">
+              <tr key={log.id} className="hover:bg-gray-50">
+                <td className="p-4 font-mono text-[10px] text-gray-400">
                   {new Date(log.timestamp).toLocaleString()}
                 </td>
-                <td className="p-4 text-white font-medium">@{log.username}</td>
+                <td className="p-4 text-[#1a1a2e] font-medium">@{log.username}</td>
                 <td className="p-4">
-                  <span className="bg-amber-500/10 text-amber-500 text-[10px] font-semibold px-2 py-0.5 rounded">
+                  <span className="bg-[#fff7ed] text-[#E8612D] text-[10px] font-semibold px-2 py-0.5 rounded">
                     {log.profile_name}
                   </span>
                 </td>
@@ -61,7 +61,7 @@ export default function AuditLogTable({ auditLogs }: AuditLogTableProps) {
                     {log.action === "assign" ? "Asignar" : log.action === "revoke" ? "Revocar" : log.action === "auto_expire" ? "Expiración" : "Suscripción"}
                   </span>
                 </td>
-                <td className="p-4 font-semibold text-white">@{log.performed_by_name}</td>
+                <td className="p-4 font-semibold text-[#1a1a2e]">@{log.performed_by_name}</td>
                 <td className="p-4 text-[11px] max-w-xs truncate">{log.notes}</td>
               </tr>
             ))}

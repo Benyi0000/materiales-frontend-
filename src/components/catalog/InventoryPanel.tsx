@@ -347,13 +347,13 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
       {/* Header del Panel */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold tracking-tight">Gestión de Inventario</h2>
-          <p className="text-xs text-gray-400">Administración de catálogo de materiales, control de stock y control de acceso por alcance.</p>
+          <h2 className="text-2xl font-bold tracking-tight text-[#1a1a2e]">Gestión de Inventario</h2>
+          <p className="text-xs text-[#6b7280]">Administración de catálogo de materiales, control de stock y control de acceso por alcance.</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={refreshCatalog}
-            className="bg-gray-900 hover:bg-gray-800 border border-gray-800 p-2.5 rounded-xl text-gray-400 hover:text-white transition-all"
+            className="bg-gray-50 hover:bg-gray-100 border border-[#e5e7eb] p-2.5 rounded-xl text-[#6b7280] hover:text-[#1a1a2e] transition-all"
             title="Refrescar catálogo"
           >
             <RefreshCw size={16} />
@@ -361,7 +361,7 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
           {canCreate && (
             <button
               onClick={handleOpenCreate}
-              className="bg-amber-500 hover:bg-amber-600 text-black px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg shadow-amber-500/10"
+              className="bg-[#E8612D] hover:bg-[#d4551f] text-white px-4 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-sm"
             >
               <Plus size={16} />
               <span>Registrar Producto</span>
@@ -371,22 +371,22 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
       </div>
 
       {/* Buscador */}
-      <div className="flex items-center bg-gray-950/40 border border-gray-900 rounded-2xl px-4 py-3 max-w-md">
-        <Search size={16} className="text-gray-500 mr-2.5" />
+      <div className="flex items-center bg-gray-50 border border-[#e5e7eb] rounded-xl px-4 py-3 max-w-md">
+        <Search size={16} className="text-[#9ca3af] mr-2.5" />
         <input 
           type="text" 
           placeholder="Buscar producto por nombre o SKU..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="bg-transparent border-none outline-none text-xs text-white placeholder-gray-500 w-full"
+          className="bg-transparent border-none outline-none text-xs text-[#1a1a2e] placeholder-gray-400 w-full"
         />
       </div>
 
       {/* Tabla de Productos */}
-      <div className="bg-gray-950/40 border border-gray-900 rounded-3xl overflow-hidden shadow-xl">
+      <div className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left text-gray-300">
-            <thead className="bg-gray-950/60 text-[10px] font-bold text-amber-500 uppercase tracking-wider border-b border-gray-900">
+          <table className="w-full text-xs text-left text-[#1a1a2e]">
+            <thead className="bg-gray-50 text-[10px] font-bold text-[#E8612D] uppercase tracking-wider border-b border-[#e5e7eb]">
               <tr>
                 <th className="px-6 py-4">SKU</th>
                 <th className="px-6 py-4">Nombre / Categoría</th>
@@ -397,10 +397,10 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                 <th className="px-6 py-4 text-right">Acciones</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-gray-900/60">
+            <tbody className="divide-y divide-[#e5e7eb]">
               {filteredProducts.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="px-6 py-12 text-center text-gray-500">
+                  <td colSpan={7} className="px-6 py-12 text-center text-[#9ca3af]">
                     No se encontraron productos en el inventario.
                   </td>
                 </tr>
@@ -412,25 +412,25 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                   return (
                     <tr 
                       key={p.id} 
-                      className={`hover:bg-gray-900/20 transition-all ${
-                        !isProductActive ? "opacity-50 bg-black/10" : ""
+                      className={`hover:bg-gray-50 transition-all ${
+                        !isProductActive ? "opacity-50 bg-gray-50" : ""
                       }`}
                     >
                       {/* SKU */}
-                      <td className="px-6 py-4 font-mono font-bold text-gray-400">
+                      <td className="px-6 py-4 font-mono font-bold text-[#6b7280]">
                         {p.sku}
                       </td>
 
                       {/* Nombre y Categoría */}
                       <td className="px-6 py-4">
-                        <div className="font-bold text-white text-sm">{p.name}</div>
-                        <div className="text-[10px] text-gray-500 mt-1 flex flex-wrap gap-1">
-                          <span className="bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase font-mono">
+                        <div className="font-bold text-[#1a1a2e] text-sm">{p.name}</div>
+                        <div className="text-[10px] text-[#9ca3af] mt-1 flex flex-wrap gap-1">
+                          <span className="bg-blue-50 border border-blue-200 text-blue-600 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase font-mono">
                             {p.category_name}
                           </span>
                           {p.subcategory_names && p.subcategory_names.map((name, idx) => (
                             name !== p.category_name && (
-                              <span key={idx} className="bg-gray-800 text-gray-400 text-[8px] font-bold px-1.5 py-0.5 rounded font-mono">
+                              <span key={idx} className="bg-gray-100 text-[#6b7280] text-[8px] font-bold px-1.5 py-0.5 rounded font-mono">
                                 {name}
                               </span>
                             )
@@ -439,20 +439,20 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                       </td>
 
                       {/* Precio */}
-                      <td className="px-6 py-4 font-bold text-white text-sm">
+                      <td className="px-6 py-4 font-bold text-[#1a1a2e] text-sm">
                         ${parseFloat(p.price.toString()).toLocaleString('es-AR', { minimumFractionDigits: 0 })}
                       </td>
 
                       {/* Stock (con ajuste rápido) */}
                       <td className="px-6 py-4">
                         {adjustingStockId === p.id ? (
-                          <div className="flex flex-col gap-1.5 max-w-[140px] bg-black/40 p-2 rounded-lg border border-gray-800">
+                          <div className="flex flex-col gap-1.5 max-w-[140px] bg-gray-50 p-2 rounded-lg border border-[#e5e7eb]">
                             <div className="flex items-center gap-1">
                               <input
                                 type="number"
                                 value={newStockVal}
                                 onChange={(e) => setNewStockVal(e.target.value)}
-                                className="bg-gray-900 border border-gray-800 text-xs rounded px-1.5 py-1 text-white w-16"
+                                className="bg-white border border-[#e5e7eb] text-xs rounded px-1.5 py-1 text-[#1a1a2e] w-16"
                               />
                               <button
                                 onClick={handleSaveStockAdjustment}
@@ -463,7 +463,7 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                               </button>
                               <button
                                 onClick={() => setAdjustingStockId(null)}
-                                className="bg-gray-800 hover:bg-gray-700 text-gray-400 p-1 rounded"
+                                className="bg-gray-100 hover:bg-gray-200 border border-[#e5e7eb] text-[#6b7280] p-1 rounded"
                               >
                                 <X size={12} />
                               </button>
@@ -473,18 +473,18 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                               placeholder="Motivo del cambio..."
                               value={adjustReason}
                               onChange={(e) => setAdjustReason(e.target.value)}
-                              className="bg-gray-900 border border-gray-800 text-[9px] rounded px-1 py-0.5 text-gray-400"
+                              className="bg-white border border-[#e5e7eb] text-[9px] rounded px-1 py-0.5 text-[#6b7280]"
                             />
                           </div>
                         ) : (
                           <div className="flex items-center gap-2">
-                            <span className={`font-bold ${p.stock <= 20 ? "text-red-400" : "text-gray-200"}`}>
+                            <span className={`font-bold ${p.stock <= 20 ? "text-red-500" : "text-[#1a1a2e]"}`}>
                               {p.stock} unidades
                             </span>
                             {canManageStock && (
                               <button
                                 onClick={() => startStockAdjustment(p)}
-                                className="text-amber-500/80 hover:text-amber-500 text-[10px] font-semibold underline"
+                                className="text-[#E8612D]/80 hover:text-[#E8612D] text-[10px] font-semibold underline"
                               >
                                 Ajustar
                               </button>
@@ -496,19 +496,19 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                       {/* Estado */}
                       <td className="px-6 py-4">
                         {isProductActive ? (
-                          <span className="bg-green-500/10 border border-green-500/20 text-green-400 text-[9px] font-bold px-2 py-0.5 rounded-full">
+                          <span className="bg-green-50 border border-green-200 text-green-600 text-[9px] font-bold px-2 py-0.5 rounded-full">
                             Activo
                           </span>
                         ) : (
-                          <span className="bg-red-500/10 border border-red-500/20 text-red-400 text-[9px] font-bold px-2 py-0.5 rounded-full">
+                          <span className="bg-red-50 border border-red-200 text-red-500 text-[9px] font-bold px-2 py-0.5 rounded-full">
                             Inactivo
                           </span>
                         )}
                       </td>
 
                       {/* Creador */}
-                      <td className="px-6 py-4 text-gray-400">
-                        {p.created_by_username || <span className="text-gray-600 italic">Sistema</span>}
+                      <td className="px-6 py-4 text-[#6b7280]">
+                        {p.created_by_username || <span className="text-[#9ca3af] italic">Sistema</span>}
                       </td>
 
                       {/* Acciones */}
@@ -521,8 +521,8 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                               title={isOwner ? "Editar producto" : "No tienes permisos sobre este producto ajeno"}
                               className={`p-1.5 rounded transition-all ${
                                 isOwner 
-                                  ? "text-blue-400 hover:bg-blue-500/10 hover:text-blue-300" 
-                                  : "text-gray-700 cursor-not-allowed"
+                                  ? "text-blue-500 hover:bg-blue-50 hover:text-blue-600" 
+                                  : "text-gray-300 cursor-not-allowed"
                               }`}
                             >
                               <Pencil size={14} />
@@ -532,7 +532,7 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                             <button
                               onClick={() => handleDeleteProduct(p)}
                               title="Eliminar o desactivar producto"
-                              className="text-red-500/80 hover:bg-red-500/10 hover:text-red-400 p-1.5 rounded transition-all"
+                              className="text-red-400 hover:bg-red-50 hover:text-red-500 p-1.5 rounded transition-all"
                             >
                               <Trash2 size={14} />
                             </button>
@@ -550,23 +550,23 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
 
       {/* MODAL DE CREACIÓN / EDICIÓN */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
-          <div className="bg-gray-950 border border-gray-900 rounded-3xl p-6 w-full max-w-2xl shadow-2xl relative my-8 text-left">
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4 overflow-y-auto">
+          <div className="bg-white border border-[#e5e7eb] rounded-xl p-6 w-full max-w-2xl shadow-xl relative my-8 text-left">
             <button
               onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-white transition-all text-sm font-bold"
+              className="absolute top-4 right-4 text-[#9ca3af] hover:text-[#1a1a2e] transition-all text-sm font-bold"
             >
               ✕
             </button>
 
-            <h3 className="text-lg font-bold text-amber-500 flex items-center gap-2 mb-4">
+            <h3 className="text-lg font-bold text-[#E8612D] flex items-center gap-2 mb-4">
               <Sparkles size={18} />
               <span>{isEditing ? `Editar Producto: ${formName}` : "Registrar Nuevo Producto"}</span>
             </h3>
 
             {loadingCategories ? (
-              <div className="py-12 flex flex-col items-center justify-center gap-2 text-gray-400 text-xs">
-                <Loader size={24} className="animate-spin text-amber-500" />
+              <div className="py-12 flex flex-col items-center justify-center gap-2 text-[#6b7280] text-xs">
+                <Loader size={24} className="animate-spin text-[#E8612D]" />
                 <span>Cargando categorías...</span>
               </div>
             ) : (
@@ -574,7 +574,7 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                 <div className="grid grid-cols-2 gap-4">
                   {/* SKU */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-gray-400 font-bold uppercase">SKU (Código único)*</label>
+                    <label className="text-[10px] text-[#6b7280] font-bold uppercase">SKU (Código único)*</label>
                     <input
                       type="text"
                       required
@@ -582,52 +582,52 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                       value={formSku}
                       onChange={(e) => setFormSku(e.target.value)}
                       disabled={isEditing}
-                      className="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 outline-none focus:border-amber-500/40 disabled:opacity-50"
+                      className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-xs text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40 disabled:opacity-50"
                     />
                   </div>
 
                   {/* Nombre */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-gray-400 font-bold uppercase">Nombre del Producto*</label>
+                    <label className="text-[10px] text-[#6b7280] font-bold uppercase">Nombre del Producto*</label>
                     <input
                       type="text"
                       required
                       placeholder="Ej: Cemento de Fraguado Rápido"
                       value={formName}
                       onChange={(e) => setFormName(e.target.value)}
-                      className="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 outline-none focus:border-amber-500/40"
+                      className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-xs text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40"
                     />
                   </div>
 
                   {/* Precio */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-gray-400 font-bold uppercase">Precio ($)*</label>
+                    <label className="text-[10px] text-[#6b7280] font-bold uppercase">Precio ($)*</label>
                     <input
                       type="number"
                       required
                       placeholder="Ej: 12500"
                       value={formPrice}
                       onChange={(e) => setFormPrice(e.target.value)}
-                      className="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 outline-none focus:border-amber-500/40"
+                      className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-xs text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40"
                     />
                   </div>
 
                   {/* Stock Inicial */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-gray-400 font-bold uppercase">Stock*</label>
+                    <label className="text-[10px] text-[#6b7280] font-bold uppercase">Stock*</label>
                     <input
                       type="number"
                       required
                       placeholder="Ej: 100"
                       value={formStock}
                       onChange={(e) => setFormStock(e.target.value)}
-                      className="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 outline-none focus:border-amber-500/40"
+                      className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-xs text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40"
                     />
                   </div>
 
                   {/* Peso */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-gray-400 font-bold uppercase">Peso (kg)*</label>
+                    <label className="text-[10px] text-[#6b7280] font-bold uppercase">Peso (kg)*</label>
                     <input
                       type="number"
                       step="0.01"
@@ -635,16 +635,16 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                       placeholder="Ej: 50.0"
                       value={formWeight}
                       onChange={(e) => setFormWeight(e.target.value)}
-                      className="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 outline-none focus:border-amber-500/40"
+                      className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-xs text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40"
                     />
                   </div>
 
                   {/* URL de Imagen con carga de archivo */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-gray-400 font-bold uppercase">Imagen del Producto</label>
+                    <label className="text-[10px] text-[#6b7280] font-bold uppercase">Imagen del Producto</label>
                     <div className="flex items-center gap-3">
                       {formImageUrl && (
-                        <div className="w-12 h-12 rounded-lg border border-gray-800 overflow-hidden shrink-0 bg-gray-950 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-lg border border-[#e5e7eb] overflow-hidden shrink-0 bg-gray-50 flex items-center justify-center">
                           <img 
                             src={formImageUrl} 
                             alt="Preview" 
@@ -658,10 +658,10 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                           type="file"
                           accept="image/png, image/jpeg, image/jpg"
                           onChange={handleImageUpload}
-                          className="text-xs text-gray-400 file:mr-3 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-amber-500/10 file:text-amber-500 hover:file:bg-amber-500/20 cursor-pointer"
+                          className="text-xs text-[#6b7280] file:mr-3 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-[#fff7ed] file:text-[#E8612D] hover:file:bg-[#E8612D]/20 cursor-pointer"
                         />
                         {uploadingImage ? (
-                          <span className="text-[9px] text-amber-500 flex items-center gap-1">
+                          <span className="text-[9px] text-[#E8612D] flex items-center gap-1">
                             <Loader size={10} className="animate-spin" /> Subiendo...
                           </span>
                         ) : (
@@ -670,7 +670,7 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                             placeholder="O pega la URL de la imagen..."
                             value={formImageUrl}
                             onChange={(e) => setFormImageUrl(e.target.value)}
-                            className="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-[10px] text-white placeholder-gray-500 outline-none focus:border-amber-500/40 w-full mt-1"
+                            className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-[10px] text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40 w-full mt-1"
                           />
                         )}
                       </div>
@@ -680,19 +680,19 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
 
                 {/* Descripción */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-gray-400 font-bold uppercase">Descripción Detallada*</label>
+                  <label className="text-[10px] text-[#6b7280] font-bold uppercase">Descripción Detallada*</label>
                   <textarea
                     required
                     placeholder="Escribe el detalle técnico del producto..."
                     value={formDesc}
                     onChange={(e) => setFormDesc(e.target.value)}
-                    className="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white placeholder-gray-500 outline-none focus:border-amber-500/40 h-20 resize-none"
+                    className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-xs text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40 h-20 resize-none"
                   />
                 </div>
 
                 {/* Categoría Principal */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-gray-400 font-bold uppercase">Categoría Principal de Venta*</label>
+                  <label className="text-[10px] text-[#6b7280] font-bold uppercase">Categoría Principal de Venta*</label>
                   <select
                     required
                     value={formCategory}
@@ -703,7 +703,7 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                         setFormSubcategories(prev => [...prev, val]);
                       }
                     }}
-                    className="bg-gray-900 border border-gray-800 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-amber-500/40"
+                    className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-xs text-[#1a1a2e] outline-none focus:border-[#E8612D]/40"
                   >
                     <option value="">Seleccione una categoría...</option>
                     {getAllSubcategories().map(sub => (
@@ -716,11 +716,11 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
 
                 {/* Multicategorización (Subcategorías adicionales) */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] text-gray-400 font-bold uppercase">Subcategorías Adicionales (Multicategorización)</label>
-                  <p className="text-[9px] text-gray-500 mt-0.5">Seleccione todas las áreas donde desea que aparezca el producto:</p>
-                  <div className="grid grid-cols-2 gap-2 bg-black/30 border border-gray-900 rounded-xl p-3 max-h-[120px] overflow-y-auto">
+                  <label className="text-[10px] text-[#6b7280] font-bold uppercase">Subcategorías Adicionales (Multicategorización)</label>
+                  <p className="text-[9px] text-[#9ca3af] mt-0.5">Seleccione todas las áreas donde desea que aparezca el producto:</p>
+                  <div className="grid grid-cols-2 gap-2 bg-gray-50 border border-[#e5e7eb] rounded-xl p-3 max-h-[120px] overflow-y-auto">
                     {getAllSubcategories().map(sub => (
-                      <label key={sub.id} className="flex items-center gap-2.5 text-xs text-gray-300 hover:text-white cursor-pointer select-none">
+                      <label key={sub.id} className="flex items-center gap-2.5 text-xs text-[#1a1a2e] hover:text-[#E8612D] cursor-pointer select-none">
                         <input
                           type="checkbox"
                           checked={formSubcategories.includes(sub.id)}
@@ -735,18 +735,18 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                 </div>
 
                 {/* Botones de Acción */}
-                <div className="flex justify-end gap-2 border-t border-gray-900 pt-4 mt-2">
+                <div className="flex justify-end gap-2 border-t border-[#e5e7eb] pt-4 mt-2">
                   <button
                     type="button"
                     onClick={() => setShowModal(false)}
-                    className="bg-gray-900 hover:bg-gray-800 text-gray-400 hover:text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
+                    className="bg-gray-50 hover:bg-gray-100 border border-[#e5e7eb] text-[#6b7280] hover:text-[#1a1a2e] px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={modalLoading}
-                    className="bg-amber-500 hover:bg-amber-600 text-black px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-lg shadow-amber-500/10"
+                    className="bg-[#E8612D] hover:bg-[#d4551f] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
                   >
                     {modalLoading && <Loader size={14} className="animate-spin" />}
                     <span>{isEditing ? "Guardar Cambios" : "Crear Producto"}</span>
