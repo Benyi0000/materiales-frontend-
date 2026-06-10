@@ -13,7 +13,10 @@ import {
   X,
   Building2,
   LogOut,
-  Sparkles
+  Sparkles,
+  Bot,
+  Minus,
+  HelpCircle
 } from 'lucide-react';
 import Cart from '../catalog/Cart';
 import ProductDetail from './ProductDetail';
@@ -96,7 +99,8 @@ export default function PublicLanding({
   const [showCartView, setShowCartView] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
-  const [tutorDrawerOpen, setTutorDrawerOpen] = useState(false);
+  const [showTutorView, setShowTutorView] = useState(false);
+  const [tutorWidgetOpen, setTutorWidgetOpen] = useState(false);
   const [lastAddedItem, setLastAddedItem] = useState<{product: Product, quantity: number} | null>(null);
   const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -170,6 +174,7 @@ export default function PublicLanding({
     window.history.pushState({}, '', window.location.pathname);
     setSelectedProduct(null);
     setShowCartView(false);
+    setShowTutorView(false);
     setSearchInput('');
     setAppliedSearch('');
     setSelectedCategory(null);
@@ -292,15 +297,8 @@ export default function PublicLanding({
             </span>
           </div>
 
-          {/* Nav links — desktop */}
-          <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-[#1a1a2e]/70">
-            <a href="#catalogo" className="hover:text-[#E8612D] transition-colors">
-              Catálogo
-            </a>
-          </nav>
-
           {/* Barra de búsqueda — desktop */}
-          <div className="hidden md:flex flex-1 max-w-md mx-4 relative">
+          <div className="hidden md:flex flex-1 max-w-2xl mx-4 relative">
             <div className="relative w-full">
               <button 
                 onClick={() => executeSearch(searchInput)}
@@ -370,35 +368,44 @@ export default function PublicLanding({
 
           {/* Acciones — desktop */}
           <div className="hidden md:flex items-center gap-3">
-            {isPremium && (
-              <button
-                type="button"
-                onClick={() => setTutorDrawerOpen(true)}
-                className="flex items-center gap-2 px-3 py-2 rounded-lg text-amber-600 bg-amber-50 hover:bg-amber-100 transition-colors font-medium mr-2"
-                title="Tutor de IA"
-              >
-                <Sparkles size={18} className="text-amber-500" />
-                <span className="hidden lg:inline text-sm">Tutor IA</span>
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => currentUser ? openCartView() : setShowLoginPrompt(true)}
-              className="relative p-2 text-[#1a1a2e]/70 hover:text-[#E8612D] transition-colors"
-            >
-              <ShoppingCart size={24} />
-              {totalCartItems > 0 && (
-                <span className="absolute top-0 right-0 bg-[#E8612D] text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
-                  {totalCartItems}
-                </span>
-              )}
-            </button>
             {currentUser ? (
               <>
-                <div className="flex items-center gap-2 px-2 py-1 bg-orange-50 rounded-lg text-[#E8612D] mr-2">
+                {/* 1. Usuario */}
+                <div className="flex items-center gap-2 px-2 py-1 bg-orange-50 rounded-lg text-[#E8612D]">
                   <User size={18} />
                   <span className="text-sm font-semibold">{currentUser.username}</span>
                 </div>
+
+                {/* 2. Tutor IA */}
+                {isPremium && (
+                  <button
+                    type="button"
+                    onClick={() => setShowTutorView(true)}
+                    className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
+                      showTutorView ? 'bg-amber-100 text-amber-700' : 'text-amber-600 bg-amber-50 hover:bg-amber-100'
+                    }`}
+                    title="Tutor de IA"
+                  >
+                    <Sparkles size={18} className="text-amber-500" />
+                    <span className="hidden lg:inline text-sm">Tutor IA</span>
+                  </button>
+                )}
+
+                {/* 3. Carrito */}
+                <button
+                  type="button"
+                  onClick={() => openCartView()}
+                  className="relative p-2 text-[#1a1a2e]/70 hover:text-[#E8612D] transition-colors"
+                >
+                  <ShoppingCart size={24} />
+                  {totalCartItems > 0 && (
+                    <span className="absolute top-0 right-0 bg-[#E8612D] text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
+                      {totalCartItems}
+                    </span>
+                  )}
+                </button>
+
+                {/* 4. Cerrar sesión */}
                 <button
                   type="button"
                   onClick={onLogout}
@@ -409,14 +416,31 @@ export default function PublicLanding({
                 </button>
               </>
             ) : (
-              <button
-                type="button"
-                onClick={goToLogin}
-                className="p-2 rounded-lg text-[#1a1a2e]/60 hover:text-[#E8612D] hover:bg-orange-50 transition-colors"
-                title="Iniciar sesión"
-              >
-                <User size={20} />
-              </button>
+              <>
+                {/* Carrito (anónimo) */}
+                <button
+                  type="button"
+                  onClick={() => setShowLoginPrompt(true)}
+                  className="relative p-2 text-[#1a1a2e]/70 hover:text-[#E8612D] transition-colors"
+                >
+                  <ShoppingCart size={24} />
+                  {totalCartItems > 0 && (
+                    <span className="absolute top-0 right-0 bg-[#E8612D] text-white text-[10px] font-bold w-5 h-5 flex items-center justify-center rounded-full border-2 border-white">
+                      {totalCartItems}
+                    </span>
+                  )}
+                </button>
+
+                {/* Iniciar sesión */}
+                <button
+                  type="button"
+                  onClick={goToLogin}
+                  className="p-2 rounded-lg text-[#1a1a2e]/60 hover:text-[#E8612D] hover:bg-orange-50 transition-colors"
+                  title="Iniciar sesión"
+                >
+                  <User size={20} />
+                </button>
+              </>
             )}
           </div>
 
@@ -428,6 +452,60 @@ export default function PublicLanding({
           >
             {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
           </button>
+        </div>
+
+        {/* Fila Inferior: Navegación (Solo Desktop) */}
+        <div className="hidden md:flex max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-3 items-center gap-8 text-sm font-medium text-[#1a1a2e]/70">
+          
+          {/* Mega Menú de Categorías al Hover */}
+          <div className="group relative">
+            <button className="flex items-center gap-1.5 hover:text-[#E8612D] transition-colors py-1">
+              Categorías <ChevronDown size={14} className="transition-transform group-hover:rotate-180" />
+            </button>
+            
+            <div className="absolute top-full left-0 pt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 z-50">
+              <div className="bg-white rounded-xl shadow-xl border border-gray-100 w-[700px] flex overflow-hidden min-h-[350px]">
+                {/* Columna Izquierda: Categorías Principales */}
+                <div className="w-[240px] bg-gray-50 flex flex-col py-2 border-r border-gray-100 relative shrink-0">
+                  {categories.map((c) => (
+                    <div key={c.id} className="group/cat px-4 py-3 hover:bg-white cursor-pointer flex justify-between items-center text-sm text-[#1a1a2e] transition-colors border-l-2 border-transparent hover:border-[#E8612D]">
+                      <span className="truncate">{c.name}</span>
+                      <ChevronRight size={14} className="text-gray-400 opacity-0 group-hover/cat:opacity-100 transition-opacity" />
+                      
+                      {/* Panel Derecho: Subcategorías (Absoluto respecto a la columna izquierda) */}
+                      <div className="absolute left-[240px] top-0 w-[460px] h-full bg-white hidden group-hover/cat:flex flex-col p-6 cursor-default z-10 border-l border-gray-50">
+                        <h3 className="font-bold text-lg mb-4 text-[#1a1a2e] border-b border-gray-100 pb-2">{c.name}</h3>
+                        {c.subcategories && c.subcategories.length > 0 ? (
+                          <div className="grid grid-cols-2 gap-y-3 gap-x-4">
+                            {c.subcategories.map(sub => (
+                              <button 
+                                key={sub.id} 
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setSelectedCategory(sub.name);
+                                  executeSearch('');
+                                  // El hover desaparece al quitar el mouse del menú, no necesitamos estado local extra.
+                                }}
+                                className="text-sm text-gray-500 hover:text-[#E8612D] text-left truncate transition-colors"
+                              >
+                                {sub.name}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-400 italic">No hay subcategorías disponibles.</p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <a href="#" className="hover:text-[#E8612D] transition-colors py-1">
+            Ayuda
+          </a>
         </div>
 
         {/* Panel mobile desplegable */}
@@ -499,22 +577,28 @@ export default function PublicLanding({
                 </div>
               )}
             </div>
-            <a
-              href="#catalogo"
-              className="block py-2 text-sm font-medium text-[#1a1a2e]/70 hover:text-[#E8612D]"
-            >
-              Catálogo
-            </a>
-            <button
-              type="button"
-              onClick={() => {
-                setMobileSidebarOpen((v) => !v);
-                setMobileMenuOpen(false);
-              }}
-              className="w-full flex items-center gap-2 py-2 text-sm font-medium text-[#1a1a2e]/70 hover:text-[#E8612D]"
-            >
-              <Filter size={16} /> Categorías
-            </button>
+            <div className="flex flex-col gap-1 border-t border-gray-100 mt-2 pt-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setMobileSidebarOpen((v) => !v);
+                  setMobileMenuOpen(false);
+                }}
+                className="w-full flex items-center justify-between py-2 text-sm font-medium text-[#1a1a2e]/70 hover:text-[#E8612D]"
+              >
+                <div className="flex items-center gap-2">
+                  <Filter size={16} /> Categorías
+                </div>
+                <ChevronRight size={16} />
+              </button>
+              
+              <a
+                href="#"
+                className="w-full flex items-center gap-2 py-2 text-sm font-medium text-[#1a1a2e]/70 hover:text-[#E8612D]"
+              >
+                <HelpCircle size={16} /> Ayuda
+              </a>
+            </div>
             <div className="flex flex-col gap-3 pt-1 border-t border-gray-100 mt-2">
               <button
                 type="button"
@@ -538,7 +622,7 @@ export default function PublicLanding({
                   type="button"
                   onClick={() => {
                     setMobileMenuOpen(false);
-                    setTutorDrawerOpen(true);
+                    setShowTutorView(true);
                   }}
                   className="flex items-center gap-2 py-2 text-sm font-medium text-amber-600"
                 >
@@ -572,10 +656,21 @@ export default function PublicLanding({
         )}
       </header>
 
-      {/* ============================================================ */}
-      {/*  B) CUERPO DINÁMICO (CARRITO / DETALLE / CATÁLOGO)            */}
-      {/* ============================================================ */}
-      {showCartView ? (
+      {showTutorView ? (
+        <div className="flex-1 overflow-hidden bg-white flex flex-col animate-[fadeIn_0.2s_ease] w-full">
+           
+           {/* Área del Chat */}
+           <TutorVisualChat 
+               products={products}
+               addToCart={addToCart}
+               isPremium={isPremium}
+               apiBaseUrl={apiBaseUrl}
+               isAdmin={false}
+               googleApiKeyConfigured={currentUser?.google_api_key_configured ?? false}
+               layoutMode="full"
+             />
+        </div>
+      ) : showCartView ? (
         <CartView
           cart={cart}
           updateCartQty={updateCartQty}
@@ -1020,41 +1115,46 @@ export default function PublicLanding({
       {/* ============================================================ */}
       {/*  D) FOOTER                                                    */}
       {/* ============================================================ */}
-      <footer className="bg-[#1a1a2e] mt-auto">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
-          <p className="text-sm text-gray-400">
-            © 2026 CraftIAr. Todos los derechos reservados.
-          </p>
-          <p className="mt-2 text-xs text-gray-500 font-mono">
-            Next.js 15.1 + Django REST Framework + pgvector
-          </p>
-        </div>
-      </footer>
+      {!showTutorView && (
+        <footer className="bg-[#1a1a2e] mt-auto">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
+            <p className="text-sm text-gray-400">
+              © 2026 CraftIAr. Todos los derechos reservados.
+            </p>
+            <p className="mt-2 text-xs text-gray-500 font-mono">
+              Next.js 15.1 + Django REST Framework + pgvector
+            </p>
+          </div>
+        </footer>
+      )}
+
       {/* ============================================================ */}
-      {/*  TUTOR DRAWER                                                  */}
+      {/*  TUTOR FLOATING WIDGET (Abajo a la Derecha)                   */}
       {/* ============================================================ */}
-      {tutorDrawerOpen && (
-        <div className="fixed inset-0 z-[60] flex justify-end">
-          <div
-            className="absolute inset-0 bg-black/40 backdrop-blur-sm animate-[fadeInBackdrop_0.3s_ease]"
-            onClick={() => setTutorDrawerOpen(false)}
-          />
-          <div className="relative w-full max-w-md bg-white h-full shadow-2xl flex flex-col animate-[slideInRight_0.3s_ease]">
-            <div className="flex items-center justify-between p-4 border-b border-gray-100 bg-gray-50">
-              <div className="flex items-center gap-2 text-[#1a1a2e] font-semibold">
-                <Sparkles className="text-amber-500" size={20} />
-                <span>Tutor de Inteligencia Artificial</span>
+      {isPremium && !showTutorView && (
+        <div className="fixed bottom-6 right-6 z-[60] flex flex-col items-end gap-4 pointer-events-none">
+          {/* Ventana Expandida */}
+          <div className={`${tutorWidgetOpen ? 'flex' : 'hidden'} w-[380px] max-w-[calc(100vw-32px)] h-[550px] max-h-[calc(100vh-120px)] bg-white rounded-2xl shadow-2xl flex-col border border-gray-200 overflow-hidden transition-all origin-bottom-right pointer-events-auto animate-[slideUp_0.3s_ease]`}>
+            {/* Header del Chat Flotante */}
+            <div className="flex items-center justify-between p-3 border-b border-[#E8612D]/20 bg-[#E8612D] text-white">
+              <div className="flex items-center gap-2 font-semibold">
+                <Bot size={20} />
+                <span className="text-sm">Tutor IA Flotante</span>
               </div>
-              <button
-                type="button"
-                onClick={() => setTutorDrawerOpen(false)}
-                className="p-2 text-gray-400 hover:text-[#1a1a2e] rounded-lg hover:bg-gray-200 transition-colors"
-              >
-                <X size={20} />
-              </button>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => setTutorWidgetOpen(false)}
+                  className="p-1.5 hover:bg-white/20 rounded-lg transition-colors"
+                  title="Minimizar"
+                >
+                  <Minus size={18} />
+                </button>
+              </div>
             </div>
             
-            <div className="flex-1 overflow-hidden">
+            {/* Contenedor del Chat Interno */}
+            <div className="flex-1 overflow-hidden bg-white flex flex-col">
                <TutorVisualChat 
                  products={products}
                  addToCart={addToCart}
@@ -1062,9 +1162,21 @@ export default function PublicLanding({
                  apiBaseUrl={apiBaseUrl}
                  isAdmin={false}
                  googleApiKeyConfigured={currentUser?.google_api_key_configured ?? false}
+                 layoutMode="widget"
                />
             </div>
           </div>
+
+          {/* Botón Flotante Minimizado */}
+          {!tutorWidgetOpen && (
+            <button
+              onClick={() => setTutorWidgetOpen(true)}
+              className="bg-[#E8612D] text-white p-4 rounded-full shadow-lg hover:bg-[#d4551f] transition-transform hover:scale-105 flex items-center justify-center pointer-events-auto"
+              title="Abrir Tutor IA"
+            >
+              <Sparkles size={24} />
+            </button>
+          )}
         </div>
       )}
     </div>

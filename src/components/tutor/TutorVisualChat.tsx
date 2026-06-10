@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from "react";
-import { Bot, Lock, HelpCircle, Sparkles, Plus, Loader } from "lucide-react";
+import React, { useState, useEffect, useRef } from "react";
+import { Bot, Lock, HelpCircle, Sparkles, Plus, Loader, Send } from "lucide-react";
 
 interface Product {
   id: number;
@@ -20,6 +20,7 @@ interface TutorVisualChatProps {
   apiBaseUrl: string;
   isAdmin: boolean;
   googleApiKeyConfigured: boolean;
+  layoutMode?: "full" | "widget";
 }
 
 export default function TutorVisualChat({ 
@@ -28,12 +29,18 @@ export default function TutorVisualChat({
   isPremium, 
   apiBaseUrl,
   isAdmin,
-  googleApiKeyConfigured
+  googleApiKeyConfigured,
+  layoutMode = "widget"
 }: TutorVisualChatProps) {
   const [chatMessages, setChatMessages] = useState<any[]>([
     {
       sender: "ai",
-      text: "¡Hola! Soy tu Tutor Visual de Construcción. Escríbeme qué proyecto tienes en mente (ej. 'Quiero levantar una pared de 4x3 metros' o 'Voy a colocar porcelanato en un cuarto de 5x5m') y te daré una guía de instalación paso a paso, calculando los materiales necesarios que podrás agregar a tu carrito de compras.",
+      text: "¡Hola! Soy tu Tutor Visual. Cuéntame qué proyecto tienes en mente (ej. 'levantar una pared de 4x3m' o 'pintar un cuarto') y calcularé los materiales exactos que necesitas para tu carrito.",
+      materials: []
+    },
+    {
+      sender: "ai",
+      text: "⚠️ Advertencia: Los cálculos provistos son estimaciones basadas en fórmulas generales de construcción y no reemplazan el criterio certificado de un profesional o ingeniero.",
       materials: []
     }
   ]);
@@ -41,6 +48,13 @@ export default function TutorVisualChat({
   const [isTyping, setIsTyping] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [creatingSession, setCreatingSession] = useState(false);
+  
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll hacia el final cuando hay nuevos mensajes o el bot está escribiendo
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [chatMessages, isTyping]);
 
   // Inicializar o recuperar sesión de chat en el backend al ingresar si es premium
   useEffect(() => {
@@ -242,14 +256,16 @@ export default function TutorVisualChat({
   };
 
   return (
-    <div className="flex-1 flex flex-col gap-4 text-left">
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
-          <Bot className="text-[#E8612D]" />
-          <span>Tutor Visual IA</span>
-        </h2>
-        <p className="text-xs text-[#6b7280]">Asistente avanzado conectado a RAG, cálculo de insumos y guías de obra.</p>
-      </div>
+    <div className={`flex-1 flex flex-col text-left h-full ${isAdmin ? 'gap-4' : ''}`}>
+      {isAdmin && (
+        <div>
+          <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Bot className="text-[#E8612D]" />
+            <span>Tutor Visual IA</span>
+          </h2>
+          <p className="text-xs text-[#6b7280]">Asistente avanzado conectado a RAG, cálculo de insumos y guías de obra.</p>
+        </div>
+      )}
 
       {isAdmin && !googleApiKeyConfigured && (
         <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-4 flex flex-col gap-2 shadow-sm max-w-4xl">
@@ -278,16 +294,10 @@ export default function TutorVisualChat({
           </p>
         </div>
       ) : (
-        <div className="flex-grow flex gap-8 items-stretch">
+        <div className="flex-grow flex gap-8 items-stretch h-full">
           {/* CHAT INTERACTIVE PANEL */}
-          <div className="flex-1 flex flex-col bg-white border border-[#e5e7eb] rounded-xl overflow-hidden p-6 gap-4 min-h-[450px] shadow-sm">
-            {/* Advertencia obligatoria de límites */}
-            <div className="bg-blue-50 border border-blue-200 text-blue-700 rounded-xl p-3 text-[11px] flex gap-2">
-              <HelpCircle size={16} className="shrink-0" />
-              <p>
-                <strong>Advertencia:</strong> Los cálculos provistos por el Tutor Visual son estimaciones basadas en fórmulas generales de construcción y no reemplazan el criterio certificado de un profesional o ingeniero.
-              </p>
-            </div>
+          <div className={`flex-1 flex flex-col bg-white overflow-hidden flex-grow gap-4 ${isAdmin ? 'border border-[#e5e7eb] rounded-xl p-6 shadow-sm min-h-[450px]' : 'p-4'}`}>
+
 
             {creatingSession ? (
               <div className="flex-grow flex flex-col items-center justify-center gap-2 text-[#6b7280] text-xs">
@@ -296,128 +306,207 @@ export default function TutorVisualChat({
               </div>
             ) : (
               <>
+                <div className={`transition-all duration-[800ms] ease-in-out shrink-0 ${layoutMode === 'full' && chatMessages.length <= 2 && !isTyping ? 'h-[15vh]' : 'h-0'}`} />
+
                 {/* Ventana de Conversación */}
-                <div className="flex-grow overflow-y-auto pr-2 flex flex-col gap-4 max-h-[380px]">
-                  {chatMessages.map((msg, idx) => (
-                    <div 
-                      key={idx} 
-                      className={`max-w-[85%] p-4 rounded-xl ${
-                        msg.sender === "user" 
-                          ? "self-end bg-gray-100 text-[#1a1a2e]" 
-                          : "self-start bg-[#fff7ed] border border-[#E8612D]/20 text-[#1a1a2e]"
-                      }`}
-                    >
-                      <p className="text-xs leading-relaxed whitespace-pre-wrap">{msg.text}</p>
-                      
-                      {/* Listado de Materiales Sugeridos */}
-                      {msg.materials && msg.materials.length > 0 && (
-                        <div className="border-t border-[#E8612D]/15 pt-3 mt-3 flex flex-col gap-2">
-                          <p className="text-[10px] font-bold text-[#E8612D] uppercase tracking-wider flex items-center gap-1">
-                            <Sparkles size={12} />
-                            <span>Materiales Detectados en Respuesta:</span>
-                          </p>
-                          <div className="flex flex-col gap-1.5">
-                            {msg.materials.map((mat: any, mIdx: number) => {
-                              const prod = products.find(p => p.sku === mat.sku);
-                              return (
-                                <div key={mIdx} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg border border-[#e5e7eb]">
-                                  <div className="text-left">
-                                    <p className="text-xs font-semibold text-[#1a1a2e]">{prod ? prod.name : mat.sku}</p>
-                                    <p className="text-[10px] text-[#6b7280] mt-0.5">{mat.desc}</p>
-                                  </div>
-                                  <div className="flex items-center gap-2 shrink-0">
-                                    <span className="bg-[#fff7ed] text-[#E8612D] font-bold text-xs px-2 py-0.5 rounded">
-                                      Cant: {mat.qty}
-                                    </span>
+                <div className={`flex-grow overflow-y-auto pr-2 flex flex-col ${layoutMode === 'full' ? 'py-4' : ''}`}>
+                  <div className={`flex flex-col gap-4 w-full ${layoutMode === 'full' ? 'max-w-3xl mx-auto' : ''}`}>
+                    {chatMessages.map((msg, idx) => {
+                      const isUser = msg.sender === "user";
+                      const isFull = layoutMode === "full";
+
+                      const bubbleClasses = isUser
+                        ? `self-end ${isFull ? 'bg-[#fff7ed] border border-[#E8612D]/20 text-[#1a1a2e] px-5 py-3 rounded-3xl text-[15px] max-w-[70%]' : 'bg-gray-100 text-[#1a1a2e] p-4 rounded-xl max-w-[85%] text-xs'}`
+                        : `self-start text-[#1a1a2e] ${isFull ? 'bg-transparent text-[15px] w-full' : 'bg-[#fff7ed] border border-[#E8612D]/20 p-4 rounded-xl max-w-[85%] text-xs'}`;
+
+                      return (
+                        <div key={idx} className={bubbleClasses}>
+                          {isFull && !isUser ? (
+                            <div className="flex gap-4 items-start">
+                              <div className="p-1.5 bg-[#E8612D]/10 rounded-full mt-0.5 shrink-0">
+                                <Sparkles size={18} className="text-[#E8612D]" />
+                              </div>
+                              <div className="flex-1 space-y-3">
+                                <p className="leading-relaxed whitespace-pre-wrap">{msg.text}</p>
+                                {/* Listado de Materiales Sugeridos */}
+                                {msg.materials && msg.materials.length > 0 && (
+                                  <div className="border-t border-[#e5e7eb] pt-4 mt-4 flex flex-col gap-3">
+                                    <p className="text-xs font-bold text-[#6b7280] uppercase tracking-wider">
+                                      Materiales Recomendados:
+                                    </p>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                      {msg.materials.map((mat: any, mIdx: number) => {
+                                        const prod = products.find(p => p.sku === mat.sku);
+                                        return (
+                                          <div key={mIdx} className="flex items-center justify-between bg-white border border-gray-200 p-3 rounded-xl shadow-sm hover:border-[#E8612D]/50 transition-colors">
+                                            <div className="text-left overflow-hidden">
+                                              <p className="text-sm font-semibold text-[#1a1a2e] truncate">{prod ? prod.name : mat.sku}</p>
+                                              <p className="text-xs text-[#6b7280] truncate">{mat.desc}</p>
+                                            </div>
+                                            <div className="flex items-center gap-2 shrink-0 ml-3">
+                                              <span className="bg-gray-100 text-gray-700 font-bold text-xs px-2 py-1 rounded-md">
+                                                x{mat.qty}
+                                              </span>
+                                              <button
+                                                type="button"
+                                                onClick={() => prod && addToCart(prod, mat.qty)}
+                                                className="bg-[#E8612D] text-white p-1.5 rounded-lg hover:bg-[#d4551f] transition-all"
+                                              >
+                                                <Plus size={14} />
+                                              </button>
+                                            </div>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
                                     <button
                                       type="button"
-                                      onClick={() => prod && addToCart(prod, mat.qty)}
-                                      className="bg-[#E8612D] text-white p-1 rounded hover:bg-[#d4551f] transition-all"
+                                      onClick={() => addCalculatedMaterialsToCart(msg.materials)}
+                                      className="w-auto self-start mt-1 bg-white hover:bg-gray-50 text-[#1a1a2e] border border-gray-300 text-xs font-semibold py-2 px-4 rounded-full transition-all"
                                     >
-                                      <Plus size={12} />
+                                      Agregar todo al carrito
                                     </button>
                                   </div>
+                                )}
+                              </div>
+                            </div>
+                          ) : (
+                            <>
+                              <p className={`${isFull ? 'leading-relaxed' : 'text-xs leading-relaxed'} whitespace-pre-wrap`}>{msg.text}</p>
+                              
+                              {/* Listado de Materiales Sugeridos (Modo Widget) */}
+                              {msg.materials && msg.materials.length > 0 && !isFull && (
+                                <div className="border-t border-[#E8612D]/15 pt-3 mt-3 flex flex-col gap-2">
+                                  <p className="text-[10px] font-bold text-[#E8612D] uppercase tracking-wider flex items-center gap-1">
+                                    <Sparkles size={12} />
+                                    <span>Materiales Detectados:</span>
+                                  </p>
+                                  <div className="flex flex-col gap-1.5">
+                                    {msg.materials.map((mat: any, mIdx: number) => {
+                                      const prod = products.find(p => p.sku === mat.sku);
+                                      return (
+                                        <div key={mIdx} className="flex items-center justify-between bg-gray-50 p-2 rounded-lg border border-[#e5e7eb]">
+                                          <div className="text-left">
+                                            <p className="text-xs font-semibold text-[#1a1a2e]">{prod ? prod.name : mat.sku}</p>
+                                            <p className="text-[10px] text-[#6b7280] mt-0.5">{mat.desc}</p>
+                                          </div>
+                                          <div className="flex items-center gap-2 shrink-0">
+                                            <span className="bg-[#fff7ed] text-[#E8612D] font-bold text-xs px-2 py-0.5 rounded">
+                                              Cant: {mat.qty}
+                                            </span>
+                                            <button
+                                              type="button"
+                                              onClick={() => prod && addToCart(prod, mat.qty)}
+                                              className="bg-[#E8612D] text-white p-1 rounded hover:bg-[#d4551f] transition-all"
+                                            >
+                                              <Plus size={12} />
+                                            </button>
+                                          </div>
+                                        </div>
+                                      );
+                                    })}
+                                  </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => addCalculatedMaterialsToCart(msg.materials)}
+                                    className="w-full mt-2 bg-[#E8612D]/10 hover:bg-[#E8612D]/20 text-[#E8612D] border border-[#E8612D]/30 text-[11px] font-bold py-2 rounded-lg transition-all"
+                                  >
+                                    Agregar Todos
+                                  </button>
                                 </div>
-                              );
-                            })}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => addCalculatedMaterialsToCart(msg.materials)}
-                            className="w-full mt-2 bg-[#E8612D]/10 hover:bg-[#E8612D]/20 text-[#E8612D] border border-[#E8612D]/30 text-[11px] font-bold py-2 rounded-lg transition-all"
-                          >
-                            Agregar Todos al Carrito
-                          </button>
+                              )}
+                            </>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  ))}
+                      );
+                    })}
 
-                  {isTyping && (
-                    <div className="self-start bg-[#fff7ed] border border-[#E8612D]/20 rounded-xl p-4 flex items-center gap-2">
-                      <span className="w-2.5 h-2.5 bg-[#E8612D] rounded-full animate-bounce"></span>
-                      <span className="w-2.5 h-2.5 bg-[#E8612D] rounded-full animate-bounce [animation-delay:0.2s]"></span>
-                      <span className="w-2.5 h-2.5 bg-[#E8612D] rounded-full animate-bounce [animation-delay:0.4s]"></span>
-                    </div>
-                  )}
+                    {isTyping && (
+                      <div className={`self-start flex items-center gap-2 ${layoutMode === 'full' ? 'ml-12 p-2' : 'bg-[#fff7ed] border border-[#E8612D]/20 rounded-xl p-4'}`}>
+                        <span className="w-2 h-2 bg-[#E8612D] rounded-full animate-bounce"></span>
+                        <span className="w-2 h-2 bg-[#E8612D] rounded-full animate-bounce [animation-delay:0.2s]"></span>
+                        <span className="w-2 h-2 bg-[#E8612D] rounded-full animate-bounce [animation-delay:0.4s]"></span>
+                      </div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
                 </div>
 
                 {/* Input de Mensaje */}
-                <div className="flex gap-2 border-t border-[#e5e7eb] pt-4 mt-auto">
-                  <input 
-                    type="text" 
-                    placeholder="Pregúntale a tu RAG... Ej: Necesito materiales para levantar una pared de 4x3 metros"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
-                    className="flex-grow bg-gray-50 border border-[#e5e7eb] rounded-xl px-4 py-3 text-xs text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40 transition-all"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleSendMessage}
-                    className="bg-[#E8612D] hover:bg-[#d4551f] text-white px-4 py-3 rounded-xl text-xs font-bold transition-all"
-                  >
-                    Consultar RAG
-                  </button>
+                <div className={`${layoutMode === 'full' ? 'w-full max-w-3xl mx-auto pt-2 pb-6' : 'border-t border-[#e5e7eb] pt-4 mt-auto'} shrink-0`}>
+                  <div className={`flex gap-2 ${layoutMode === 'full' ? 'bg-gray-100/80 border border-gray-200 rounded-full p-2 focus-within:bg-white focus-within:shadow-md focus-within:ring-1 ring-gray-300 transition-all' : ''}`}>
+                    <input 
+                      type="text" 
+                      placeholder="Escribe tu consulta aquí..."
+                      value={chatInput}
+                      onChange={(e) => setChatInput(e.target.value)}
+                      onKeyDown={(e) => e.key === "Enter" && handleSendMessage()}
+                      className={`flex-grow outline-none text-[#1a1a2e] placeholder-gray-500 transition-all ${layoutMode === 'full' ? 'bg-transparent px-4 text-[15px]' : 'bg-gray-50 border border-[#e5e7eb] rounded-xl px-4 py-3 text-xs focus:border-[#E8612D]/40'}`}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleSendMessage}
+                      className={`${layoutMode === 'full' ? 'bg-[#E8612D] hover:bg-[#d4551f] text-white p-3 rounded-full shadow-md hover:shadow-lg transition-all' : 'bg-[#E8612D] hover:bg-[#d4551f] text-white px-4 py-3 rounded-xl text-xs font-bold transition-all'}`}
+                    >
+                      {layoutMode === 'full' ? <Send size={18} /> : 'Consultar'}
+                    </button>
+                  </div>
                 </div>
+
+                <div className={`transition-all duration-[800ms] ease-in-out shrink-0 ${layoutMode === 'full' && chatMessages.length <= 2 && !isTyping ? 'h-[25vh]' : 'h-0'}`} />
               </>
             )}
           </div>
 
-          {/* SIDEBAR CON EJEMPLOS Y GUÍAS DE USO */}
-          <div className="w-72 flex flex-col gap-6">
-            <div className="bg-white border border-[#e5e7eb] p-5 rounded-xl text-left shadow-sm">
-              <h4 className="text-sm font-bold text-[#1a1a2e] flex items-center gap-2">
-                <Sparkles size={16} className="text-[#E8612D]" />
-                <span>Consultas RAG de prueba</span>
-              </h4>
-              <p className="text-[10px] text-[#6b7280] mt-1">Sugerencias para enviar al asistente:</p>
-              
-              <div className="flex flex-col gap-2 mt-4">
-                <button 
-                  type="button"
-                  onClick={() => setChatInput("Necesito materiales para una pared de ladrillos huecos de 10m²")}
-                  className="bg-gray-50 hover:bg-gray-100 border border-[#e5e7eb] p-2.5 rounded-xl text-left text-xs text-[#6b7280] transition-all"
-                >
-                  "Pared de ladrillos huecos (10m²)"
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => setChatInput("¿Cómo coloco porcelanato en una habitación de 5x5 metros?")}
-                  className="bg-gray-50 hover:bg-gray-100 border border-[#e5e7eb] p-2.5 rounded-xl text-left text-xs text-[#6b7280] transition-all"
-                >
-                  "Colocar porcelanato en cuarto (5x5m)"
-                </button>
-                <button 
-                  type="button"
-                  onClick={() => setChatInput("¿Qué es un tabique de durlock y qué insumos lleva?")}
-                  className="bg-gray-50 hover:bg-gray-100 border border-[#e5e7eb] p-2.5 rounded-xl text-left text-xs text-[#6b7280] transition-all"
-                >
-                  "Tabique de Durlock e Insumos"
-                </button>
+          {/* SIDEBAR CON EJEMPLOS Y GUÍAS DE USO (SOLO ADMIN) */}
+          {isAdmin && (
+            <div className="w-72 flex flex-col gap-6 shrink-0">
+              <div className="bg-white border border-[#e5e7eb] p-5 rounded-xl text-left shadow-sm">
+                <h4 className="text-sm font-bold text-[#1a1a2e] flex items-center gap-2">
+                  <Sparkles size={16} className="text-[#E8612D]" />
+                  <span>Consultas RAG de prueba</span>
+                </h4>
+                <p className="text-[10px] text-[#6b7280] mt-1">Sugerencias para enviar al asistente:</p>
+                
+                <div className="flex flex-col gap-2 mt-4">
+                  <button 
+                    type="button"
+                    onClick={() => setChatInput("Necesito materiales para una pared de ladrillos huecos de 10m²")}
+                    className="bg-gray-50 hover:bg-gray-100 border border-[#e5e7eb] p-2.5 rounded-xl text-left text-xs text-[#6b7280] transition-all"
+                  >
+                    1. Cálculo de Muros (10m²)
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setChatInput("Voy a colocar porcelanato en un piso de 4x5 metros. ¿Qué necesito?")}
+                    className="bg-gray-50 hover:bg-gray-100 border border-[#e5e7eb] p-2.5 rounded-xl text-left text-xs text-[#6b7280] transition-all"
+                  >
+                    2. Dosificación de Pisos (20m²)
+                  </button>
+                  <button 
+                    type="button"
+                    onClick={() => setChatInput("Recomiéndame una buena pintura para exteriores que resista la humedad.")}
+                    className="bg-gray-50 hover:bg-gray-100 border border-[#e5e7eb] p-2.5 rounded-xl text-left text-xs text-[#6b7280] transition-all"
+                  >
+                    3. Búsqueda Semántica de Pinturas
+                  </button>
+                </div>
+              </div>
+
+              <div className="bg-white border border-[#e5e7eb] p-5 rounded-xl text-left shadow-sm">
+                <h4 className="text-sm font-bold text-[#1a1a2e] flex items-center gap-2">
+                  <HelpCircle size={16} className="text-blue-600" />
+                  <span>Guía de Respuestas Visuales</span>
+                </h4>
+                <p className="text-[10px] text-[#6b7280] mt-2 leading-relaxed">
+                  El LLM responde con el texto de la sugerencia en formato markdown. El frontend <strong>escanea</strong> la respuesta y detecta automáticamente los <strong>SKU de los productos</strong> que se hayan mencionado para generar los botones visuales de "Agregar al carrito".
+                </p>
+                <div className="mt-4 p-3 bg-[#fff7ed] border border-[#E8612D]/20 rounded-lg">
+                  <p className="text-[10px] text-[#E8612D] font-mono">Modelo: Gemini 1.5 Flash<br/>Chunking: LangchainRecursive<br/>Embeddings: text-embedding-004</p>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
       )}
     </div>
