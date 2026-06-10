@@ -42,74 +42,89 @@ export default function PasswordResetPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center premium-gradient-bg p-6">
-      <div className="w-full max-w-md glass-panel p-8 rounded-3xl text-left flex flex-col gap-6 relative overflow-hidden">
-        <div className="absolute -top-10 -right-10 w-24 h-24 bg-amber-500/10 rounded-full blur-xl"></div>
-        
-        <div className="flex flex-col items-center text-center gap-2">
-          <div className="bg-amber-500 p-2.5 rounded-xl text-black">
-            <Building2 size={28} />
-          </div>
-          <h2 className="text-xl font-bold tracking-tight mt-2">
-            RECUPERAR <span className="text-amber-500">CONTRASEÑA</span>
-          </h2>
-          <p className="text-xs text-gray-400">Ingresa tu correo para recibir un enlace de restablecimiento</p>
-        </div>
-
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl p-3 text-xs flex gap-2 items-center">
-            <AlertCircle size={16} className="shrink-0" />
-            <p>{error}</p>
-          </div>
-        )}
-
-        {success && (
-          <div className="bg-green-500/10 border border-green-500/20 text-green-400 rounded-xl p-4 text-xs flex flex-col gap-2 items-center text-center">
-            <CheckCircle size={24} className="text-green-400 animate-float" />
-            <p className="font-medium leading-relaxed">{success}</p>
-            <p className="text-[10px] text-amber-500/80 mt-2 bg-amber-500/5 p-2 rounded-lg border border-amber-500/15">
-              ⚠️ <strong>Entorno de desarrollo:</strong> El correo se ha impreso en la consola de Django. Abre el log para copiar el token e ingresarlo en la confirmación.
-            </p>
-          </div>
-        )}
-
-        {!success && (
-          <form onSubmit={handleResetRequest} className="flex flex-col gap-4">
-            <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-gray-400 font-medium">Correo Electrónico Registrado</label>
-              <input
-                type="email"
-                placeholder="ejemplo@correo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="bg-gray-950/60 border border-gray-800 rounded-xl px-4 py-3 text-xs text-white placeholder-gray-600 outline-none focus:border-amber-500/40 transition-all"
-              />
+    <div className="min-h-screen bg-gray-50/50 flex flex-col">
+      {/* Cabecera simple con solo el logo */}
+      <header className="w-full bg-white shadow-sm border-b border-gray-100 h-16 shrink-0 flex items-center">
+        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8">
+          <Link href="/" className="flex items-center gap-2 shrink-0 w-fit">
+            <div className="bg-[#E8612D] p-1.5 rounded-lg text-white">
+              <Building2 size={22} />
             </div>
-
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full btn-primary py-3.5 rounded-xl text-xs font-bold text-center mt-2 flex items-center justify-center gap-2 disabled:opacity-50"
-            >
-              {loading ? (
-                <>
-                  <Loader size={14} className="animate-spin" />
-                  <span>Procesando...</span>
-                </>
-              ) : (
-                <span>Enviar Enlace de Recuperación</span>
-              )}
-            </button>
-          </form>
-        )}
-
-        <p className="text-center text-xs text-gray-400 mt-2">
-          Volver al{" "}
-          <Link href="/auth/login" className="text-amber-500 font-semibold hover:underline">
-            Inicio de Sesión
+            <span className="text-lg font-bold tracking-tight select-none text-[#1a1a2e]">
+              Craft<span className="text-[#E8612D]">IAr</span>
+            </span>
           </Link>
-        </p>
+        </div>
+      </header>
+
+      {/* Contenedor del formulario */}
+      <div className="flex-1 flex items-center justify-center p-6 bg-gradient-to-tr from-orange-50/30 via-white to-orange-100/20 relative">
+        <div className="w-full max-w-md bg-white border border-gray-200 p-8 rounded-3xl text-left flex flex-col gap-6 shadow-xl relative overflow-hidden">
+          {/* Adorno visual */}
+          <div className="absolute -top-10 -right-10 w-24 h-24 bg-[#E8612D]/5 rounded-full blur-xl"></div>
+          
+          <div className="flex flex-col items-center text-center gap-1">
+            <h2 className="text-2xl font-bold tracking-tight text-[#1a1a2e]">
+              Recuperar Contraseña
+            </h2>
+            <p className="text-xs text-gray-500">Ingresá tu correo para recibir un enlace de restablecimiento</p>
+          </div>
+
+          {error && (
+            <div className="bg-red-55 border border-red-200/60 text-red-600 rounded-xl p-3 text-xs flex gap-2 items-center">
+              <AlertCircle size={16} className="shrink-0 text-red-500" />
+              <p>{error}</p>
+            </div>
+          )}
+
+          {success && (
+            <div className="bg-green-50 border border-green-200/60 text-green-700 rounded-xl p-4 text-xs flex flex-col gap-2 items-center text-center">
+              <CheckCircle size={24} className="text-green-500 animate-float" />
+              <p className="font-medium leading-relaxed">{success}</p>
+              <div className="text-[10px] text-amber-700 mt-2 bg-amber-50 p-2.5 rounded-lg border border-amber-200/60 text-left">
+                ⚠️ <strong>Entorno de desarrollo:</strong> El correo se ha impreso en la consola de Django. Abre el log para copiar el token e ingresarlo en la confirmación.
+              </div>
+            </div>
+          )}
+
+          {!success && (
+            <form onSubmit={handleResetRequest} className="flex flex-col gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-gray-505 font-medium">Correo Electrónico Registrado</label>
+                <input
+                  type="email"
+                  placeholder="ejemplo@correo.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-xs text-gray-800 placeholder-gray-400 outline-none focus:border-[#E8612D] focus:ring-2 focus:ring-[#E8612D]/15 transition-all w-full"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full bg-[#E8612D] text-white hover:bg-[#d4551f] py-3.5 rounded-xl text-xs font-bold text-center mt-2 flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-95 shadow-sm hover:shadow"
+              >
+                {loading ? (
+                  <>
+                    <Loader size={14} className="animate-spin" />
+                    <span>Procesando...</span>
+                  </>
+                ) : (
+                  <span>Enviar Enlace de Recuperación</span>
+                )}
+              </button>
+            </form>
+          )}
+
+          <p className="text-center text-xs text-gray-505 mt-2">
+            Volver al{" "}
+            <Link href="/auth/login" className="text-[#E8612D] font-semibold hover:text-[#d4551f] hover:underline">
+              Inicio de Sesión
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );

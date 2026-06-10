@@ -84,112 +84,123 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center premium-gradient-bg p-6">
-      <div className="w-full max-w-md glass-panel p-8 rounded-3xl text-left flex flex-col gap-6 relative overflow-hidden">
-        {/* Adorno visual */}
-        <div className="absolute -top-10 -right-10 w-24 h-24 bg-amber-500/10 rounded-full blur-xl"></div>
-        
-        <div className="flex flex-col items-center text-center gap-2">
-          <div className="bg-amber-500 p-2.5 rounded-xl text-black">
-            <Building2 size={28} />
-          </div>
-          <h2 className="text-xl font-bold tracking-tight mt-2">
-            MATERIALES <span className="text-amber-500">INTELIGENTES</span>
-          </h2>
-          <p className="text-xs text-gray-400">Ingresa a tu cuenta para continuar comprando</p>
+    <div className="min-h-screen bg-[#f5f5f5] flex flex-col">
+      {/* Cabecera simple con solo el logo */}
+      <header className="w-full bg-white border-b border-gray-200 h-16 shrink-0 flex items-center">
+        <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8">
+          <Link href="/" className="flex items-center gap-2 shrink-0 w-fit">
+            <div className="bg-[#E8612D] p-1.5 rounded-lg text-white">
+              <Building2 size={22} />
+            </div>
+            <span className="text-lg font-bold tracking-tight select-none text-[#1a1a2e]">
+              Craft<span className="text-[#E8612D]">IAr</span>
+            </span>
+          </Link>
         </div>
+      </header>
 
-        {error && (
-          <div className="bg-red-500/10 border border-red-500/20 text-red-400 rounded-xl p-3 text-xs flex gap-2 items-center">
-            <AlertCircle size={16} className="shrink-0" />
-            <p>{error}</p>
-          </div>
-        )}
-
-        <form onSubmit={handleLogin} className="flex flex-col gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-gray-400 font-medium">Usuario o Correo Electrónico</label>
-            <input
-              type="text"
-              placeholder="admin o ejemplo@correo.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-              className="bg-gray-950/60 border border-gray-800 rounded-xl px-4 py-3 text-xs text-white placeholder-gray-600 outline-none focus:border-amber-500/40 transition-all"
-            />
+      {/* Contenedor del formulario */}
+      <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
+        <div className="w-full max-w-[420px] bg-white border border-gray-200 p-8 sm:p-10 rounded-xl flex flex-col gap-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+          <div className="flex flex-col gap-1 text-left">
+            <h2 className="text-2xl font-semibold text-[#1a1a2e] tracking-tight">
+              Ingresá a tu cuenta
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">Completá tus datos para continuar en CraftIAr</p>
           </div>
 
-          <div className="flex flex-col gap-1.5">
-            <div className="flex justify-between items-center">
-              <label className="text-xs text-gray-400 font-medium">Contraseña</label>
-              <Link 
-                href="/auth/password-reset" 
-                className="text-[10px] text-amber-500 hover:underline"
-              >
-                ¿Olvidó su contraseña?
-              </Link>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-3 text-xs flex gap-2 items-center">
+              <AlertCircle size={16} className="shrink-0 text-red-500" />
+              <p>{error}</p>
             </div>
-            <div className="relative">
+          )}
+
+          <form onSubmit={handleLogin} className="flex flex-col gap-4">
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-gray-600 font-medium">Usuario o Correo Electrónico</label>
               <input
-                type={showPassword ? "text" : "password"}
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                type="text"
+                placeholder="admin o ejemplo@correo.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-gray-950/60 border border-gray-800 rounded-xl pl-4 pr-10 py-3 text-xs text-white placeholder-gray-600 outline-none focus:border-amber-500/40 transition-all w-full"
+                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-xs text-gray-800 placeholder-gray-400 outline-none focus:border-[#E8612D] focus:ring-1 focus:ring-[#E8612D] transition-all w-full"
               />
-              <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-all focus:outline-none"
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
             </div>
+
+            <div className="flex flex-col gap-1.5">
+              <div className="flex justify-between items-center">
+                <label className="text-xs text-gray-600 font-medium">Contraseña</label>
+                <Link 
+                  href="/auth/password-reset" 
+                  className="text-[10px] text-[#E8612D] hover:text-[#d4551f] hover:underline"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
+              <div className="relative">
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="bg-white border border-gray-300 rounded-lg pl-4 pr-10 py-3 text-xs text-gray-800 placeholder-gray-400 outline-none focus:border-[#E8612D] focus:ring-1 focus:ring-[#E8612D] transition-all w-full"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 transition-all focus:outline-none"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-[#E8612D] text-white hover:bg-[#d4551f] py-3.5 rounded-lg text-xs font-semibold text-center mt-2 flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-[0.99] shadow-sm"
+            >
+              {loading ? (
+                <>
+                  <Loader size={14} className="animate-spin" />
+                  <span>Ingresando...</span>
+                </>
+              ) : (
+                <span>Iniciar Sesión</span>
+              )}
+            </button>
+          </form>
+
+          <div className="relative flex py-1 items-center">
+            <div className="flex-grow border-t border-gray-200"></div>
+            <span className="flex-shrink mx-4 text-[10px] text-gray-400 font-medium uppercase tracking-wider">o</span>
+            <div className="flex-grow border-t border-gray-200"></div>
           </div>
 
           <button
-            type="submit"
+            onClick={handleGoogleLogin}
             disabled={loading}
-            className="w-full btn-primary py-3.5 rounded-xl text-xs font-bold text-center mt-2 flex items-center justify-center gap-2 disabled:opacity-50"
+            className="w-full bg-white border border-gray-300 hover:bg-gray-50 py-3 rounded-lg text-xs font-semibold flex items-center justify-center gap-2 text-gray-700 transition-all active:scale-[0.99]"
           >
-            {loading ? (
-              <>
-                <Loader size={14} className="animate-spin" />
-                <span>Ingresando...</span>
-              </>
-            ) : (
-              <span>Iniciar Sesión</span>
-            )}
+            <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24">
+              <path
+                fill="#EA4335"
+                d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.535 0-6.4-2.865-6.4-6.4s2.865-6.4 6.4-6.4c1.582 0 3.03.577 4.148 1.532l3.057-3.057C19.22 2.378 15.935 1 12.24 1 6.033 1 1 6.033 1 12.24s5.033 11.24 11.24 11.24c6.262 0 11.24-4.978 11.24-11.24 0-.648-.076-1.285-.22-1.955H12.24z"
+              />
+            </svg>
+            <span>Continuar con Google</span>
           </button>
-        </form>
 
-        <div className="relative flex py-2 items-center">
-          <div className="flex-grow border-t border-gray-900"></div>
-          <span className="flex-shrink mx-4 text-[10px] text-gray-500 font-bold uppercase tracking-wider">o</span>
-          <div className="flex-grow border-t border-gray-900"></div>
+          <p className="text-center text-xs text-gray-500 mt-2">
+            ¿No tenés una cuenta?{" "}
+            <Link href="/auth/register" className="text-[#E8612D] font-semibold hover:text-[#d4551f] hover:underline">
+              Crear cuenta
+            </Link>
+          </p>
         </div>
-
-        <button
-          onClick={handleGoogleLogin}
-          disabled={loading}
-          className="w-full btn-secondary py-3 rounded-xl text-xs font-bold flex items-center justify-center gap-2"
-        >
-          <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24">
-            <path
-              fill="#EA4335"
-              d="M12.24 10.285V14.4h6.887c-.648 2.41-2.519 4.114-5.136 4.114-3.535 0-6.4-2.865-6.4-6.4s2.865-6.4 6.4-6.4c1.582 0 3.03.577 4.148 1.532l3.057-3.057C19.22 2.378 15.935 1 12.24 1 6.033 1 1 6.033 1 12.24s5.033 11.24 11.24 11.24c6.262 0 11.24-4.978 11.24-11.24 0-.648-.076-1.285-.22-1.955H12.24z"
-            />
-          </svg>
-          <span>Continuar con Google</span>
-        </button>
-
-        <p className="text-center text-xs text-gray-400 mt-2">
-          ¿No tienes una cuenta?{" "}
-          <Link href="/auth/register" className="text-amber-500 font-semibold hover:underline">
-            Regístrate aquí
-          </Link>
-        </p>
       </div>
     </div>
   );

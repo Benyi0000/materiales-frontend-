@@ -14,6 +14,7 @@ import ProfileSecurity from "@/components/admin/ProfileSecurity";
 import AuditLogTable from "@/components/admin/AuditLogTable";
 import UserCreateForm from "@/components/admin/UserCreateForm";
 import InventoryPanel from "@/components/catalog/InventoryPanel";
+import PublicLanding from "@/components/public/PublicLanding";
 
 // URL Base de la API de Django
 const API_BASE_URL = "http://localhost:8000/api";
@@ -35,6 +36,7 @@ export default function Dashboard() {
   // Usuario Logueado en el Frontend
   const [currentUser, setCurrentUser] = useState<any>(null);
   const [isPremium, setIsPremium] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   // Estados de ABM Roles en el Panel de Administrador
   const [selectedAdminUser, setSelectedAdminUser] = useState<any>(null);
@@ -57,7 +59,8 @@ export default function Dashboard() {
     setLoadingAPI(true);
     const token = localStorage.getItem("access_token");
     if (!token) {
-      router.push("/auth/login");
+      // Sin token: mostrar la landing pública en lugar de redirigir al login
+      setIsAuthenticated(false);
       setLoadingAPI(false);
       return;
     }
@@ -70,10 +73,11 @@ export default function Dashboard() {
         const userData = await profUserRes.json();
         setCurrentUser(userData);
         setApiOnline(true);
+        setIsAuthenticated(true);
       } else {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
-        router.push("/auth/login");
+        setIsAuthenticated(false);
         return;
       }
 
@@ -471,6 +475,18 @@ export default function Dashboard() {
   };
 
   return (
+    <>
+    {/* BIFURCACIÓN: Landing Pública vs Dashboard Interno */}
+    {isAuthenticated === null ? (
+      <div className="min-h-screen flex items-center justify-center premium-gradient-bg">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-8 h-8 border-2 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-sm text-gray-400">Cargando...</p>
+        </div>
+      </div>
+    ) : isAuthenticated === false ? (
+      <PublicLanding />
+    ) : (
     <div className="min-h-screen flex flex-col premium-gradient-bg">
       {/* HEADER DE LA APLICACIÓN */}
       <Header
@@ -588,5 +604,7 @@ export default function Dashboard() {
         <p className="font-mono">Next.js 15.1 + Django REST Framework + pgvector</p>
       </footer>
     </div>
+    )}
+    </>
   );
 }

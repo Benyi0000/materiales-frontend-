@@ -162,3 +162,124 @@ body {
 .animate-float {
   animation: float 4s infinite ease-in-out;
 }
+
+/* ===========================
+   Landing Pública - Modo Claro
+   =========================== */
+
+.public-landing {
+  background: #ffffff;
+  color: #1a1a2e;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+.public-header {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  z-index: 50;
+}
+
+.public-hero {
+  position: relative;
+  min-height: 360px;
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.public-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.public-hero-content {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  color: #ffffff;
+}
+
+.public-product-card {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.public-product-card:hover {
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+  transform: translateY(-2px);
+  border-color: rgba(232, 97, 45, 0.3);
+}
+
+.public-btn-primary {
+  background: #E8612D;
+  color: #ffffff;
+  font-weight: 600;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  padding: 8px 16px;
+  border: none;
+  cursor: pointer;
+}
+
+.public-btn-primary:hover {
+  background: #d4561f;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(232, 97, 45, 0.3);
+}
+
+.public-btn-primary:disabled {
+  background: #d1d5db;
+  color: #9ca3af;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.public-category-item {
+  padding: 8px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  font-size: 14px;
+  color: #4b5563;
+}
+
+.public-category-item:hover {
+  background: #fff7ed;
+}
+
+.public-category-item.active {
+  background: #fff7ed;
+  color: #E8612D;
+  font-weight: 600;
+}
+
+.public-search-bar {
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 9999px;
+  padding: 8px 16px;
+  transition: border-color 0.2s;
+  outline: none;
+}
+
+.public-search-bar:focus-within {
+  border-color: rgba(232, 97, 45, 0.5);
+  box-shadow: 0 0 0 3px rgba(232, 97, 45, 0.1);
+}
+
+.public-footer {
+  background: #1a1a2e;
+  color: #9ca3af;
+  padding: 24px;
+}
+
