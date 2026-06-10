@@ -13,6 +13,7 @@ import TutorVisualChat from "@/components/tutor/TutorVisualChat";
 import ProfileSecurity from "@/components/admin/ProfileSecurity";
 import AuditLogTable from "@/components/admin/AuditLogTable";
 import UserCreateForm from "@/components/admin/UserCreateForm";
+import InventoryPanel from "@/components/catalog/InventoryPanel";
 
 // URL Base de la API de Django
 const API_BASE_URL = "http://localhost:8000/api";
@@ -23,7 +24,7 @@ export default function Dashboard() {
   // ----------------------------------------------------
   // ESTADOS PRINCIPALES
   // ----------------------------------------------------
-  const [activeTab, setActiveTab] = useState<"catalog" | "tutor" | "profiles" | "audits" | "create-user">("catalog");
+  const [activeTab, setActiveTab] = useState<"catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory">("catalog");
   const [cart, setCart] = useState<{ product: any; quantity: number }[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
@@ -516,6 +517,16 @@ export default function Dashboard() {
               apiBaseUrl={API_BASE_URL}
               isAdmin={isAdmin}
               googleApiKeyConfigured={currentUser?.google_api_key_configured ?? false}
+            />
+          )}
+
+          {/* TAB 2.5: GESTIÓN DE INVENTARIO */}
+          {activeTab === "inventory" && (
+            <InventoryPanel
+              products={products}
+              apiBaseUrl={API_BASE_URL}
+              currentUser={currentUser}
+              refreshCatalog={checkBackendAPI}
             />
           )}
 

@@ -1,11 +1,11 @@
 import React from "react";
-import { Building2, Bot, ShieldCheck, Users, Clock, Lock, ChevronRight } from "lucide-react";
+import { Building2, Bot, ShieldCheck, Users, Clock, Lock, ChevronRight, Package } from "lucide-react";
 
 interface SidebarProps {
   isAdmin: boolean;
   isPremium: boolean;
-  activeTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user";
-  setActiveTab: (tab: "catalog" | "tutor" | "profiles" | "audits" | "create-user") => void;
+  activeTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory";
+  setActiveTab: (tab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory") => void;
   currentUser: any;
   togglePremiumSubscription: () => void;
 }
@@ -18,6 +18,13 @@ export default function Sidebar({
   currentUser,
   togglePremiumSubscription,
 }: SidebarProps) {
+  const canManageCatalog = currentUser?.is_superuser || (
+    currentUser?.active_permissions &&
+    typeof currentUser.active_permissions === "object" &&
+    ("catalogo.crear_producto" in currentUser.active_permissions ||
+     "catalogo.editar_producto" in currentUser.active_permissions)
+  );
+
   return (
     <aside className="w-64 border-r border-[rgba(255,255,255,0.06)] bg-gray-950/20 p-4 flex flex-col gap-2">
       <p className="text-[10px] font-bold text-gray-500 px-3 py-2 uppercase tracking-wider text-left">Módulos del MVP</p>
@@ -59,6 +66,24 @@ export default function Sidebar({
           <Lock size={12} className="text-gray-500" />
         )}
       </button>
+
+      {canManageCatalog && (
+        <button
+          type="button"
+          onClick={() => setActiveTab("inventory")}
+          className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
+            activeTab === "inventory" 
+              ? "bg-amber-500/10 text-amber-500 border border-amber-500/20" 
+              : "text-gray-400 hover:bg-gray-900/40 hover:text-white"
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <Package size={18} />
+            <span>Gestión de Inventario</span>
+          </div>
+          <ChevronRight size={14} className="opacity-50" />
+        </button>
+      )}
 
       {isAdmin && (
         <>

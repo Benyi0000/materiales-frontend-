@@ -9,9 +9,11 @@ interface Product {
   price: number;
   description: string;
   category_name: string;
+  subcategory_names?: string[];
   image_url: string;
   stock: number;
   weight_kg: number;
+  is_active?: boolean;
 }
 
 interface CartItem {
@@ -43,7 +45,9 @@ export default function CatalogView({
 
   const filteredProducts = products.filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase()) || p.sku.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === "Todos" || p.category_name === selectedCategory;
+    const matchesCategory = selectedCategory === "Todos" || 
+      p.category_name === selectedCategory || 
+      (p.subcategory_names && p.subcategory_names.includes(selectedCategory));
     return matchesSearch && matchesCategory;
   });
 
@@ -93,9 +97,12 @@ export default function CatalogView({
             <div key={prod.id} className="premium-card rounded-2xl overflow-hidden flex flex-col">
               <div className="h-44 bg-gray-950/60 relative overflow-hidden flex items-center justify-center">
                 <img 
-                  src={prod.image_url} 
+                  src={prod.image_url?.replace("via.placeholder.com", "placehold.co")} 
                   alt={prod.name} 
                   className="object-cover w-full h-full opacity-80"
+                  onError={(e) => {
+                    e.currentTarget.src = `https://placehold.co/300x200?text=${encodeURIComponent(prod.sku || prod.name)}`;
+                  }}
                 />
                 <span className="absolute top-3 left-3 bg-black/60 border border-white/10 text-white text-[9px] px-2 py-0.5 rounded font-mono">
                   {prod.sku}

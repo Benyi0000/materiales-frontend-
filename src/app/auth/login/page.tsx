@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Building2, Sparkles, AlertCircle, Loader } from "lucide-react";
+import { Building2, Sparkles, AlertCircle, Loader, Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -11,6 +11,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +38,6 @@ export default function LoginPage() {
         localStorage.setItem("refresh_token", data.refresh);
         
         // Guardar datos básicos
-        alert("¡Inicio de sesión exitoso!");
         router.push("/"); // Redirigir al inicio/catálogo
       } else {
         setError(data.detail || "Credenciales inválidas. Verifica tu correo y contraseña.");
@@ -129,14 +129,23 @@ export default function LoginPage() {
                 ¿Olvidó su contraseña?
               </Link>
             </div>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              className="bg-gray-950/60 border border-gray-800 rounded-xl px-4 py-3 text-xs text-white placeholder-gray-600 outline-none focus:border-amber-500/40 transition-all"
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                className="bg-gray-950/60 border border-gray-800 rounded-xl pl-4 pr-10 py-3 text-xs text-white placeholder-gray-600 outline-none focus:border-amber-500/40 transition-all w-full"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-300 transition-all focus:outline-none"
+              >
+                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
           </div>
 
           <button
