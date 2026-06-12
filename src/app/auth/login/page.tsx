@@ -43,10 +43,19 @@ export default function LoginPage() {
         // Guardar datos básicos
         router.push("/"); // Redirigir al inicio/catálogo
       } else {
-        if (res.status === 401 || res.status === 403 || res.status === 429) {
-          setError("Credenciales incorrectas, cuenta sin verificar o acceso bloqueado por intentos fallidos. Revisá tu correo o esperá unos minutos.");
+        const errorCode = Array.isArray(data.error) ? data.error[0] : data.error;
+        const errorEmail = Array.isArray(data.email) ? data.email[0] : data.email;
+        const errorUsername = Array.isArray(data.username) ? data.username[0] : data.username;
+        const errorDetail = Array.isArray(data.detail) ? data.detail[0] : data.detail;
+
+        if (errorCode === "unverified" && errorEmail) {
+          router.push(`/auth/verify-email-sent?email=${encodeURIComponent(errorEmail)}`);
+        } else if (errorCode === "force_password_change" && errorUsername) {
+          router.push(`/auth/change-initial-password?username=${encodeURIComponent(errorUsername)}&tmp=${encodeURIComponent(password)}`);
+        } else if (res.status === 401 || res.status === 403 || res.status === 429) {
+          setError("Credenciales incorrectas o acceso bloqueado por intentos fallidos. Revisá tu correo o esperá unos minutos.");
         } else {
-          setError(data.detail || "Error al iniciar sesión.");
+          setError(errorDetail || "Error al iniciar sesión.");
         }
       }
     } catch (err) {

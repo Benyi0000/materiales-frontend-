@@ -1,39 +1,58 @@
-"use client";
+'use client';
 
-import React, { useState, Suspense } from "react";
-import { useSearchParams, useRouter } from "next/navigation";
-import Link from "next/link";
-import { Building2, AlertCircle, Loader, CheckCircle } from "lucide-react";
+import { useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Eye, EyeOff, Building2, CheckCircle2, Circle, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
 
-function ResetConfirmForm() {
+function PasswordResetConfirmContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const token = searchParams.get("token") || "";
-  const uid = searchParams.get("uid") || "";
+  const token = searchParams.get('token') || '';
+  const uid = searchParams.get('uid') || '';
 
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+
+  const isPasswordTouched = newPassword.length > 0;
+  const isLengthValid = newPassword.length >= 8;
+  
+  const checkSequenceOrRepeats = (str: string) => {
+    if (/(.)\1{2,}/.test(str)) return true;
+    for (let i = 0; i < str.length - 2; i++) {
+      const c1 = str.charCodeAt(i);
+      const c2 = str.charCodeAt(i + 1);
+      const c3 = str.charCodeAt(i + 2);
+      if (c2 === c1 + 1 && c3 === c2 + 1) return true;
+      if (c2 === c1 - 1 && c3 === c2 - 1) return true;
+    }
+    return false;
+  };
+  const isSequenceValid = !checkSequenceOrRepeats(newPassword);
+  const isPasswordInvalid = isPasswordTouched && (!isLengthValid || !isSequenceValid);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
-    setSuccess("");
+    setError('');
+    setSuccess('');
 
     if (!token || !uid) {
-      setError("Token o ID de usuario ausentes en la URL. El enlace de recuperación es inválido.");
+      setError('El enlace de recuperación es inválido o está incompleto.');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setError("Las contraseñas no coinciden.");
+      setError('Las contraseñas no coinciden.');
       return;
     }
 
-    if (newPassword.length < 8) {
-      setError("La contraseña debe tener al menos 8 caracteres.");
+    if (isPasswordInvalid) {
+      setError('La contraseña no cumple con los requisitos mínimos de seguridad.');
       return;
     }
 
@@ -42,117 +61,42 @@ function ResetConfirmForm() {
     try {
       const res = await fetch("http://localhost:8000/api/users/auth/password-reset-confirm/", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           token,
           uid,
-          new_password: newPassword,
-        }),
+          new_password: newPassword
+        })
       });
 
       const data = await res.json();
 
       if (res.ok) {
-        setSuccess("Contraseña restablecida con éxito. Redirigiendo al login...");
-        setTimeout(() => {
-          router.push("/auth/login");
-        }, 3000);
+        setSuccess('¡Tu contraseña ha sido restablecida exitosamente! Redirigiendo al login...');
+        setTimeout(() => router.push('/auth/login'), 3000);
       } else {
-        setError(data.error || "Ocurrió un error al restablecer la contraseña. El enlace puede estar vencido.");
+        setError(data.error || 'Error al restablecer la contraseña. El enlace puede haber expirado.');
       }
     } catch (err) {
-      setError("Error de conexión. Asegúrate de que el backend de Django esté corriendo.");
+      setError('Error de conexión con el servidor.');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1 text-left">
-        <h2 className="text-2xl font-semibold text-[#1a1a2e] tracking-tight">
-          Restablecé tu contraseña
-        </h2>
-        <p className="text-sm text-gray-500 mt-1">Introduce tu nueva clave de acceso</p>
-      </div>
-
+    <div className="min-h-screen bg-[#f5f5f5] flex flex-col relative">
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-3 text-xs flex gap-2 items-center">
-          <AlertCircle size={16} className="shrink-0 text-red-500" />
-          <p>{error}</p>
+        <div className="fixed bottom-6 right-6 sm:top-6 sm:bottom-auto z-50 bg-white shadow-lg border border-red-100 rounded-xl p-4 max-w-sm w-full flex gap-3 items-start animate-in slide-in-from-bottom-4 sm:slide-in-from-top-4 fade-in duration-300">
+          <AlertCircle size={20} className="shrink-0 text-red-500 mt-0.5" />
+          <div className="flex flex-col gap-1 pr-4">
+            <span className="text-sm font-bold text-gray-900">Error</span>
+            <p className="text-xs text-gray-600">{error}</p>
+          </div>
+          <button type="button" onClick={() => setError("")} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
         </div>
       )}
 
-      {success && (
-        <div className="bg-green-50 border border-green-200 text-green-700 rounded-lg p-4 text-xs flex flex-col gap-2 items-center text-center">
-          <CheckCircle size={24} className="text-green-500 animate-float" />
-          <p className="font-medium">{success}</p>
-        </div>
-      )}
-
-      {!success && (
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-[10px] text-amber-700">
-            <strong>Token cargado desde la URL:</strong> {token.substring(0, 8)}... (UID: {uid})
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-gray-600 font-medium">Nueva Contraseña (Mínimo 8 caracteres)</label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              required
-              className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-xs text-gray-800 placeholder-gray-400 outline-none focus:border-[#E8612D] focus:ring-1 focus:ring-[#E8612D] transition-all w-full"
-            />
-          </div>
-
-          <div className="flex flex-col gap-1.5">
-            <label className="text-xs text-gray-600 font-medium">Confirmar Nueva Contraseña</label>
-            <input
-              type="password"
-              placeholder="••••••••"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              required
-              className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-xs text-gray-800 placeholder-gray-400 outline-none focus:border-[#E8612D] focus:ring-1 focus:ring-[#E8612D] transition-all w-full"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-[#E8612D] text-white hover:bg-[#d4551f] py-3.5 rounded-lg text-xs font-semibold text-center mt-2 flex items-center justify-center gap-2 disabled:opacity-50 transition-all active:scale-[0.99] shadow-sm"
-          >
-            {loading ? (
-              <>
-                <Loader size={14} className="animate-spin" />
-                <span>Restableciendo...</span>
-              </>
-            ) : (
-              <span>Restablecer Contraseña</span>
-            )}
-          </button>
-        </form>
-      )}
-
-      <p className="text-center text-xs text-gray-500 mt-2">
-        Volver al{" "}
-        <Link href="/auth/login" className="text-[#E8612D] font-semibold hover:text-[#d4551f] hover:underline">
-          Inicio de Sesión
-        </Link>
-      </p>
-    </div>
-  );
-}
-
-export default function PasswordResetConfirmPage() {
-  return (
-    <div className="min-h-screen bg-[#f5f5f5] flex flex-col">
-      {/* Cabecera simple con solo el logo */}
       <header className="w-full bg-white border-b border-gray-200 h-16 shrink-0 flex items-center">
         <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2 shrink-0 w-fit">
@@ -166,19 +110,138 @@ export default function PasswordResetConfirmPage() {
         </div>
       </header>
 
-      {/* Contenedor del formulario */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-[420px] bg-white border border-gray-200 p-8 sm:p-10 rounded-xl flex flex-col gap-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
-          <Suspense fallback={
-            <div className="flex flex-col items-center gap-4 py-12">
-              <Loader size={32} className="animate-spin text-[#E8612D]" />
-              <p className="text-xs text-gray-500">Cargando datos de restablecimiento...</p>
+      <div className="flex-1 flex items-start pt-[10vh] justify-center p-4 sm:p-8">
+        <div className="w-full max-w-[420px] bg-white border border-gray-200 p-8 sm:p-10 rounded-xl flex flex-col gap-6 shadow-sm">
+          {success ? (
+            <div className="flex flex-col items-center justify-center gap-4 py-8 text-center animate-in fade-in zoom-in-95 duration-500">
+              <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-2">
+                <CheckCircle2 size={32} className="text-green-500" />
+              </div>
+              <h2 className="text-2xl font-semibold text-[#1a1a2e] tracking-tight">
+                ¡Contraseña Restablecida!
+              </h2>
+              <p className="text-sm text-gray-500 max-w-[260px]">
+                {success}
+              </p>
+              <div className="w-6 h-6 border-2 border-[#E8612D]/30 border-t-[#E8612D] rounded-full animate-spin mt-4" />
             </div>
-          }>
-            <ResetConfirmForm />
-          </Suspense>
+          ) : (
+            <>
+              <div className="flex flex-col gap-1 text-left">
+                <h2 className="text-2xl font-semibold text-[#1a1a2e] tracking-tight">
+                  Crear Nueva Contraseña
+                </h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Por favor ingresa tu nueva contraseña para recuperar el acceso a tu cuenta.
+                </p>
+              </div>
+
+              <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className={`text-xs font-medium transition-colors ${isPasswordInvalid ? 'text-red-500' : 'text-gray-600'}`}>
+                    Nueva Contraseña
+                  </label>
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? "text" : "password"}
+                      placeholder="Crea una contraseña segura"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      required
+                      className={`bg-white border rounded-lg pl-4 pr-10 py-3 text-xs text-gray-800 placeholder-gray-400 outline-none transition-all w-full focus:ring-1 ${
+                        isPasswordInvalid 
+                          ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                          : 'border-gray-300 focus:border-[#E8612D] focus:ring-[#E8612D]'
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 focus:outline-none"
+                    >
+                      {showNewPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                    </button>
+                  </div>
+                  
+                  <div className="flex flex-col gap-1 mt-1">
+                    <div className="flex items-start gap-1.5">
+                      {isPasswordTouched ? (
+                        isLengthValid ? (
+                          <CheckCircle2 size={14} fill="#10b981" stroke="white" className="shrink-0 text-[#10b981] mt-0.5" />
+                        ) : (
+                          <AlertCircle size={14} fill="currentColor" stroke="white" className="shrink-0 text-[#fb3a4d] mt-0.5" />
+                        )
+                      ) : (
+                        <Circle size={14} className="shrink-0 text-gray-400 mt-0.5" />
+                      )}
+                      <span className="text-[11px] text-gray-700">
+                        Usá mínimo 8 caracteres.
+                      </span>
+                    </div>
+                    <div className="flex items-start gap-1.5">
+                      {isPasswordTouched ? (
+                        isSequenceValid ? (
+                          <CheckCircle2 size={14} fill="#10b981" stroke="white" className="shrink-0 text-[#10b981] mt-0.5" />
+                        ) : (
+                          <AlertCircle size={14} fill="currentColor" stroke="white" className="shrink-0 text-[#fb3a4d] mt-0.5" />
+                        )
+                      ) : (
+                        <Circle size={14} className="shrink-0 text-gray-400 mt-0.5" />
+                      )}
+                      <span className="text-[11px] text-gray-700 leading-tight">
+                        No uses secuencias como 123 ni caracteres repetidos como aaa.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Confirmar contraseña */}
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-xs text-gray-600 font-medium">Confirmar Contraseña</label>
+                  <input
+                    type={showNewPassword ? "text" : "password"}
+                    placeholder="Repite la contraseña"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    required
+                    className={`bg-white border rounded-lg px-4 py-3 text-xs text-gray-800 placeholder-gray-400 outline-none transition-all w-full focus:ring-1 ${
+                      confirmPassword && newPassword !== confirmPassword
+                        ? 'border-red-500 focus:border-red-500 focus:ring-red-500'
+                        : 'border-gray-300 focus:border-[#E8612D] focus:ring-[#E8612D]'
+                    }`}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={loading || isPasswordInvalid || confirmPassword !== newPassword}
+                  className="mt-4 w-full bg-[#E8612D] hover:bg-[#d4551f] text-white font-bold py-3 px-4 rounded-lg text-sm transition-all shadow-[0_2px_10px_rgba(232,97,45,0.2)] disabled:opacity-50 flex justify-center items-center h-[44px]"
+                >
+                  {loading ? (
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    "Guardar y Continuar"
+                  )}
+                </button>
+              </form>
+              
+              <div className="text-center">
+                <Link href="/auth/login" className="text-xs font-semibold text-[#1a1a2e] hover:underline">
+                  Volver al Login
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PasswordResetConfirm() {
+  return (
+    <Suspense fallback={<div className="min-h-screen flex items-center justify-center">Cargando...</div>}>
+      <PasswordResetConfirmContent />
+    </Suspense>
   );
 }

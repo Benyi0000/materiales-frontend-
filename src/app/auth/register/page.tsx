@@ -21,6 +21,60 @@ export default function RegisterPage() {
   const [usernameStatus, setUsernameStatus] = useState<"idle" | "loading" | "available" | "taken">("idle");
   const [emailStatus, setEmailStatus] = useState<"idle" | "loading" | "available" | "taken">("idle");
 
+  const [usernameSuggestions, setUsernameSuggestions] = useState<string[]>([]);
+  const [isCheckingUsernames, setIsCheckingUsernames] = useState(false);
+
+  useEffect(() => {
+    const normalize = (str: string) => str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    const fName = normalize(firstName);
+    const lName = normalize(lastName);
+    
+    if (!fName && !lName) {
+      setUsernameSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsCheckingUsernames(true);
+      
+      const bases: string[] = [];
+      if (fName && lName) {
+        bases.push(`${fName[0]}${lName}`); // jgomez
+        bases.push(`${fName}${lName}`); // juangomez
+        bases.push(`${fName}.${lName}`); // juan.gomez
+        bases.push(`${fName[0]}${lName}${new Date().getFullYear().toString().slice(2)}`); // jgomez26
+      } else if (fName) {
+        bases.push(fName);
+        bases.push(`${fName}${Math.floor(Math.random()*1000)}`);
+      } else if (lName) {
+        bases.push(lName);
+        bases.push(`${lName}${Math.floor(Math.random()*1000)}`);
+      }
+
+      const API_BASE_URL = "http://localhost:8000/api";
+      const available: string[] = [];
+      
+      await Promise.all(bases.map(async (u) => {
+        try {
+          const res = await fetch(`${API_BASE_URL}/users/auth/check-username/?username=${u}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.available) {
+              available.push(u);
+            }
+          }
+        } catch(e) {
+          console.error("Error validando username:", e);
+        }
+      }));
+
+      setUsernameSuggestions(available.slice(0, 3));
+      setIsCheckingUsernames(false);
+    }, 600);
+
+    return () => clearTimeout(timer);
+  }, [firstName, lastName]);
+
   useEffect(() => {
     const checkUser = async () => {
       if (username.length < 3) {
@@ -121,10 +175,7 @@ export default function RegisterPage() {
       const data = await res.json();
 
       if (res.ok) {
-        setSuccess("¡Cuenta creada con éxito! Te hemos enviado un correo electrónico para verificar tu cuenta. Revisá tu bandeja de entrada.");
-        setTimeout(() => {
-          router.push("/auth/login");
-        }, 6000);
+        router.push(`/auth/verify-email-sent?email=${encodeURIComponent(email)}`);
       } else {
         // Formatear errores de Django
         let errorMsg = "";
@@ -239,6 +290,22 @@ export default function RegisterPage() {
                     : 'border-gray-300 focus:border-[#E8612D] focus:ring-[#E8612D]'
                 }`}
               />
+              {usernameSuggestions.length > 0 && !username && (
+                <div className="mt-1 flex flex-wrap gap-2 items-center">
+                  <span className="text-[10px] text-gray-500">Sugerencias:</span>
+                  {usernameSuggestions.map(sugg => (
+                    <button
+                      key={sugg}
+                      type="button"
+                      onClick={() => setUsername(sugg)}
+                      className="text-[10px] px-2 py-0.5 bg-gray-100 hover:bg-orange-100 text-gray-700 hover:text-orange-700 rounded-full transition-colors border border-gray-200"
+                    >
+                      {sugg}
+                    </button>
+                  ))}
+                  {isCheckingUsernames && <Loader size={10} className="animate-spin text-gray-400" />}
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-1.5">

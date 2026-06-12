@@ -586,22 +586,28 @@ export default function ProfileSecurity({
       {/* Modal de Alta de Usuario */}
       {showCreateUserForm && activeTab === "users" && (
         <div className="fixed inset-0 bg-[#1a1a2e]/60 backdrop-blur-sm flex items-center justify-center z-[100] p-4 animate-[fadeIn_0.2s_ease]">
-          <div className="bg-white rounded-3xl p-8 w-full max-w-xl shadow-2xl relative text-left">
+          <div className="bg-white rounded-3xl p-8 w-full max-w-3xl shadow-2xl relative text-left flex flex-col max-h-[95vh]">
             <button
               onClick={() => setShowCreateUserForm(false)}
-              className="absolute top-6 right-6 text-gray-400 hover:text-[#1a1a2e] transition-colors"
+              className="absolute top-6 right-6 text-gray-400 hover:text-[#1a1a2e] transition-colors z-10"
             >
               <X size={20} />
             </button>
-            <h3 className="text-2xl font-bold text-[#1a1a2e] mb-2 flex items-center gap-2">
-              <Users size={24} className="text-[#E8612D]" /> Nuevo Usuario
-            </h3>
-            <p className="text-sm text-gray-500 mb-8">Da de alta un nuevo miembro de tu equipo en la plataforma.</p>
-            <UserCreateForm 
-              profiles={profiles}
-              onSubmit={handleCreateUserSubmit}
-              onCancel={() => setShowCreateUserForm(false)}
-            />
+            
+            <div className="shrink-0 mb-6">
+              <h3 className="text-2xl font-bold text-[#1a1a2e] mb-2 flex items-center gap-2">
+                <Users size={24} className="text-[#E8612D]" /> Nuevo Usuario
+              </h3>
+              <p className="text-sm text-gray-500">Da de alta un nuevo miembro de tu equipo en la plataforma.</p>
+            </div>
+            
+            <div className="flex-1 overflow-y-auto pr-2 pb-2 custom-scrollbar -mr-2">
+              <UserCreateForm 
+                profiles={profiles}
+                onSubmit={handleCreateUserSubmit}
+                onCancel={() => setShowCreateUserForm(false)}
+              />
+            </div>
           </div>
         </div>
       )}
