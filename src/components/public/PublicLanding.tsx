@@ -96,6 +96,8 @@ export default function PublicLanding({
 
   /* ---- Estado ---- */
   const [products, setProducts] = useState<Product[]>(initialProducts);
+  const [nextPageUrl, setNextPageUrl] = useState<string | null>(null);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
   const [categories, setCategories] = useState<Category[]>(initialCategories);
   const [searchInput, setSearchInput] = useState('');
   const [appliedSearch, setAppliedSearch] = useState('');
@@ -119,24 +121,27 @@ export default function PublicLanding({
   useEffect(() => {
     async function fetchData() {
       try {
+        const catQuery = selectedCategory ? `?category__name=${encodeURIComponent(selectedCategory)}` : '';
+        const url = `${apiBaseUrl}/catalog/products/${catQuery}`;
         const [prodRes, catRes] = await Promise.all([
-          fetch('http://localhost:8000/api/catalog/products/'),
-          fetch('http://localhost:8000/api/catalog/categories/'),
+          fetch(url),
+          fetch(`${apiBaseUrl}/catalog/categories/`),
         ]);
         if (prodRes.ok) {
           const prodData = await prodRes.json();
           setProducts(Array.isArray(prodData) ? prodData : prodData.results ?? []);
+          setNextPageUrl(prodData.next || null);
         }
         if (catRes.ok) {
           const catData = await catRes.json();
           setCategories(Array.isArray(catData) ? catData : catData.results ?? []);
         }
       } catch {
-        /* silencioso: usa props iniciales si el backend no responde */
+        /* silencioso */
       }
     }
     fetchData();
-  }, []);
+  }, [selectedCategory, apiBaseUrl]);
 
   useEffect(() => {
     setHighlightedIndex(-1);
@@ -239,6 +244,22 @@ export default function PublicLanding({
   /* ---- Utilidades ---- */
   const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
+    const loadMoreProducts = async () => {
+    if (!nextPageUrl) return;
+    setIsLoadingMore(true);
+    try {
+      const res = await fetch(nextPageUrl);
+      if (res.ok) {
+        const data = await res.json();
+        setProducts(prev => [...prev, ...(data.results || [])]);
+        setNextPageUrl(data.next || null);
+      }
+    } catch (e) {
+      console.error("Error loading more", e);
+    }
+    setIsLoadingMore(false);
+  };
+
   const executeSearch = async (query: string) => {
     setSearchInput(query);
     setShowSuggestions(false);
@@ -250,11 +271,13 @@ export default function PublicLanding({
     
     try {
       const q = query.trim();
+      const catQuery = selectedCategory ? `&category__name=${encodeURIComponent(selectedCategory)}` : '';
       if (q === '') {
-        const prodRes = await fetch(`${apiBaseUrl}/catalog/products/`);
+        const prodRes = await fetch(`${apiBaseUrl}/catalog/products/?${catQuery.replace('&','')} `);
         if (prodRes.ok) {
           const prodData = await prodRes.json();
           setProducts(Array.isArray(prodData) ? prodData : prodData.results ?? []);
+          setNextPageUrl(prodData.next || null);
         }
       } else {
         let searched = false;
@@ -279,16 +302,18 @@ export default function PublicLanding({
           if (res.ok) {
             const data = await res.json();
             setProducts(data.results || []);
+            setNextPageUrl(data.next || null);
             searched = true;
           }
         }
         
         // Fallback a búsqueda clásica si no es premium o si falló (ej: 401/403)
         if (!searched) {
-          const res = await fetch(`${apiBaseUrl}/catalog/products/?search=${encodeURIComponent(q)}`);
+          const res = await fetch(`${apiBaseUrl}/catalog/products/?search=${encodeURIComponent(q)}${catQuery}`);
           if (res.ok) {
             const data = await res.json();
             setProducts(Array.isArray(data) ? data : data.results ?? []);
+            setNextPageUrl(data.next || null);
           }
         }
       }
@@ -850,8 +875,8 @@ export default function PublicLanding({
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold tracking-tight">Todos los Materiales</h2>
           <span className="text-sm text-gray-500">
-            {filteredProducts.length}{' '}
-            {filteredProducts.length === 1 ? 'producto' : 'productos'}
+            {products.length}{' '}
+            {products.length === 1 ? 'producto' : 'productos'}
           </span>
         </div>
 
@@ -1042,7 +1067,7 @@ export default function PublicLanding({
                   </div>
                 ))}
               </div>
-            ) : filteredProducts.length === 0 ? (
+            ) : products.length === 0 ? (
               <div className="text-center py-20 text-gray-400">
                 <Search size={40} className="mx-auto mb-3 text-gray-300" />
                 <p className="text-lg font-medium">No encontramos resultados para tu búsqueda</p>
@@ -1050,7 +1075,7 @@ export default function PublicLanding({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {filteredProducts.map((prod) => {
+                {products.map((prod) => {
                   const outOfStock = prod.stock === 0;
 
                   return (
@@ -1101,6 +1126,18 @@ export default function PublicLanding({
                     </div>
                   );
                 })}
+              </div>
+            )}
+            
+            {nextPageUrl && !isSearching && (
+              <div className="mt-8 flex justify-center">
+                <button
+                  onClick={loadMoreProducts}
+                  disabled={isLoadingMore}
+                  className="bg-white border-2 border-[#E8612D] text-[#E8612D] hover:bg-[#E8612D] hover:text-white font-bold py-3 px-8 rounded-full transition-all flex items-center gap-2"
+                >
+                  {isLoadingMore ? "Cargando..." : "Cargar Más Productos"}
+                </button>
               </div>
             )}
           </div>
