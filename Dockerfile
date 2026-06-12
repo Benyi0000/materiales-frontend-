@@ -1,4 +1,12 @@
+# ==========================================
+# DOCKERFILE - FRONTEND NEXT.JS (PRODUCCIÓN)
+# ==========================================
+# Este archivo crea una imagen optimizada ("multi-stage build") de Next.js.
+# Genera una construcción independiente ("standalone") que copia solo los archivos
+# estrictamente necesarios para correr en el servidor, minimizando el peso.
+# NOTA: En producción, `NEXT_PUBLIC_API_URL` puede ser inyectado durante el build.
 FROM node:18-alpine AS base
+
 
 # Install dependencies only when needed
 FROM base AS deps
