@@ -300,7 +300,7 @@ export default function TutorVisualChat({
               </div>
             ) : (
               <>
-                <div className={`transition-all duration-[800ms] ease-in-out shrink-0 ${layoutMode === 'full' && chatMessages.length <= 2 && !isTyping ? 'h-[15vh]' : 'h-0'}`} />
+                {/* Spacer superior removido para mantener la caja de texto estática en la base */}
 
                 {/* Ventana de Conversación */}
                 <div 
@@ -449,7 +449,7 @@ export default function TutorVisualChat({
                   </div>
                 </div>
 
-                <div className={`transition-all duration-[800ms] ease-in-out shrink-0 ${layoutMode === 'full' && chatMessages.length <= 2 && !isTyping ? 'h-[25vh]' : 'h-0'}`} />
+                {/* Spacer inferior removido */}
               </>
             )}
           </div>
