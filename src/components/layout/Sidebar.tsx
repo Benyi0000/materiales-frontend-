@@ -33,6 +33,21 @@ export default function Sidebar({
     "catalogo.ver_catalogo" in currentUser.active_permissions
   );
 
+  const permissions = currentUser?.active_permissions && typeof currentUser.active_permissions === "object" 
+    ? Object.keys(currentUser.active_permissions)
+    : [];
+
+  const canManageProfiles = currentUser?.is_superuser || 
+    permissions.some(p => p.includes("gestionar_perfiles") || p.includes("crear_perfil") || p.includes("editar_perfil") || p.includes("asignar_perfil")) || 
+    isAdmin;
+
+  const canCreateUser = currentUser?.is_superuser || 
+    permissions.some(p => p.includes("alta_usuario") || p.includes("crear_usuario"));
+
+  const showManageProfiles = canManageProfiles;
+  const showCreateUser = canCreateUser && !showManageProfiles;
+  const showAudits = isAdmin;
+
   const handleTabClick = (tab: typeof activeTab) => {
     setActiveTab(tab);
     onClose();
@@ -133,57 +148,63 @@ export default function Sidebar({
             </button>
           )}
 
-          {isAdmin && (
+          {(showManageProfiles || showCreateUser || showAudits) && (
             <>
-              <p className="text-[10px] font-bold text-[#9ca3af] px-3 py-2 uppercase tracking-wider mt-4 text-left">Usuarios</p>
+              <p className="text-[10px] font-bold text-[#9ca3af] px-3 py-2 uppercase tracking-wider mt-4 text-left">Seguridad y Usuarios</p>
               
-              <button
-                type="button"
-                onClick={() => handleTabClick("profiles")}
-                className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === "profiles" 
-                    ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
-                    : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <ShieldCheck size={18} />
-                  <span>Gestión de perfiles</span>
-                </div>
-                <ChevronRight size={14} className="opacity-50" />
-              </button>
+              {showManageProfiles && (
+                <button
+                  type="button"
+                  onClick={() => handleTabClick("profiles")}
+                  className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === "profiles" 
+                      ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
+                      : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <ShieldCheck size={18} />
+                    <span>Gestión de Perfiles</span>
+                  </div>
+                  <ChevronRight size={14} className="opacity-50" />
+                </button>
+              )}
 
-              <button
-                type="button"
-                onClick={() => handleTabClick("create-user")}
-                className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === "create-user" 
-                    ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
-                    : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Users size={18} />
-                  <span>Alta de usuario</span>
-                </div>
-                <ChevronRight size={14} className="opacity-50" />
-              </button>
+              {showCreateUser && (
+                <button
+                  type="button"
+                  onClick={() => handleTabClick("create-user")}
+                  className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === "create-user" 
+                      ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
+                      : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Users size={18} />
+                    <span>Alta de Usuario</span>
+                  </div>
+                  <ChevronRight size={14} className="opacity-50" />
+                </button>
+              )}
 
-              <button
-                type="button"
-                onClick={() => handleTabClick("audits")}
-                className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-                  activeTab === "audits" 
-                    ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
-                    : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
-                }`}
-              >
-                <div className="flex items-center gap-3">
-                  <Clock size={18} />
-                  <span>Logs de Auditoría</span>
-                </div>
-                <ChevronRight size={14} className="opacity-50" />
-              </button>
+              {showAudits && (
+                <button
+                  type="button"
+                  onClick={() => handleTabClick("audits")}
+                  className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === "audits" 
+                      ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
+                      : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <Clock size={18} />
+                    <span>Logs de Auditoría</span>
+                  </div>
+                  <ChevronRight size={14} className="opacity-50" />
+                </button>
+              )}
             </>
           )}
         </nav>

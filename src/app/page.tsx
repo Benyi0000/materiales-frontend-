@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Users } from "lucide-react";
+import { Users, CheckCircle2, AlertCircle, Info, X } from "lucide-react";
 
 
 // Componentes Modularizados
@@ -26,6 +26,25 @@ export default function Dashboard() {
   // ----------------------------------------------------
   // ESTADOS PRINCIPALES
   // ----------------------------------------------------
+  const [globalModal, setGlobalModal] = useState<{
+    isOpen: boolean, 
+    title: string, 
+    message: string, 
+    type: "success"|"error"|"info"|"confirm",
+    onConfirm?: () => void
+  }>({isOpen: false, title: "", message: "", type: "info"});
+
+  useEffect(() => {
+    // Override window.alert para usar el modal global menos intrusivo (y sin fondo borroso fuerte)
+    window.alert = (msg: string) => {
+       let type: "success" | "error" | "info" = "info";
+       let title = "Notificación";
+       const lowerMsg = msg.toLowerCase();
+       if (lowerMsg.includes("error")) { type = "error"; title = "Error"; }
+       else if (lowerMsg.includes("éxito") || lowerMsg.includes("exito")) { type = "success"; title = "¡Éxito!"; }
+       setGlobalModal({ isOpen: true, title, message: msg, type });
+    };
+  }, []);
   const [activeTab, setActiveTab] = useState<"catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory">("catalog");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cart, setCart] = useState<{ product: any; quantity: number }[]>([]);
@@ -392,7 +411,7 @@ export default function Dashboard() {
     }
   };
 
-  const handleDeleteProfile = async (profileId: number) => {
+  const requestDeleteProfile = (profileId: number) => {
     const profile = profiles.find(p => p.id === profileId);
     if (!profile) return;
     if (profile.name === "Administrador del Sistema") {
@@ -400,8 +419,17 @@ export default function Dashboard() {
       return;
     }
 
-    if (!confirm(`¿Está seguro de que desea eliminar el perfil '${profile.name}'?`)) return;
+    setGlobalModal({
+      isOpen: true,
+      title: "Confirmar Eliminación",
+      message: `¿Está seguro de que desea eliminar el perfil '${profile.name}'? Esta acción no se puede deshacer.`,
+      type: "confirm",
+      onConfirm: () => executeDeleteProfile(profileId)
+    });
+  };
 
+  const executeDeleteProfile = async (profileId: number) => {
+    setGlobalModal(prev => ({ ...prev, isOpen: false }));
     const token = localStorage.getItem("access_token");
     if (!token) return;
     try {
@@ -593,7 +621,7 @@ export default function Dashboard() {
               handleTogglePermissionInProfile={handleTogglePermissionInProfile}
               handleUpdatePermissionScope={handleUpdatePermissionScope}
               handleCreateProfile={handleCreateProfile}
-              handleDeleteProfile={handleDeleteProfile}
+              handleDeleteProfile={requestDeleteProfile}
               handleSaveProfilePermissions={handleSaveProfilePermissions}
               handleCreateUserSubmit={handleCreateUserSubmit}
               showCreateUserForm={showCreateUserForm}
@@ -626,6 +654,61 @@ export default function Dashboard() {
           {activeTab === "audits" && (
             <AuditLogTable auditLogs={auditLogs} />
           )}
+
+          {/* GLOBAL ALERT MODAL */}
+          {globalModal.isOpen && (
+            <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[200] p-4 animate-[fadeIn_0.2s_ease]">
+              <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl relative text-center flex flex-col items-center">
+                {globalModal.type === "confirm" && (
+                  <div className="bg-orange-50 text-[#E8612D] p-4 rounded-full mb-4">
+                    <AlertCircle size={32} />
+                  </div>
+                )}
+                {globalModal.type === "success" && (
+                  <div className="bg-green-50 text-green-600 p-4 rounded-full mb-4">
+                    <CheckCircle2 size={32} />
+                  </div>
+                )}
+                {globalModal.type === "error" && (
+                  <div className="bg-red-50 text-red-600 p-4 rounded-full mb-4">
+                    <AlertCircle size={32} />
+                  </div>
+                )}
+                {globalModal.type === "info" && (
+                  <div className="bg-blue-50 text-blue-600 p-4 rounded-full mb-4">
+                    <Info size={32} />
+                  </div>
+                )}
+                <h3 className="text-xl font-bold text-[#1a1a2e] mb-2">{globalModal.title}</h3>
+                <p className="text-sm text-gray-500 mb-8">{globalModal.message}</p>
+                
+                {globalModal.type === "confirm" ? (
+                  <div className="flex gap-3 w-full">
+                    <button
+                      onClick={() => setGlobalModal({...globalModal, isOpen: false})}
+                      className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-all"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={globalModal.onConfirm}
+                      className="flex-1 px-4 py-3 bg-[#E8612D] hover:bg-[#d4551f] text-white rounded-xl font-bold transition-all shadow-md"
+                    >
+                      Confirmar
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => setGlobalModal({...globalModal, isOpen: false})}
+                    className="w-full px-4 py-3 bg-[#1a1a2e] hover:bg-[#2a2a4e] text-white rounded-xl font-bold transition-all shadow-md"
+                  >
+                    Entendido
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+
         </main>
       </div>
 
