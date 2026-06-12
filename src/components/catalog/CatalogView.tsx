@@ -26,18 +26,24 @@ interface CatalogViewProps {
   products: Product[];
   addToCart: (product: Product, quantity?: number) => void;
   cart: CartItem[];
+  cartMeta?: { subtotal: number; coupon_code: string | null; discount_amount: number; total: number };
   updateCartQty: (productId: number, newQty: number) => void;
   removeFromCart: (productId: number) => void;
   handleCheckout: () => void;
+  applyCoupon?: (code: string) => Promise<string | null>;
+  removeCoupon?: () => void;
 }
 
 export default function CatalogView({
   products,
   addToCart,
   cart,
+  cartMeta,
   updateCartQty,
   removeFromCart,
   handleCheckout,
+  applyCoupon,
+  removeCoupon,
 }: CatalogViewProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Todos");

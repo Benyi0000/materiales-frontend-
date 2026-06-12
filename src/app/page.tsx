@@ -246,15 +246,98 @@ function DashboardInner() {
     }
   }, [currentUser, canViewCatalog, activeTab]);
 
+  // RN-02: al autenticarse, el carrito de la cuenta (BD) prevalece y
+  // reemplaza cualquier carrito anónimo armado localmente.
+  useEffect(() => {
+    if (currentUser) loadServerCart();
+  }, [currentUser?.id]);
+
   // ----------------------------------------------------
-  // LÓGICA DEL CARRITO
+  // LÓGICA DEL CARRITO (Persistente en BD para usuarios autenticados — RN-01)
+  // El carrito anónimo vive solo en memoria del navegador y se descarta al
+  // iniciar sesión: el carrito de la cuenta prevalece (RN-02).
   // ----------------------------------------------------
-  const addToCart = (product: any, quantity: number = 1) => {
+  const [cartMeta, setCartMeta] = useState<{
+    subtotal: number;
+    coupon_code: string | null;
+    discount_amount: number;
+    total: number;
+  }>({ subtotal: 0, coupon_code: null, discount_amount: 0, total: 0 });
+
+  const authHeaders = () => {
+    const token = localStorage.getItem("access_token");
+    return token ? { "Content-Type": "application/json", "Authorization": `Bearer ${token}` } : null;
+  };
+
+  // Mapear la respuesta del backend (CartSerializer) al estado local del carrito
+  const applyServerCart = (data: any) => {
+    const items = (data.items || []).map((it: any) => ({
+      product: {
+        id: it.product_id,
+        sku: it.sku,
+        name: it.name,
+        price: parseFloat(it.price),
+        stock: it.stock,
+        weight_kg: parseFloat(it.weight_kg),
+        image_url: it.image_url,
+        description: "",
+        category_name: "",
+      },
+      quantity: it.quantity,
+    }));
+    setCart(items);
+    setCartMeta({
+      subtotal: data.subtotal ?? 0,
+      coupon_code: data.coupon_code ?? null,
+      discount_amount: data.discount_amount ?? 0,
+      total: data.total ?? 0,
+    });
+    // RN-04: informar productos quitados por estar desactivados/eliminados
+    if (data.removed_items && data.removed_items.length > 0) {
+      alert(`Se quitaron del carrito productos que ya no están disponibles: ${data.removed_items.join(", ")}.`);
+    }
+    // RN-03: informar ajustes de cantidad por límite de stock
+    if (data.adjusted) {
+      alert(data.adjusted);
+    }
+  };
+
+  const loadServerCart = async () => {
+    const headers = authHeaders();
+    if (!headers) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/orders/cart/`, { headers });
+      if (res.ok) {
+        applyServerCart(await res.json());
+      }
+    } catch {
+      /* sin conexión: se mantiene el estado local */
+    }
+  };
+
+  const addToCart = async (product: any, quantity: number = 1) => {
+    const headers = authHeaders();
+    if (headers && currentUser) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/orders/cart/items/`, {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ product_id: product.id, quantity }),
+        });
+        const data = await res.json();
+        if (res.ok) applyServerCart(data);
+        else alert(`Error: ${data.error || "No se pudo agregar al carrito."}`);
+      } catch {
+        alert("Error de conexión al agregar al carrito.");
+      }
+      return;
+    }
+    // Visitante anónimo: carrito local temporal
     setCart(prevCart => {
       const existing = prevCart.find(item => item.product.id === product.id);
       if (existing) {
-        return prevCart.map(item => 
-          item.product.id === product.id 
+        return prevCart.map(item =>
+          item.product.id === product.id
             ? { ...item, quantity: Math.min(item.quantity + quantity, product.stock) }
             : item
         );
@@ -263,52 +346,122 @@ function DashboardInner() {
     });
   };
 
-  const updateCartQty = (productId: number, newQty: number) => {
+  const updateCartQty = async (productId: number, newQty: number) => {
+    const headers = authHeaders();
+    if (headers && currentUser) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/orders/cart/items/${productId}/`, {
+          method: "PATCH",
+          headers,
+          body: JSON.stringify({ quantity: newQty }),
+        });
+        const data = await res.json();
+        if (res.ok) applyServerCart(data);
+        else alert(`Error: ${data.error || "No se pudo actualizar la cantidad."}`);
+      } catch {
+        alert("Error de conexión al actualizar el carrito.");
+      }
+      return;
+    }
     if (newQty <= 0) {
       setCart(prev => prev.filter(item => item.product.id !== productId));
       return;
     }
-    setCart(prev => prev.map(item => 
-      item.product.id === productId 
+    setCart(prev => prev.map(item =>
+      item.product.id === productId
         ? { ...item, quantity: Math.min(newQty, item.product.stock) }
         : item
     ));
   };
 
-  const removeFromCart = (productId: number) => {
+  const removeFromCart = async (productId: number) => {
+    const headers = authHeaders();
+    if (headers && currentUser) {
+      try {
+        const res = await fetch(`${API_BASE_URL}/orders/cart/items/${productId}/`, {
+          method: "DELETE",
+          headers,
+        });
+        const data = await res.json();
+        if (res.ok) applyServerCart(data);
+      } catch {
+        alert("Error de conexión al actualizar el carrito.");
+      }
+      return;
+    }
     setCart(prev => prev.filter(item => item.product.id !== productId));
   };
 
-  const clearCart = () => setCart([]);
+  const clearCart = () => {
+    setCart([]);
+    setCartMeta({ subtotal: 0, coupon_code: null, discount_amount: 0, total: 0 });
+  };
+
+  // RN-06 a RN-10: aplicar/quitar cupón de descuento
+  const applyCoupon = async (code: string): Promise<string | null> => {
+    const headers = authHeaders();
+    if (!headers || !currentUser) return "Inicia sesión para aplicar cupones.";
+    try {
+      const res = await fetch(`${API_BASE_URL}/orders/cart/coupon/`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ code }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        applyServerCart(data);
+        return null;
+      }
+      return data.error || "No se pudo aplicar el cupón.";
+    } catch {
+      return "Error de conexión al aplicar el cupón.";
+    }
+  };
+
+  const removeCoupon = async () => {
+    const headers = authHeaders();
+    if (!headers || !currentUser) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/orders/cart/coupon/`, {
+        method: "DELETE",
+        headers,
+      });
+      const data = await res.json();
+      if (res.ok) applyServerCart(data);
+    } catch {
+      alert("Error de conexión al quitar el cupón.");
+    }
+  };
 
   const handleCheckout = async () => {
     if (cart.length === 0) return;
-    const token = localStorage.getItem("access_token");
-    if (!token) return;
-
-    const itemsPayload = cart.map(item => ({
-      product_id: item.product.id,
-      quantity: item.quantity
-    }));
+    const headers = authHeaders();
+    if (!headers) return;
 
     try {
+      // El pedido se crea desde el carrito persistido en el servidor (spec Carrito y Pedidos)
       const res = await fetch(`${API_BASE_URL}/orders/orders/`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          items: itemsPayload
-        })
+        headers,
+        body: JSON.stringify({})
       });
       if (res.ok) {
-        alert("¡Pedido realizado con éxito! Se ha descontado el stock de los productos. Se disparó la tarea asíncrona de confirmación por email en Celery.");
+        const order = await res.json();
+        const discountMsg = order.discount_amount && parseFloat(order.discount_amount) > 0
+          ? ` Descuento aplicado: $${order.discount_amount}.`
+          : "";
+        alert(`¡Pedido #${order.id} creado con éxito (Pendiente de Pago)!${discountMsg} Recibirás un email de confirmación.`);
         clearCart();
         checkBackendAPI(); // Refrescar stock de productos y auditorías
       } else {
         const errData = await res.json();
-        alert(`Error al realizar el pedido: ${JSON.stringify(errData)}`);
+        // Mostrar errores de stock (RN-11) o cupón (RN-09) de forma legible
+        const messages: string[] = [];
+        if (errData.stock) messages.push(...[].concat(errData.stock));
+        if (errData.coupon) messages.push(...[].concat(errData.coupon));
+        if (errData.non_field_errors) messages.push(...[].concat(errData.non_field_errors));
+        alert(`Error al realizar el pedido: ${messages.length ? messages.join(" ") : JSON.stringify(errData)}`);
+        loadServerCart();
       }
     } catch (err) {
       alert("Error de conexión al procesar la compra.");
@@ -579,14 +732,17 @@ function DashboardInner() {
         </div>
       </div>
     ) : isAuthenticated === false || !isDashboardUser ? (
-      <PublicLanding 
+      <PublicLanding
         currentUser={currentUser}
         onLogout={handleLogout}
         cart={cart}
+        cartMeta={cartMeta}
         addToCart={addToCart}
         updateCartQty={updateCartQty}
         removeFromCart={removeFromCart}
         handleCheckout={handleCheckout}
+        applyCoupon={applyCoupon}
+        removeCoupon={removeCoupon}
         isPremium={isPremium}
         apiBaseUrl={API_BASE_URL}
       />
@@ -625,9 +781,12 @@ function DashboardInner() {
               products={products}
               addToCart={addToCart}
               cart={cart}
+              cartMeta={cartMeta}
               updateCartQty={updateCartQty}
               removeFromCart={removeFromCart}
               handleCheckout={handleCheckout}
+              applyCoupon={applyCoupon}
+              removeCoupon={removeCoupon}
             />
           )}
 

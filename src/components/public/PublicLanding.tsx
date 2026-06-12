@@ -16,11 +16,13 @@ import {
   Sparkles,
   Bot,
   Minus,
-  HelpCircle
+  HelpCircle,
+  PackageSearch
 } from 'lucide-react';
 import Cart from '../catalog/Cart';
 import ProductDetail from './ProductDetail';
 import CartView from './CartView';
+import OrdersView from './OrdersView';
 import TutorVisualChat from '@/components/tutor/TutorVisualChat';
 
 /* ------------------------------------------------------------------ */
@@ -59,10 +61,13 @@ interface PublicLandingProps {
   currentUser?: any;
   onLogout?: () => void;
   cart?: { product: any; quantity: number }[];
+  cartMeta?: { subtotal: number; coupon_code: string | null; discount_amount: number; total: number };
   addToCart?: (product: any, quantity?: number) => void;
   updateCartQty?: (productId: number, newQty: number) => void;
   removeFromCart?: (productId: number) => void;
   handleCheckout?: () => void;
+  applyCoupon?: (code: string) => Promise<string | null>;
+  removeCoupon?: () => void;
   isPremium?: boolean;
   apiBaseUrl?: string;
 }
@@ -77,10 +82,13 @@ export default function PublicLanding({
   currentUser,
   onLogout,
   cart = [],
+  cartMeta = { subtotal: 0, coupon_code: null, discount_amount: 0, total: 0 },
   addToCart = () => {},
   updateCartQty = () => {},
   removeFromCart = () => {},
   handleCheckout = () => {},
+  applyCoupon = async () => "Función de cupones no disponible.",
+  removeCoupon = () => {},
   isPremium = false,
   apiBaseUrl = "http://localhost:8000/api",
 }: PublicLandingProps) {
@@ -97,6 +105,7 @@ export default function PublicLanding({
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showCartView, setShowCartView] = useState(false);
+  const [showOrdersView, setShowOrdersView] = useState(false);
   const [showLoginPrompt, setShowLoginPrompt] = useState(false);
   const [cartDrawerOpen, setCartDrawerOpen] = useState(false);
   const [showTutorView, setShowTutorView] = useState(false);
@@ -142,20 +151,29 @@ export default function PublicLanding({
 
       if (view === 'cart') {
         setShowCartView(true);
+        setShowOrdersView(false);
+        setShowTutorView(false);
+        setSelectedProduct(null);
+      } else if (view === 'orders') {
+        setShowOrdersView(true);
+        setShowCartView(false);
         setShowTutorView(false);
         setSelectedProduct(null);
       } else if (view === 'tutor') {
         setShowTutorView(true);
         setShowCartView(false);
+        setShowOrdersView(false);
         setSelectedProduct(null);
       } else if (productId) {
         const prod = products.find(p => p.id === parseInt(productId, 10));
         setSelectedProduct(prod || null);
         setShowCartView(false);
+        setShowOrdersView(false);
         setShowTutorView(false);
       } else {
         setSelectedProduct(null);
         setShowCartView(false);
+        setShowOrdersView(false);
         setShowTutorView(false);
       }
     };
@@ -181,6 +199,7 @@ export default function PublicLanding({
     window.history.pushState({}, '', window.location.pathname);
     setSelectedProduct(null);
     setShowCartView(false);
+    setShowOrdersView(false);
     setShowTutorView(false);
     setSearchInput('');
     setAppliedSearch('');
@@ -191,6 +210,17 @@ export default function PublicLanding({
   const openCartView = () => {
     window.history.pushState({}, '', `?view=cart`);
     setShowCartView(true);
+    setShowOrdersView(false);
+    setShowTutorView(false);
+    setSelectedProduct(null);
+    setCartDrawerOpen(false);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const openOrdersView = () => {
+    window.history.pushState({}, '', `?view=orders`);
+    setShowOrdersView(true);
+    setShowCartView(false);
     setShowTutorView(false);
     setSelectedProduct(null);
     setCartDrawerOpen(false);
@@ -446,7 +476,20 @@ export default function PublicLanding({
                   </button>
                 )}
 
-                {/* 3. Carrito */}
+                {/* 3. Mis Pedidos */}
+                <button
+                  type="button"
+                  onClick={openOrdersView}
+                  className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
+                    showOrdersView ? 'bg-orange-100 text-[#E8612D]' : 'text-[#1a1a2e]/70 hover:text-[#E8612D] hover:bg-orange-50'
+                  }`}
+                  title="Mis pedidos"
+                >
+                  <PackageSearch size={20} />
+                  <span className="hidden lg:inline text-sm">Mis pedidos</span>
+                </button>
+
+                {/* 4. Carrito */}
                 <button
                   type="button"
                   onClick={() => openCartView()}
@@ -672,6 +715,18 @@ export default function PublicLanding({
                   </span>
                 )}
               </button>
+              {currentUser && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    openOrdersView();
+                  }}
+                  className="flex items-center gap-2 py-2 text-sm font-medium text-[#1a1a2e]/70 hover:text-[#E8612D]"
+                >
+                  <PackageSearch size={18} /> Mis pedidos
+                </button>
+              )}
               {isPremium && (
                 <button
                   type="button"
@@ -725,13 +780,22 @@ export default function PublicLanding({
                layoutMode="full"
              />
         </div>
+      ) : showOrdersView ? (
+        <OrdersView
+          apiBaseUrl={apiBaseUrl}
+          onBack={resetCatalog}
+        />
       ) : showCartView ? (
         <CartView
           cart={cart}
+          cartMeta={cartMeta}
           updateCartQty={updateCartQty}
           removeFromCart={removeFromCart}
           onBack={resetCatalog}
           onCheckout={handleCheckout}
+          applyCoupon={applyCoupon}
+          removeCoupon={removeCoupon}
+          isLoggedIn={!!currentUser}
         />
       ) : selectedProduct ? (
         <ProductDetail

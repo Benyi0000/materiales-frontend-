@@ -1,5 +1,5 @@
-import React from 'react';
-import { Minus, Plus, ShoppingCart, ArrowLeft, ChevronRight } from 'lucide-react';
+import React, { useState } from 'react';
+import { Minus, Plus, ShoppingCart, ArrowLeft, ChevronRight, Ticket, X } from 'lucide-react';
 
 interface Product {
   id: number;
@@ -17,21 +17,51 @@ interface CartItem {
 
 interface CartViewProps {
   cart: CartItem[];
+  cartMeta?: { subtotal: number; coupon_code: string | null; discount_amount: number; total: number };
   updateCartQty: (productId: number, newQty: number) => void;
   removeFromCart: (productId: number) => void;
   onBack: () => void;
   onCheckout: () => void;
+  applyCoupon?: (code: string) => Promise<string | null>;
+  removeCoupon?: () => void;
+  isLoggedIn?: boolean;
 }
 
 export default function CartView({
   cart,
+  cartMeta,
   updateCartQty,
   removeFromCart,
   onBack,
-  onCheckout
+  onCheckout,
+  applyCoupon,
+  removeCoupon,
+  isLoggedIn = false
 }: CartViewProps) {
   const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
   const totalPrice = cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
+
+  // Cupón de descuento (RN-06 a RN-10)
+  const [couponInput, setCouponInput] = useState('');
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  const discount = cartMeta?.discount_amount ?? 0;
+  const appliedCoupon = cartMeta?.coupon_code ?? null;
+  const finalTotal = discount > 0 ? totalPrice - discount : totalPrice;
+
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim() || !applyCoupon) return;
+    setCouponLoading(true);
+    setCouponError(null);
+    const error = await applyCoupon(couponInput.trim());
+    setCouponLoading(false);
+    if (error) {
+      setCouponError(error);
+    } else {
+      setCouponInput('');
+    }
+  };
 
   const formatPrice = (price: number) => `$${price.toLocaleString('es-AR')}`;
 
@@ -172,16 +202,65 @@ export default function CartView({
                 <span>Productos ({totalItems})</span>
                 <span>{formatPrice(totalPrice)}</span>
               </div>
+              {discount > 0 && (
+                <div className="flex justify-between text-green-600 font-medium">
+                  <span>Descuento ({appliedCoupon})</span>
+                  <span>-{formatPrice(discount)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-gray-600">
                 <span>Envío</span>
                 <span className="text-xs flex items-center text-gray-400">A calcular</span>
               </div>
             </div>
 
+            {/* Cupón de descuento */}
+            {isLoggedIn && (
+              <div className="border-t border-gray-100 pt-4 mb-4">
+                {appliedCoupon ? (
+                  <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-3 py-2">
+                    <span className="text-sm font-semibold text-green-700 flex items-center gap-2">
+                      <Ticket size={16} /> {appliedCoupon}
+                    </span>
+                    <button
+                      onClick={() => removeCoupon && removeCoupon()}
+                      className="text-green-700 hover:text-red-500 transition-colors p-1"
+                      title="Quitar cupón"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={couponInput}
+                        onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(null); }}
+                        onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                        placeholder="Cupón de descuento"
+                        className="flex-1 border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#E8612D] uppercase"
+                      />
+                      <button
+                        onClick={handleApplyCoupon}
+                        disabled={couponLoading || !couponInput.trim()}
+                        className="bg-[#1a1a2e] text-white text-sm font-bold px-4 rounded-lg hover:bg-[#2a2a4e] disabled:opacity-40 transition-all"
+                      >
+                        {couponLoading ? '...' : 'Aplicar'}
+                      </button>
+                    </div>
+                    {couponError && (
+                      <p className="text-xs text-red-500 mt-2">{couponError}</p>
+                    )}
+                  </>
+                )}
+              </div>
+            )}
+
             <div className="border-t border-gray-100 pt-4 mb-6">
               <div className="flex justify-between items-end">
                 <span className="text-lg font-bold text-[#1a1a2e]">Total</span>
-                <span className="text-2xl font-black text-[#1a1a2e]">{formatPrice(totalPrice)}</span>
+                <span className="text-2xl font-black text-[#1a1a2e]">{formatPrice(finalTotal)}</span>
               </div>
             </div>
 
@@ -194,7 +273,7 @@ export default function CartView({
             
             <div className="mt-4 text-center">
                <p className="text-xs text-gray-400">
-                 Tus datos están protegidos.<br/>El stock ha sido reservado temporalmente.
+                 Tus datos están protegidos.<br/>El stock se valida al confirmar la compra.
                </p>
             </div>
           </div>

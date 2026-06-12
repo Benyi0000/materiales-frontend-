@@ -1,5 +1,5 @@
-import React from "react";
-import { ShoppingCart, Minus, Plus, Trash2, ArrowRight } from "lucide-react";
+import React, { useState } from "react";
+import { ShoppingCart, Minus, Plus, Trash2, ArrowRight, Ticket, X } from "lucide-react";
 
 interface Product {
   id: number;
@@ -20,18 +20,38 @@ interface CartItem {
 
 interface CartProps {
   cart: CartItem[];
+  cartMeta?: { subtotal: number; coupon_code: string | null; discount_amount: number; total: number };
   updateCartQty: (productId: number, newQty: number) => void;
   removeFromCart: (productId: number) => void;
   handleCheckout: () => void;
+  applyCoupon?: (code: string) => Promise<string | null>;
+  removeCoupon?: () => void;
 }
 
-export default function Cart({ cart, updateCartQty, removeFromCart, handleCheckout }: CartProps) {
+export default function Cart({ cart, cartMeta, updateCartQty, removeFromCart, handleCheckout, applyCoupon, removeCoupon }: CartProps) {
+  const [couponInput, setCouponInput] = useState("");
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  const discount = cartMeta?.discount_amount ?? 0;
+  const appliedCoupon = cartMeta?.coupon_code ?? null;
+
   const getCartTotal = () => {
     return cart.reduce((acc, item) => acc + (item.product.price * item.quantity), 0);
   };
 
   const getCartWeight = () => {
     return cart.reduce((acc, item) => acc + (item.product.weight_kg * item.quantity), 0);
+  };
+
+  const handleApplyCoupon = async () => {
+    if (!couponInput.trim() || !applyCoupon) return;
+    setCouponLoading(true);
+    setCouponError(null);
+    const error = await applyCoupon(couponInput.trim());
+    setCouponLoading(false);
+    if (error) setCouponError(error);
+    else setCouponInput("");
   };
 
   return (
@@ -91,14 +111,61 @@ export default function Cart({ cart, updateCartQty, removeFromCart, handleChecko
 
       {cart.length > 0 && (
         <div className="border-t border-[#e5e7eb] pt-4 flex flex-col gap-4">
+          {/* Cupón de descuento */}
+          {applyCoupon && (
+            appliedCoupon ? (
+              <div className="flex items-center justify-between bg-green-50 border border-green-200 rounded-lg px-2.5 py-1.5">
+                <span className="text-xs font-semibold text-green-700 flex items-center gap-1.5">
+                  <Ticket size={13} /> {appliedCoupon}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => removeCoupon && removeCoupon()}
+                  className="text-green-700 hover:text-red-500 transition-colors"
+                  title="Quitar cupón"
+                >
+                  <X size={13} />
+                </button>
+              </div>
+            ) : (
+              <div className="flex flex-col gap-1">
+                <div className="flex gap-1.5">
+                  <input
+                    type="text"
+                    value={couponInput}
+                    onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(null); }}
+                    onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
+                    placeholder="Cupón"
+                    className="flex-1 min-w-0 border border-[#e5e7eb] rounded-lg px-2 py-1.5 text-xs focus:outline-none focus:border-[#E8612D] uppercase"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleApplyCoupon}
+                    disabled={couponLoading || !couponInput.trim()}
+                    className="bg-[#1a1a2e] text-white text-xs font-bold px-3 rounded-lg hover:bg-[#2a2a4e] disabled:opacity-40 transition-all"
+                  >
+                    {couponLoading ? '...' : 'Aplicar'}
+                  </button>
+                </div>
+                {couponError && <p className="text-[10px] text-red-500">{couponError}</p>}
+              </div>
+            )
+          )}
+
           <div className="flex flex-col gap-1.5 text-xs text-[#6b7280] text-left">
             <div className="flex justify-between">
               <span>Peso Total:</span>
               <span className="font-semibold text-[#1a1a2e]">{getCartWeight().toLocaleString()} kg</span>
             </div>
+            {discount > 0 && (
+              <div className="flex justify-between text-green-600 font-semibold">
+                <span>Descuento ({appliedCoupon}):</span>
+                <span>-${discount.toLocaleString('es-AR')}</span>
+              </div>
+            )}
             <div className="flex justify-between text-base font-bold text-[#1a1a2e] mt-1">
               <span>Total:</span>
-              <span className="text-[#E8612D]">${getCartTotal().toLocaleString('es-AR')}</span>
+              <span className="text-[#E8612D]">${(getCartTotal() - discount).toLocaleString('es-AR')}</span>
             </div>
           </div>
 
