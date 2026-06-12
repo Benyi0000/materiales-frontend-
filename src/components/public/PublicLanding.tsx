@@ -90,7 +90,7 @@ export default function PublicLanding({
   applyCoupon = async () => "Función de cupones no disponible.",
   removeCoupon = () => {},
   isPremium = false,
-  apiBaseUrl = "http://localhost:8000/api",
+  apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"),
 }: PublicLandingProps) {
   const router = useRouter();
 

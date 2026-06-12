@@ -19,7 +19,7 @@ import InventoryPanel from "@/components/catalog/InventoryPanel";
 import PublicLanding from "@/components/public/PublicLanding";
 
 // URL Base de la API de Django
-const API_BASE_URL = "http://localhost:8000/api";
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api");
 
 export default function Dashboard() {
   return (

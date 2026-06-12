@@ -51,7 +51,7 @@ export default function RegisterPage() {
         bases.push(`${lName}${Math.floor(Math.random()*1000)}`);
       }
 
-      const API_BASE_URL = "http://localhost:8000/api";
+      const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api");
       const available: string[] = [];
       
       await Promise.all(bases.map(async (u) => {
