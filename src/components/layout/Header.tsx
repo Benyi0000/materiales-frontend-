@@ -1,5 +1,5 @@
 import React from "react";
-import { Building2, Loader, User as UserIcon, LogOut, Menu } from "lucide-react";
+import { Building2, Loader, User as UserIcon, LogOut, Menu, Bot } from "lucide-react";
 
 interface UserProfile {
   username: string;
@@ -16,6 +16,7 @@ interface HeaderProps {
   checkBackendAPI: () => void;
   onLogout: () => void;
   onToggleSidebar: () => void;
+  onOpenTutor?: () => void;
 }
 
 export default function Header({
@@ -26,6 +27,7 @@ export default function Header({
   checkBackendAPI,
   onLogout,
   onToggleSidebar,
+  onOpenTutor,
 }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
@@ -69,6 +71,17 @@ export default function Header({
           )}
           API: {apiOnline ? "ONLINE" : "CONECTANDO..."}
         </button>
+
+        {isPremium && onOpenTutor && (
+          <button
+            type="button"
+            onClick={onOpenTutor}
+            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold bg-[#E8612D]/10 text-[#E8612D] hover:bg-[#E8612D]/20 transition-all border border-[#E8612D]/20"
+          >
+            <Bot size={16} />
+            TutorIA
+          </button>
+        )}
 
         {currentUser && (
           <>

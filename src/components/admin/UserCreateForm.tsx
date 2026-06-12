@@ -86,6 +86,9 @@ export default function UserCreateForm({ profiles, onSubmit, onCancel }: UserCre
   const validateForm = () => {
     const newErrors: any = {};
     if (!username.trim()) newErrors.username = "El nombre de usuario es obligatorio";
+    else if (username.length < 4 || username.length > 30) newErrors.username = "Debe tener entre 4 y 30 caracteres";
+    else if (!/^[a-zA-Z0-9._-]+$/.test(username)) newErrors.username = "Solo letras, números, puntos y guiones";
+    
     if (!email.trim()) newErrors.email = "El correo electrónico es obligatorio";
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) newErrors.email = "El formato de correo es inválido";
     if (!password.trim()) newErrors.password = "La contraseña es obligatoria";

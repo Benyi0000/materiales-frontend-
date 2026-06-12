@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Users, CheckCircle2, AlertCircle, Info, X } from "lucide-react";
+import { Users, CheckCircle2, AlertCircle, Info, X, Bot } from "lucide-react";
 
 
 // Componentes Modularizados
@@ -11,6 +11,7 @@ import Header from "@/components/layout/Header";
 import Sidebar from "@/components/layout/Sidebar";
 import CatalogView from "@/components/catalog/CatalogView";
 import TutorVisualChat from "@/components/tutor/TutorVisualChat";
+import { ChatProvider, useChat } from "@/components/tutor/ChatContext";
 import ProfileSecurity from "@/components/admin/ProfileSecurity";
 import AuditLogTable from "@/components/admin/AuditLogTable";
 import UserCreateForm from "@/components/admin/UserCreateForm";
@@ -21,7 +22,16 @@ import PublicLanding from "@/components/public/PublicLanding";
 const API_BASE_URL = "http://localhost:8000/api";
 
 export default function Dashboard() {
+  return (
+    <ChatProvider>
+      <DashboardInner />
+    </ChatProvider>
+  );
+}
+
+function DashboardInner() {
   const router = useRouter();
+  const { hasActiveSession, clearSession, isWidgetOpen, setIsWidgetOpen } = useChat();
 
   // ----------------------------------------------------
   // ESTADOS PRINCIPALES
@@ -30,8 +40,11 @@ export default function Dashboard() {
     isOpen: boolean, 
     title: string, 
     message: string, 
-    type: "success"|"error"|"info"|"confirm",
-    onConfirm?: () => void
+    type: "success"|"error"|"info"|"confirm"|"custom_confirm",
+    onConfirm?: () => void,
+    onCancel?: () => void,
+    confirmText?: string,
+    cancelText?: string
   }>({isOpen: false, title: "", message: "", type: "info"});
 
   useEffect(() => {
@@ -50,6 +63,40 @@ export default function Dashboard() {
   const [cart, setCart] = useState<{ product: any; quantity: number }[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
+
+  const handleTabChange = (newTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory") => {
+    if (newTab === activeTab) return;
+    
+    // Si estamos interactuando con el chat y cambiamos de contexto
+    if ((activeTab === "tutor" || newTab === "tutor") && hasActiveSession()) {
+      const isGoingToFull = newTab === "tutor";
+      setGlobalModal({
+        isOpen: true,
+        title: "Sesión en Curso",
+        message: `Tienes una conversación de IA activa. ¿Deseas ${isGoingToFull ? "mantenerla o iniciar una nueva" : "cerrar la sesión o seguir charlando en la otra pantalla"}?`,
+        type: "custom_confirm",
+        confirmText: isGoingToFull ? "Mantener Sesión" : "Seguir en la otra pantalla",
+        cancelText: isGoingToFull ? "Iniciar Nueva" : "Cerrar Sesión",
+        onConfirm: () => {
+          // MANTENER / SEGUIR EN SEGUNDO PLANO
+          setActiveTab(newTab);
+          if (isGoingToFull) setIsWidgetOpen(false); 
+          else setIsWidgetOpen(true);
+          setGlobalModal(prev => ({...prev, isOpen: false}));
+        },
+        onCancel: () => {
+          // NUEVA SESION / CERRAR SESION
+          clearSession();
+          setActiveTab(newTab);
+          setIsWidgetOpen(false);
+        }
+      });
+      return;
+    }
+
+    setActiveTab(newTab);
+    if (newTab === "tutor") setIsWidgetOpen(false);
+  };
   const [profiles, setProfiles] = useState<any[]>([]);
   const [permissions, setPermissions] = useState<any[]>([]);
   const [auditLogs, setAuditLogs] = useState<any[]>([]);
@@ -554,6 +601,7 @@ export default function Dashboard() {
         checkBackendAPI={checkBackendAPI}
         onLogout={handleLogout}
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+        onOpenTutor={() => handleTabChange("tutor")}
       />
 
       {/* SIDEBAR OVERLAY */}
@@ -563,7 +611,7 @@ export default function Dashboard() {
         isAdmin={isAdmin}
         isPremium={isPremium}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={handleTabChange}
         currentUser={currentUser}
       />
 
@@ -659,7 +707,7 @@ export default function Dashboard() {
           {globalModal.isOpen && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[200] p-4 animate-[fadeIn_0.2s_ease]">
               <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl relative text-center flex flex-col items-center">
-                {globalModal.type === "confirm" && (
+                {(globalModal.type === "confirm" || globalModal.type === "custom_confirm") && (
                   <div className="bg-orange-50 text-[#E8612D] p-4 rounded-full mb-4">
                     <AlertCircle size={32} />
                   </div>
@@ -682,19 +730,22 @@ export default function Dashboard() {
                 <h3 className="text-xl font-bold text-[#1a1a2e] mb-2">{globalModal.title}</h3>
                 <p className="text-sm text-gray-500 mb-8">{globalModal.message}</p>
                 
-                {globalModal.type === "confirm" ? (
+                {(globalModal.type === "confirm" || globalModal.type === "custom_confirm") ? (
                   <div className="flex gap-3 w-full">
                     <button
-                      onClick={() => setGlobalModal({...globalModal, isOpen: false})}
+                      onClick={() => {
+                        if (globalModal.onCancel) globalModal.onCancel();
+                        setGlobalModal({...globalModal, isOpen: false});
+                      }}
                       className="flex-1 px-4 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-bold transition-all"
                     >
-                      Cancelar
+                      {globalModal.cancelText || "Cancelar"}
                     </button>
                     <button
                       onClick={globalModal.onConfirm}
                       className="flex-1 px-4 py-3 bg-[#E8612D] hover:bg-[#d4551f] text-white rounded-xl font-bold transition-all shadow-md"
                     >
-                      Confirmar
+                      {globalModal.confirmText || "Confirmar"}
                     </button>
                   </div>
                 ) : (
@@ -705,6 +756,33 @@ export default function Dashboard() {
                     Entendido
                   </button>
                 )}
+              </div>
+            </div>
+          )}
+
+          {/* FLOATING WIDGET (TutorIA) */}
+          {isPremium && isWidgetOpen && activeTab !== "tutor" && (
+            <div className="fixed bottom-4 right-4 w-[350px] h-[500px] z-50 flex flex-col shadow-2xl rounded-xl overflow-hidden border border-[#e5e7eb] bg-white animate-[fadeIn_0.3s_ease-out]">
+              {/* Header del Chat Flotante */}
+              <div className="flex items-center justify-between p-3 border-b border-[#E8612D]/20 bg-[#E8612D] text-white shrink-0">
+                <div className="flex items-center gap-2 font-semibold">
+                  <Bot size={20} />
+                  <span className="text-sm">Tutor IA</span>
+                </div>
+                <button onClick={() => setIsWidgetOpen(false)} className="p-1.5 hover:bg-white/20 rounded-lg transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+              <div className="flex-1 overflow-hidden bg-white flex flex-col">
+                <TutorVisualChat
+                  products={products}
+                  addToCart={addToCart}
+                  isPremium={isPremium}
+                  apiBaseUrl={API_BASE_URL}
+                  isAdmin={isAdmin}
+                  googleApiKeyConfigured={currentUser?.google_api_key_configured ?? false}
+                  layoutMode="widget"
+                />
               </div>
             </div>
           )}

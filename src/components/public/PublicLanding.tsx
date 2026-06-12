@@ -1194,7 +1194,7 @@ export default function PublicLanding({
             <div className="flex items-center justify-between p-3 border-b border-[#E8612D]/20 bg-[#E8612D] text-white">
               <div className="flex items-center gap-2 font-semibold">
                 <Bot size={20} />
-                <span className="text-sm">Tutor IA Flotante</span>
+                <span className="text-sm">Tutor IA</span>
               </div>
               <div className="flex items-center gap-1">
                 <button

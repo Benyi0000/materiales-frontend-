@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Bot, Lock, HelpCircle, Sparkles, Plus, Loader, Send } from "lucide-react";
+import React, { useEffect, useRef } from "react";
+import { Bot, Lock, HelpCircle, Sparkles, Plus, Loader, Send, X, MessageSquare } from "lucide-react";
+import { useChat } from "./ChatContext";
 
 interface Product {
   id: number;
@@ -32,22 +33,14 @@ export default function TutorVisualChat({
   googleApiKeyConfigured,
   layoutMode = "widget"
 }: TutorVisualChatProps) {
-  const [chatMessages, setChatMessages] = useState<any[]>([
-    {
-      sender: "ai",
-      text: "¡Hola! Soy tu Tutor Visual. Cuéntame qué proyecto tienes en mente (ej. 'levantar una pared de 4x3m' o 'pintar un cuarto') y calcularé los materiales exactos que necesitas para tu carrito.",
-      materials: []
-    },
-    {
-      sender: "ai",
-      text: "⚠️ Advertencia: Los cálculos provistos son estimaciones basadas en fórmulas generales de construcción y no reemplazan el criterio certificado de un profesional o ingeniero.",
-      materials: []
-    }
-  ]);
-  const [chatInput, setChatInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const [sessionId, setSessionId] = useState<string | null>(null);
-  const [creatingSession, setCreatingSession] = useState(false);
+  const {
+    chatMessages, setChatMessages,
+    sessionId, setSessionId,
+    chatInput, setChatInput,
+    isTyping, setIsTyping,
+    creatingSession, setCreatingSession,
+    isWidgetOpen, setIsWidgetOpen
+  } = useChat();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -58,7 +51,7 @@ export default function TutorVisualChat({
 
   // Inicializar o recuperar sesión de chat en el backend al ingresar si es premium
   useEffect(() => {
-    if (!isPremium) return;
+    if (!isPremium || sessionId) return;
 
     const initChatSession = async () => {
       setCreatingSession(true);
@@ -95,7 +88,7 @@ export default function TutorVisualChat({
     };
 
     initChatSession();
-  }, [isPremium, apiBaseUrl]);
+  }, [isPremium, apiBaseUrl, sessionId, setCreatingSession, setSessionId, setChatMessages]);
 
   const handleSendMessage = async () => {
     if (!chatInput.trim() || !sessionId) return;
@@ -256,8 +249,8 @@ export default function TutorVisualChat({
   };
 
   return (
-    <div className={`flex-1 flex flex-col text-left h-full ${isAdmin ? 'gap-4' : ''}`}>
-      {isAdmin && (
+    <div className={`flex-1 flex flex-col text-left h-full ${isAdmin && layoutMode === 'full' ? 'gap-4' : ''}`}>
+      {isAdmin && layoutMode === 'full' && (
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
             <Bot className="text-[#E8612D]" />
@@ -267,7 +260,7 @@ export default function TutorVisualChat({
         </div>
       )}
 
-      {isAdmin && !googleApiKeyConfigured && (
+      {isAdmin && !googleApiKeyConfigured && layoutMode === 'full' && (
         <div className="bg-rose-50 border border-rose-200 text-rose-700 rounded-xl p-4 flex flex-col gap-2 shadow-sm max-w-4xl">
           <div className="flex items-center gap-2">
             <Sparkles size={16} className="text-rose-500" />
@@ -296,8 +289,7 @@ export default function TutorVisualChat({
       ) : (
         <div className="flex-grow flex gap-8 items-stretch h-full">
           {/* CHAT INTERACTIVE PANEL */}
-          <div className={`flex-1 flex flex-col bg-white overflow-hidden flex-grow gap-4 ${isAdmin ? 'border border-[#e5e7eb] rounded-xl p-6 shadow-sm min-h-[450px]' : 'p-4'}`}>
-
+          <div className={`flex-1 flex flex-col bg-white overflow-hidden flex-grow gap-4 ${isAdmin && layoutMode === 'full' ? 'border border-[#e5e7eb] rounded-xl p-6 shadow-sm min-h-[450px]' : 'p-4'}`}>
 
             {creatingSession ? (
               <div className="flex-grow flex flex-col items-center justify-center gap-2 text-[#6b7280] text-xs">
@@ -459,7 +451,7 @@ export default function TutorVisualChat({
           </div>
 
           {/* SIDEBAR CON EJEMPLOS Y GUÍAS DE USO (SOLO ADMIN) */}
-          {isAdmin && (
+          {isAdmin && layoutMode === 'full' && (
             <div className="w-72 flex flex-col gap-6 shrink-0">
               <div className="bg-white border border-[#e5e7eb] p-5 rounded-xl text-left shadow-sm">
                 <h4 className="text-sm font-bold text-[#1a1a2e] flex items-center gap-2">
