@@ -13,9 +13,12 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
 
+  // Solo validamos formato de correo si detectamos que está intentando escribir uno (tiene un '@')
+  const isEmailInvalid = email.length > 0 && email.includes('@') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError("");
+    // setError(""); // Evitamos el parpadeo
     setLoading(true);
 
     try {
@@ -40,7 +43,11 @@ export default function LoginPage() {
         // Guardar datos básicos
         router.push("/"); // Redirigir al inicio/catálogo
       } else {
-        setError(data.detail || "Credenciales inválidas. Verifica tu correo y contraseña.");
+        if (res.status === 401 || res.status === 403 || res.status === 429) {
+          setError("Credenciales incorrectas, cuenta sin verificar o acceso bloqueado por intentos fallidos. Revisá tu correo o esperá unos minutos.");
+        } else {
+          setError(data.detail || "Error al iniciar sesión.");
+        }
       }
     } catch (err) {
       setError("Error de conexión con el servidor. Asegúrate de que el backend de Django esté corriendo.");
@@ -84,7 +91,19 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f5f5f5] flex flex-col">
+    <div className="min-h-screen bg-[#f5f5f5] flex flex-col relative">
+      {/* Toast Notifications */}
+      {error && (
+        <div className="fixed bottom-6 right-6 sm:top-6 sm:bottom-auto z-50 bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-red-100 rounded-xl p-4 max-w-sm w-full flex gap-3 items-start animate-in slide-in-from-bottom-4 sm:slide-in-from-top-4 fade-in duration-300">
+          <AlertCircle size={20} className="shrink-0 text-red-500 mt-0.5" />
+          <div className="flex flex-col gap-1 pr-4">
+            <span className="text-sm font-bold text-gray-900">Acceso denegado</span>
+            <p className="text-xs text-gray-600 whitespace-pre-line leading-relaxed">{error}</p>
+          </div>
+          <button type="button" onClick={() => setError("")} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600">✕</button>
+        </div>
+      )}
+
       {/* Cabecera simple con solo el logo */}
       <header className="w-full bg-white border-b border-gray-200 h-16 shrink-0 flex items-center">
         <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8">
@@ -100,7 +119,7 @@ export default function LoginPage() {
       </header>
 
       {/* Contenedor del formulario */}
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
+      <div className="flex-1 flex items-start pt-[10vh] justify-center p-4 sm:p-8">
         <div className="w-full max-w-[420px] bg-white border border-gray-200 p-8 sm:p-10 rounded-xl flex flex-col gap-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
           <div className="flex flex-col gap-1 text-left">
             <h2 className="text-2xl font-semibold text-[#1a1a2e] tracking-tight">
@@ -109,24 +128,29 @@ export default function LoginPage() {
             <p className="text-sm text-gray-500 mt-1">Completá tus datos para continuar en CraftIAr</p>
           </div>
 
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-600 rounded-lg p-3 text-xs flex gap-2 items-center">
-              <AlertCircle size={16} className="shrink-0 text-red-500" />
-              <p>{error}</p>
-            </div>
-          )}
-
           <form onSubmit={handleLogin} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
-              <label className="text-xs text-gray-600 font-medium">Usuario o Correo Electrónico</label>
+              <label className={`text-xs font-medium transition-colors ${isEmailInvalid ? 'text-red-500' : 'text-gray-600'}`}>
+                Usuario o Correo Electrónico
+              </label>
               <input
                 type="text"
                 placeholder="admin o ejemplo@correo.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
-                className="bg-white border border-gray-300 rounded-lg px-4 py-3 text-xs text-gray-800 placeholder-gray-400 outline-none focus:border-[#E8612D] focus:ring-1 focus:ring-[#E8612D] transition-all w-full"
+                className={`bg-white border rounded-lg px-4 py-3 text-xs text-gray-800 placeholder-gray-400 outline-none transition-all w-full focus:ring-1 ${
+                  isEmailInvalid
+                    ? 'border-red-500 focus:border-red-500 focus:ring-red-500' 
+                    : 'border-gray-300 focus:border-[#E8612D] focus:ring-[#E8612D]'
+                }`}
               />
+              {isEmailInvalid && (
+                <div className="flex items-center gap-1.5 text-[#fb3a4d] mt-0.5 animate-in fade-in">
+                  <AlertCircle size={14} fill="currentColor" stroke="white" className="shrink-0" />
+                  <span className="text-[11px] font-medium">Usá el formato ejemplo@correo.com</span>
+                </div>
+              )}
             </div>
 
             <div className="flex flex-col gap-1.5">

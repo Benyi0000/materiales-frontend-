@@ -209,19 +209,65 @@ export default function PublicLanding({
   /* ---- Utilidades ---- */
   const totalCartItems = cart.reduce((acc, item) => acc + item.quantity, 0);
 
-  const executeSearch = (query: string) => {
+  const executeSearch = async (query: string) => {
     setSearchInput(query);
     setShowSuggestions(false);
     setSelectedProduct(null);
     setShowCartView(false);
     setMobileMenuOpen(false);
 
-    // Animación de actualización (simulada)
     setIsSearching(true);
-    setTimeout(() => {
-      setAppliedSearch(query);
-      setIsSearching(false);
-    }, 400); // 400ms de delay para el "refresh"
+    
+    try {
+      const q = query.trim();
+      if (q === '') {
+        const prodRes = await fetch(`${apiBaseUrl}/catalog/products/`);
+        if (prodRes.ok) {
+          const prodData = await prodRes.json();
+          setProducts(Array.isArray(prodData) ? prodData : prodData.results ?? []);
+        }
+      } else {
+        let searched = false;
+        
+        // Verificar si tiene el permiso específico o es superusuario
+        const hasSemanticSearchPerm = currentUser?.is_superuser || (
+          currentUser?.active_permissions && 
+          typeof currentUser.active_permissions === 'object' && 
+          "catalogo.busqueda_semantica" in currentUser.active_permissions
+        );
+        
+        // Si tiene el permiso atómico para búsqueda semántica
+        if (hasSemanticSearchPerm) {
+          const token = localStorage.getItem('access_token');
+          const headers: HeadersInit = {};
+          if (token) headers['Authorization'] = `Bearer ${token}`;
+          
+          const res = await fetch(`${apiBaseUrl}/catalog/products/semantic_search/?q=${encodeURIComponent(q)}`, {
+            headers
+          });
+          
+          if (res.ok) {
+            const data = await res.json();
+            setProducts(data.results || []);
+            searched = true;
+          }
+        }
+        
+        // Fallback a búsqueda clásica si no es premium o si falló (ej: 401/403)
+        if (!searched) {
+          const res = await fetch(`${apiBaseUrl}/catalog/products/?search=${encodeURIComponent(q)}`);
+          if (res.ok) {
+            const data = await res.json();
+            setProducts(Array.isArray(data) ? data : data.results ?? []);
+          }
+        }
+      }
+    } catch (e) {
+      console.error("Error en búsqueda:", e);
+    }
+
+    setAppliedSearch(query);
+    setIsSearching(false);
   };
 
   const searchSuggestions = useMemo(() => {
@@ -239,14 +285,6 @@ export default function PublicLanding({
 
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      /* búsqueda (explícita) */
-      const sq = appliedSearch.trim().toLowerCase();
-      if (sq.length > 0) {
-        if (!p.name.toLowerCase().includes(sq) && !p.sku.toLowerCase().includes(sq)) {
-          return false;
-        }
-      }
-
       /* categoría */
       const matchesCat =
         !selectedCategory ||
@@ -255,7 +293,7 @@ export default function PublicLanding({
 
       return matchesCat;
     });
-  }, [products, appliedSearch, selectedCategory]);
+  }, [products, selectedCategory]);
 
   /* ---- Helpers ---- */
   const toggleCategoryExpand = (catId: number) => {
