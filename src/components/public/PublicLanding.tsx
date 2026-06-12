@@ -77,10 +77,10 @@ export default function PublicLanding({
   currentUser,
   onLogout,
   cart = [],
-  addToCart,
-  updateCartQty,
-  removeFromCart,
-  handleCheckout,
+  addToCart = () => {},
+  updateCartQty = () => {},
+  removeFromCart = () => {},
+  handleCheckout = () => {},
   isPremium = false,
   apiBaseUrl = "http://localhost:8000/api",
 }: PublicLandingProps) {
@@ -717,7 +717,7 @@ export default function PublicLanding({
            {/* Área del Chat */}
            <TutorVisualChat 
                products={products}
-               addToCart={addToCart}
+               addToCart={handleAddToCart}
                isPremium={isPremium}
                apiBaseUrl={apiBaseUrl}
                isAdmin={false}
@@ -1212,7 +1212,7 @@ export default function PublicLanding({
             <div className="flex-1 overflow-hidden bg-white flex flex-col">
                <TutorVisualChat 
                  products={products}
-                 addToCart={addToCart}
+                 addToCart={handleAddToCart}
                  isPremium={isPremium}
                  apiBaseUrl={apiBaseUrl}
                  isAdmin={false}

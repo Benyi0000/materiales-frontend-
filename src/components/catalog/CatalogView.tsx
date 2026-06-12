@@ -13,7 +13,7 @@ interface Product {
   subcategory_names?: string[];
   image_url: string;
   stock: number;
-  weight_kg: number;
+  weight_kg?: number;
   is_active?: boolean;
 }
 

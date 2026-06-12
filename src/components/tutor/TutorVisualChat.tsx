@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Bot, Lock, HelpCircle, Sparkles, Plus, Loader, Send, X, MessageSquare } from "lucide-react";
 import { useChat } from "./ChatContext";
 
@@ -11,7 +11,7 @@ interface Product {
   category_name: string;
   image_url: string;
   stock: number;
-  weight_kg: number;
+  weight_kg?: number;
 }
 
 interface TutorVisualChatProps {
@@ -38,15 +38,17 @@ export default function TutorVisualChat({
     sessionId, setSessionId,
     chatInput, setChatInput,
     isTyping, setIsTyping,
-    creatingSession, setCreatingSession,
     isWidgetOpen, setIsWidgetOpen
   } = useChat();
+  const [creatingSession, setCreatingSession] = useState(false);
   
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
 
   // Auto-scroll hacia el final cuando hay nuevos mensajes o el bot está escribiendo
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (scrollContainerRef.current) {
+      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+    }
   }, [chatMessages, isTyping]);
 
   // Inicializar o recuperar sesión de chat en el backend al ingresar si es premium
@@ -301,7 +303,10 @@ export default function TutorVisualChat({
                 <div className={`transition-all duration-[800ms] ease-in-out shrink-0 ${layoutMode === 'full' && chatMessages.length <= 2 && !isTyping ? 'h-[15vh]' : 'h-0'}`} />
 
                 {/* Ventana de Conversación */}
-                <div className={`flex-grow overflow-y-auto pr-2 flex flex-col ${layoutMode === 'full' ? 'py-4' : ''}`}>
+                <div 
+                  ref={scrollContainerRef}
+                  className={`flex-grow overflow-y-auto pr-2 flex flex-col ${layoutMode === 'full' ? 'py-4' : ''}`}
+                >
                   <div className={`flex flex-col gap-4 w-full ${layoutMode === 'full' ? 'max-w-3xl mx-auto' : ''}`}>
                     {chatMessages.map((msg, idx) => {
                       const isUser = msg.sender === "user";
@@ -353,7 +358,7 @@ export default function TutorVisualChat({
                                     </div>
                                     <button
                                       type="button"
-                                      onClick={() => addCalculatedMaterialsToCart(msg.materials)}
+                                      onClick={() => addCalculatedMaterialsToCart(msg.materials || [])}
                                       className="w-auto self-start mt-1 bg-white hover:bg-gray-50 text-[#1a1a2e] border border-gray-300 text-xs font-semibold py-2 px-4 rounded-full transition-all"
                                     >
                                       Agregar todo al carrito
@@ -400,7 +405,7 @@ export default function TutorVisualChat({
                                   </div>
                                   <button
                                     type="button"
-                                    onClick={() => addCalculatedMaterialsToCart(msg.materials)}
+                                    onClick={() => addCalculatedMaterialsToCart(msg.materials || [])}
                                     className="w-full mt-2 bg-[#E8612D]/10 hover:bg-[#E8612D]/20 text-[#E8612D] border border-[#E8612D]/30 text-[11px] font-bold py-2 rounded-lg transition-all"
                                   >
                                     Agregar Todos
@@ -420,7 +425,6 @@ export default function TutorVisualChat({
                         <span className="w-2 h-2 bg-[#E8612D] rounded-full animate-bounce [animation-delay:0.4s]"></span>
                       </div>
                     )}
-                    <div ref={messagesEndRef} />
                   </div>
                 </div>
 
