@@ -153,7 +153,7 @@ function DashboardInner() {
       const prodRes = await fetch(`${API_BASE_URL}/catalog/products/`);
       if (prodRes.ok) {
         const prodData = await prodRes.json();
-        setProducts(prodData);
+        setProducts(Array.isArray(prodData) ? prodData : (prodData.results ?? []));
       }
 
       // 3. Cargar perfiles
