@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Building2, AlertCircle, Loader, Eye, EyeOff, CheckCircle2, Circle } from "lucide-react";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
 export default function RegisterPage() {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -83,7 +85,7 @@ export default function RegisterPage() {
       }
       setUsernameStatus("loading");
       try {
-        const res = await fetch(`http://localhost:8000/api/users/auth/check-username/?username=${username}`);
+        const res = await fetch(`${API_BASE_URL}/users/auth/check-username/?username=${username}`);
         if (res.ok) {
           const data = await res.json();
           setUsernameStatus(data.available ? "available" : "taken");
@@ -106,7 +108,7 @@ export default function RegisterPage() {
       }
       setEmailStatus("loading");
       try {
-        const res = await fetch(`http://localhost:8000/api/users/auth/check-email/?email=${email}`);
+        const res = await fetch(`${API_BASE_URL}/users/auth/check-email/?email=${email}`);
         if (res.ok) {
           const data = await res.json();
           setEmailStatus(data.available ? "available" : "taken");
@@ -158,7 +160,7 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/users/auth/register/", {
+      const res = await fetch(`${API_BASE_URL}/users/auth/register/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

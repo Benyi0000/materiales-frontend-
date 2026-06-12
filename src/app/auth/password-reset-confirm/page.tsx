@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Building2, CheckCircle2, Circle, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
 function PasswordResetConfirmContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -59,7 +61,7 @@ function PasswordResetConfirmContent() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/users/auth/password-reset-confirm/", {
+      const res = await fetch(`${API_BASE_URL}/users/auth/password-reset-confirm/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

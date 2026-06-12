@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation';
 import { Mail, ArrowLeft, Building2, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
 export default function PasswordReset() {
   const router = useRouter();
   const [email, setEmail] = useState('');
@@ -23,7 +25,7 @@ export default function PasswordReset() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/users/auth/password-reset/", {
+      const res = await fetch(`${API_BASE_URL}/users/auth/password-reset/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })

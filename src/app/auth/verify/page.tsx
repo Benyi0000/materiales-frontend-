@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Building2, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
 function VerifyEmailContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -23,7 +25,7 @@ function VerifyEmailContent() {
 
     const verifyEmail = async () => {
       try {
-        const res = await fetch("http://localhost:8000/api/users/auth/verify-email/", {
+        const res = await fetch(`${API_BASE_URL}/users/auth/verify-email/`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",

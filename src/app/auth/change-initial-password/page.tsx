@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Eye, EyeOff, Building2, KeyRound, AlertCircle, CheckCircle2, Circle } from 'lucide-react';
 import Link from 'next/link';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
 function ChangeInitialPasswordContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -60,7 +62,7 @@ function ChangeInitialPasswordContent() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/users/auth/change-initial-password/", {
+      const res = await fetch(`${API_BASE_URL}/users/auth/change-initial-password/`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

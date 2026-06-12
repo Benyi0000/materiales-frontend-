@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Building2, Sparkles, AlertCircle, Loader, Eye, EyeOff } from "lucide-react";
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
 export default function LoginPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
@@ -22,7 +24,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const res = await fetch("http://localhost:8000/api/users/auth/login/", {
+      const res = await fetch(`${API_BASE_URL}/users/auth/login/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -69,7 +71,7 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const res = await fetch("http://localhost:8000/api/users/auth/google/", {
+      const res = await fetch(`${API_BASE_URL}/users/auth/google/`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

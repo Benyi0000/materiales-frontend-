@@ -1,3 +1,5 @@
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
 export async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
   let token = null;
   if (typeof window !== "undefined") {
@@ -21,7 +23,7 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
     
     if (refreshToken) {
       try {
-        const refreshResponse = await fetch("http://localhost:8000/api/users/auth/token/refresh/", {
+        const refreshResponse = await fetch(`${API_BASE_URL}/users/auth/token/refresh/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ refresh: refreshToken }),

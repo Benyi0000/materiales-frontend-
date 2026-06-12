@@ -5,6 +5,8 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { Mail, ArrowLeft, RefreshCw, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+
 function VerifyEmailSentContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -43,7 +45,7 @@ function VerifyEmailSentContent() {
     setMessage(null);
 
     try {
-      const res = await fetch('http://localhost:8000/api/users/auth/resend-verification/', {
+      const res = await fetch(`${API_BASE_URL}/users/auth/resend-verification/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email }),
