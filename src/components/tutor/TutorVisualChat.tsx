@@ -47,7 +47,10 @@ export default function TutorVisualChat({
   // Auto-scroll hacia el final cuando hay nuevos mensajes o el bot está escribiendo
   useEffect(() => {
     if (scrollContainerRef.current) {
-      scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+      scrollContainerRef.current.scrollTo({
+        top: scrollContainerRef.current.scrollHeight,
+        behavior: "smooth"
+      });
     }
   }, [chatMessages, isTyping]);
 
@@ -251,7 +254,7 @@ export default function TutorVisualChat({
   };
 
   return (
-    <div className={`flex-1 flex flex-col text-left h-full ${isAdmin && layoutMode === 'full' ? 'gap-4' : ''}`}>
+    <div className={`flex-1 flex flex-col text-left h-full min-h-0 ${isAdmin && layoutMode === 'full' ? 'gap-4' : ''}`}>
       {isAdmin && layoutMode === 'full' && (
         <div>
           <h2 className="text-2xl font-bold tracking-tight flex items-center gap-2">
@@ -289,9 +292,9 @@ export default function TutorVisualChat({
           </p>
         </div>
       ) : (
-        <div className="flex-grow flex gap-8 items-stretch h-full">
+        <div className="flex-grow flex gap-8 items-stretch h-full min-h-0">
           {/* CHAT INTERACTIVE PANEL */}
-          <div className={`flex-1 flex flex-col bg-white overflow-hidden flex-grow gap-4 ${isAdmin && layoutMode === 'full' ? 'border border-[#e5e7eb] rounded-xl p-6 shadow-sm min-h-[450px]' : 'p-4'}`}>
+          <div className={`flex-1 flex flex-col bg-white overflow-hidden flex-grow gap-4 min-h-0 ${isAdmin && layoutMode === 'full' ? 'border border-[#e5e7eb] rounded-xl p-6 shadow-sm min-h-[450px]' : 'p-4'}`}>
 
             {creatingSession ? (
               <div className="flex-grow flex flex-col items-center justify-center gap-2 text-[#6b7280] text-xs">
@@ -305,7 +308,7 @@ export default function TutorVisualChat({
                 {/* Ventana de Conversación */}
                 <div 
                   ref={scrollContainerRef}
-                  className={`flex-grow overflow-y-auto pr-2 flex flex-col ${layoutMode === 'full' ? 'py-4' : ''}`}
+                  className={`flex-grow overflow-y-auto pr-2 flex flex-col min-h-0 ${layoutMode === 'full' ? 'py-4' : ''}`}
                 >
                   <div className={`flex flex-col gap-4 w-full ${layoutMode === 'full' ? 'max-w-3xl mx-auto' : ''}`}>
                     {chatMessages.map((msg, idx) => {

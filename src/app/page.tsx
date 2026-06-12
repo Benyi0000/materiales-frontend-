@@ -618,7 +618,7 @@ function DashboardInner() {
       {/* DASHBOARD PRINCIPAL */}
       <div className="flex-1 flex">
         {/* CONTENIDO PRINCIPAL */}
-        <main className="flex-1 p-6 sm:p-8 flex flex-col overflow-y-auto max-h-[calc(100vh-64px)] w-full">
+        <main className={`flex-1 p-6 sm:p-8 flex flex-col max-h-[calc(100vh-64px)] w-full ${activeTab === 'tutor' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           {/* TAB 1: CATÁLOGO DE PRODUCTOS (E-COMMERCE) */}
           {activeTab === "catalog" && (
             <CatalogView

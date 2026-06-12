@@ -331,7 +331,7 @@ export default function PublicLanding({
   /*  RENDER                                                           */
   /* ================================================================ */
   return (
-    <div className="min-h-screen bg-white text-[#1a1a2e] font-sans flex flex-col">
+    <div className={`${showTutorView ? 'h-screen overflow-hidden' : 'min-h-screen'} bg-white text-[#1a1a2e] font-sans flex flex-col`}>
 
       {/* ============================================================ */}
       {/*  A) HEADER                                                    */}
