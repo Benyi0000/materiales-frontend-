@@ -5,8 +5,7 @@
 # Genera una construcción independiente ("standalone") que copia solo los archivos
 # estrictamente necesarios para correr en el servidor, minimizando el peso.
 # NOTA: En producción, `NEXT_PUBLIC_API_URL` puede ser inyectado durante el build.
-FROM node:18-alpine AS base
-
+FROM node:20-alpine AS base
 
 # Install dependencies only when needed
 FROM base AS deps
@@ -23,7 +22,7 @@ COPY . .
 # Set Next.js Telemetry to disabled
 ENV NEXT_TELEMETRY_DISABLED 1
 # Pasa las variables de entorno para que el build se conecte a la API
-ENV NEXT_PUBLIC_API_URL=http://localhost:8000/api
+ENV NEXT_PUBLIC_API_URL=https://craftiar.me/api
 RUN npm run build
 
 # Production image, copy all the files and run next
