@@ -16,6 +16,7 @@ import ProfileSecurity from "@/components/admin/ProfileSecurity";
 import AuditLogTable from "@/components/admin/AuditLogTable";
 import UserCreateForm from "@/components/admin/UserCreateForm";
 import InventoryPanel from "@/components/catalog/InventoryPanel";
+import SalesPanel from "@/components/admin/SalesPanel";
 import PublicLanding from "@/components/public/PublicLanding";
 
 // URL Base de la API de Django
@@ -58,13 +59,13 @@ function DashboardInner() {
        setGlobalModal({ isOpen: true, title, message: msg, type });
     };
   }, []);
-  const [activeTab, setActiveTab] = useState<"catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory">("catalog");
+  const [activeTab, setActiveTab] = useState<"catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales">("catalog");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cart, setCart] = useState<{ product: any; quantity: number }[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
 
-  const handleTabChange = (newTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory") => {
+  const handleTabChange = (newTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales") => {
     if (newTab === activeTab) return;
     
     // Si estamos interactuando con el chat y cambiamos de contexto
@@ -809,6 +810,14 @@ function DashboardInner() {
               apiBaseUrl={API_BASE_URL}
               currentUser={currentUser}
               refreshCatalog={checkBackendAPI}
+            />
+          )}
+
+          {/* TAB 2.6: GESTIÓN DE VENTAS */}
+          {activeTab === "sales" && (
+            <SalesPanel
+              apiBaseUrl={API_BASE_URL}
+              currentUser={currentUser}
             />
           )}
 
