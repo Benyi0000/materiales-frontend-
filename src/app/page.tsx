@@ -18,6 +18,7 @@ import UserCreateForm from "@/components/admin/UserCreateForm";
 import InventoryPanel from "@/components/catalog/InventoryPanel";
 import SalesPanel from "@/components/admin/SalesPanel";
 import PublicLanding from "@/components/public/PublicLanding";
+import { startSessionWatch, stopSessionWatch } from "@/lib/session";
 
 // URL Base de la API de Django
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api");
@@ -47,6 +48,13 @@ function DashboardInner() {
     confirmText?: string,
     cancelText?: string
   }>({isOpen: false, title: "", message: "", type: "info"});
+
+  // Sesión única: abrir el stream SSE para cerrar la sesión en tiempo real si
+  // se inicia sesión con la misma cuenta en otro dispositivo.
+  useEffect(() => {
+    startSessionWatch();
+    return () => stopSessionWatch();
+  }, []);
 
   useEffect(() => {
     // Override window.alert para usar el modal global menos intrusivo (y sin fondo borroso fuerte)
