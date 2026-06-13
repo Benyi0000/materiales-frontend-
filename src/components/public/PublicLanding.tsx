@@ -1075,7 +1075,7 @@ export default function PublicLanding({
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {products.map((prod) => {
+                {filteredProducts.map((prod) => {
                   const outOfStock = prod.stock === 0;
 
                   return (
