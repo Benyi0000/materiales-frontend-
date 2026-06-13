@@ -6,7 +6,6 @@ import {
   Search,
   ShoppingCart,
   User,
-  Filter,
   ChevronDown,
   ChevronRight,
   Menu,
@@ -113,9 +112,7 @@ export default function PublicLanding({
   const [showTutorView, setShowTutorView] = useState(false);
   const [tutorWidgetOpen, setTutorWidgetOpen] = useState(false);
   const [lastAddedItem, setLastAddedItem] = useState<{product: Product, quantity: number} | null>(null);
-  const [expandedCategories, setExpandedCategories] = useState<Set<number>>(new Set());
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   /* ---- Fetch inicial ---- */
   useEffect(() => {
@@ -351,13 +348,6 @@ export default function PublicLanding({
   }, [products, selectedCategory]);
 
   /* ---- Helpers ---- */
-  const toggleCategoryExpand = (catId: number) => {
-    setExpandedCategories((prev) => {
-      const next = new Set(prev);
-      next.has(catId) ? next.delete(catId) : next.add(catId);
-      return next;
-    });
-  };
 
   const formatPrice = (price: number) =>
     new Intl.NumberFormat('es-AR', {
@@ -701,20 +691,6 @@ export default function PublicLanding({
               )}
             </div>
             <div className="flex flex-col gap-1 border-t border-gray-100 mt-2 pt-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setMobileSidebarOpen((v) => !v);
-                  setMobileMenuOpen(false);
-                }}
-                className="w-full flex items-center justify-between py-2 text-sm font-medium text-[#1a1a2e]/70 hover:text-[#E8612D]"
-              >
-                <div className="flex items-center gap-2">
-                  <Filter size={16} /> Categorías
-                </div>
-                <ChevronRight size={16} />
-              </button>
-              
               <a
                 href="#"
                 className="w-full flex items-center gap-2 py-2 text-sm font-medium text-[#1a1a2e]/70 hover:text-[#E8612D]"
@@ -880,182 +856,9 @@ export default function PublicLanding({
           </span>
         </div>
 
-        <div className="flex gap-8">
-          {/* ---------- Sidebar categorías — desktop ---------- */}
-          <aside className="hidden md:block w-[240px] shrink-0">
-            <div className="sticky top-24">
-              <div className="flex items-center gap-2 text-sm font-semibold text-[#1a1a2e] mb-4">
-                <Filter size={16} className="text-[#E8612D]" />
-                Categorías
-              </div>
-
-              {/* Opción "Todas" */}
-              <button
-                type="button"
-                onClick={() => setSelectedCategory(null)}
-                className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
-                  !selectedCategory
-                    ? 'bg-[#E8612D]/10 text-[#E8612D] font-semibold'
-                    : 'text-[#1a1a2e]/70 hover:bg-gray-50'
-                }`}
-              >
-                Todas
-              </button>
-
-              {/* Lista de categorías */}
-              <ul className="mt-1 space-y-0.5">
-                {categories.map((cat) => {
-                  const subs = getSubcategories(cat);
-                  const hasSubs = subs.length > 0;
-                  const isExpanded = expandedCategories.has(cat.id);
-
-                  return (
-                    <li key={cat.id}>
-                      <button
-                        type="button"
-                        onClick={() => {
-                          if (hasSubs) toggleCategoryExpand(cat.id);
-                          setSelectedCategory(cat.name);
-                        }}
-                        className={`w-full flex items-center justify-between text-sm px-3 py-2 rounded-lg transition-colors ${
-                          selectedCategory === cat.name
-                            ? 'bg-[#E8612D]/10 text-[#E8612D] font-semibold'
-                            : 'text-[#1a1a2e]/70 hover:bg-gray-50'
-                        }`}
-                      >
-                        <span>{cat.name}</span>
-                        {hasSubs &&
-                          (isExpanded ? (
-                            <ChevronDown size={14} className="text-gray-400" />
-                          ) : (
-                            <ChevronRight size={14} className="text-gray-400" />
-                          ))}
-                      </button>
-
-                      {/* Sub-categorías */}
-                      {hasSubs && isExpanded && (
-                        <ul className="ml-4 mt-0.5 space-y-0.5">
-                          {subs.map((sub) => (
-                            <li key={sub.id}>
-                              <button
-                                type="button"
-                                onClick={() => setSelectedCategory(sub.name)}
-                                className={`w-full text-left text-xs px-3 py-1.5 rounded-md transition-colors ${
-                                  selectedCategory === sub.name
-                                    ? 'bg-[#E8612D]/10 text-[#E8612D] font-semibold'
-                                    : 'text-[#1a1a2e]/50 hover:text-[#1a1a2e]/70 hover:bg-gray-50'
-                                }`}
-                              >
-                                {sub.name}
-                              </button>
-                            </li>
-                          ))}
-                        </ul>
-                      )}
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-          </aside>
-
-          {/* Sidebar mobile (overlay) */}
-          {mobileSidebarOpen && (
-            <div className="md:hidden fixed inset-0 z-40 flex">
-              {/* Backdrop */}
-              <div
-                className="absolute inset-0 bg-black/30"
-                onClick={() => setMobileSidebarOpen(false)}
-              />
-              <div className="relative z-50 bg-white w-72 max-w-[80vw] h-full overflow-y-auto shadow-xl p-5">
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center gap-2 text-sm font-semibold">
-                    <Filter size={16} className="text-[#E8612D]" /> Categorías
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setMobileSidebarOpen(false)}
-                    className="p-1 rounded hover:bg-gray-100"
-                  >
-                    <X size={18} />
-                  </button>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSelectedCategory(null);
-                    setMobileSidebarOpen(false);
-                  }}
-                  className={`w-full text-left text-sm px-3 py-2 rounded-lg transition-colors ${
-                    !selectedCategory
-                      ? 'bg-[#E8612D]/10 text-[#E8612D] font-semibold'
-                      : 'text-[#1a1a2e]/70 hover:bg-gray-50'
-                  }`}
-                >
-                  Todas
-                </button>
-
-                <ul className="mt-1 space-y-0.5">
-                  {categories.map((cat) => {
-                    const subs = getSubcategories(cat);
-                    const hasSubs = subs.length > 0;
-                    const isExpanded = expandedCategories.has(cat.id);
-
-                    return (
-                      <li key={cat.id}>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (hasSubs) toggleCategoryExpand(cat.id);
-                            setSelectedCategory(cat.name);
-                          }}
-                          className={`w-full flex items-center justify-between text-sm px-3 py-2 rounded-lg transition-colors ${
-                            selectedCategory === cat.name
-                              ? 'bg-[#E8612D]/10 text-[#E8612D] font-semibold'
-                              : 'text-[#1a1a2e]/70 hover:bg-gray-50'
-                          }`}
-                        >
-                          <span>{cat.name}</span>
-                          {hasSubs &&
-                            (isExpanded ? (
-                              <ChevronDown size={14} className="text-gray-400" />
-                            ) : (
-                              <ChevronRight size={14} className="text-gray-400" />
-                            ))}
-                        </button>
-                        {hasSubs && isExpanded && (
-                          <ul className="ml-4 mt-0.5 space-y-0.5">
-                            {subs.map((sub) => (
-                              <li key={sub.id}>
-                                <button
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedCategory(sub.name);
-                                    setMobileSidebarOpen(false);
-                                  }}
-                                  className={`w-full text-left text-xs px-3 py-1.5 rounded-md transition-colors ${
-                                    selectedCategory === sub.name
-                                      ? 'bg-[#E8612D]/10 text-[#E8612D] font-semibold'
-                                      : 'text-[#1a1a2e]/50 hover:text-[#1a1a2e]/70 hover:bg-gray-50'
-                                  }`}
-                                >
-                                {sub.name}
-                              </button>
-                            </li>
-                            ))}
-                          </ul>
-                        )}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            </div>
-          )}
-
+        <div>
           {/* ---------- Grilla de productos ---------- */}
-          <div className="flex-1 min-w-0">
+          <div>
             {isSearching ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 animate-pulse">
                 {[1, 2, 3, 4, 5, 6].map((i) => (
