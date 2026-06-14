@@ -118,6 +118,15 @@ export default function PublicLanding({
   const [lastAddedItem, setLastAddedItem] = useState<{product: Product, quantity: number} | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [plansOpen, setPlansOpen] = useState(false);
+  const [heroBanner, setHeroBanner] = useState<any>(null);
+
+  // Banner del slot "hero" (si hay activo, reemplaza la imagen por defecto)
+  useEffect(() => {
+    fetch(`${API_BASE}/catalog/banners/public/?slot=hero`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => { const list = Array.isArray(d) ? d : d.results || []; setHeroBanner(list[0] || null); })
+      .catch(() => {});
+  }, []);
 
   /* ---- Fetch inicial ---- */
   useEffect(() => {
@@ -823,23 +832,28 @@ export default function PublicLanding({
             <section className="relative w-full h-[380px] md:h-[440px] flex items-center justify-center overflow-hidden">
               {/* Imagen de fondo */}
               <div
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: "url('/hero_banner.png')" }}
+                className="absolute inset-0 bg-cover bg-center transition-all duration-500"
+                style={{ backgroundImage: `url('${heroBanner?.image_url || "/hero_banner.png"}')` }}
               />
-              {/* Overlay oscuro */}
-              <div className="absolute inset-0 bg-black/55" />
+              {/* Overlay oscuro (opacidad configurable del banner) */}
+              <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${(heroBanner?.overlay_opacity ?? 55) / 100})` }} />
 
               {/* Contenido */}
               <div className="relative z-10 text-center px-6 max-w-2xl">
                 <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight">
-                  Construye mejor con{' '}
-                  <span className="text-[#E8612D]">CraftIAr</span>
+                  {heroBanner?.title ? (
+                    heroBanner.title
+                  ) : (
+                    <>Construye mejor con{' '}<span className="text-[#E8612D]">CraftIAr</span></>
+                  )}
                 </h1>
                 <p className="mt-4 text-base sm:text-lg text-gray-200 leading-relaxed">
-                  Materiales de construcción premium con herramientas de estimación basadas en IA.
+                  {heroBanner?.subtitle || "Materiales de construcción premium con herramientas de estimación basadas en IA."}
                 </p>
                 <a
-                  href="#catalogo"
+                  href={heroBanner?.link || "#catalogo"}
+                  target={heroBanner?.link ? "_blank" : undefined}
+                  rel={heroBanner?.link ? "noreferrer" : undefined}
                   className="mt-6 inline-block bg-white text-[#1a1a2e] font-semibold px-7 py-3 rounded-full text-sm shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
                 >
                   Ver Promociones

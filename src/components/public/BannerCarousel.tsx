@@ -17,7 +17,7 @@ export default function BannerCarousel() {
   const [idx, setIdx] = useState(0);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/catalog/banners/public/`)
+    fetch(`${API_BASE_URL}/catalog/banners/public/?slot=carousel`)
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => setBanners(Array.isArray(d) ? d : d.results || []))
       .catch(() => {});

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
-import { Plus, Trash2, Download, RefreshCw } from "lucide-react";
+import { Plus, Trash2, Download, RefreshCw, Upload, Pencil, X } from "lucide-react";
 
 export type GestionSection =
   | "dashboard" | "reportes" | "stock" | "banners"
@@ -208,46 +208,193 @@ function StockSub({ apiBaseUrl }: { apiBaseUrl: string }) {
 }
 
 /* ---------------- Banners ---------------- */
+const SLOTS: { value: string; label: string; res: string }[] = [
+  { value: "hero", label: "Hero (imagen grande arriba)", res: "1920 × 600 px (panorámica)" },
+  { value: "carousel", label: "Carrusel (franja debajo del hero)", res: "1200 × 320 px" },
+];
+const slotLabel = (v: string) => SLOTS.find((s) => s.value === v)?.label ?? v;
+const slotRes = (v: string) => SLOTS.find((s) => s.value === v)?.res ?? "";
+
+/** Vista previa realista de cómo se verá el banner en el catálogo, según su slot. */
+function BannerPreview({ slot, image_url, title, subtitle, overlay }: { slot: string; image_url: string; title?: string; subtitle?: string; overlay?: number }) {
+  if (!image_url) return null;
+  return (
+    <div className="sm:col-span-2">
+      <p className="text-xs text-gray-500 mb-1">👁️ Vista previa en el catálogo:</p>
+      {slot === "hero" ? (
+        <div className="relative w-full h-48 rounded-lg overflow-hidden ck-fade-in border border-gray-200">
+          <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url('${image_url}')` }} />
+          <div className="absolute inset-0 transition-all" style={{ backgroundColor: `rgba(0,0,0,${(overlay ?? 55) / 100})` }} />
+          <div className="relative z-10 h-full flex flex-col items-center justify-center text-center px-4">
+            <p className="text-white font-bold text-lg sm:text-2xl leading-tight">{title || "Construye mejor con CraftIAr"}</p>
+            <p className="text-white/90 text-xs sm:text-sm mt-1 max-w-md">{subtitle || "Materiales de construcción premium con herramientas de estimación basadas en IA."}</p>
+            <span className="mt-2 bg-white text-[#1a1a2e] text-xs font-semibold px-4 py-1.5 rounded-full shadow">Ver Promociones</span>
+          </div>
+        </div>
+      ) : (
+        <div className="relative rounded-2xl overflow-hidden shadow-md ck-fade-in max-w-xl">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={image_url} alt={title} className="w-full h-32 object-cover" />
+          {title && <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3"><p className="text-white font-semibold">{title}</p></div>}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Campos de un banner (reutilizado para crear y para personalizar), con subida y preview. */
+function BannerFields({ value, set, apiBaseUrl }: { value: any; set: (v: any) => void; apiBaseUrl: string }) {
+  const [uploading, setUploading] = useState(false);
+  const upload = async (file: File) => {
+    setUploading(true);
+    const fd = new FormData(); fd.append("image", file);
+    const r = await apiFetch(`${apiBaseUrl}/catalog/banners/upload-image/`, { method: "POST", body: fd });
+    setUploading(false);
+    if (r.ok) { const d = await r.json(); set({ ...value, image_url: d.image_url }); }
+    else { const e = await r.json().catch(() => ({})); alert(e.error || "No se pudo subir la imagen."); }
+  };
+  return (
+    <div className="grid gap-2 sm:grid-cols-2">
+      <input placeholder={value.slot === "hero" ? "Título (encabezado grande)" : "Título / texto"} value={value.title} onChange={(e) => set({ ...value, title: e.target.value })} className="border rounded-lg px-3 py-2 text-sm" />
+      <select value={value.slot} onChange={(e) => set({ ...value, slot: e.target.value })} className="border rounded-lg px-3 py-2 text-sm">
+        {SLOTS.map((s) => <option key={s.value} value={s.value}>Ubicación: {s.label}</option>)}
+      </select>
+      {value.slot === "hero" && (
+        <input placeholder="Subtítulo (texto debajo del título, solo Hero)" value={value.subtitle || ""} onChange={(e) => set({ ...value, subtitle: e.target.value })} className="border rounded-lg px-3 py-2 text-sm sm:col-span-2" />
+      )}
+      {value.slot === "hero" && (
+        <div className="sm:col-span-2">
+          <label className="text-xs text-gray-500">Oscurecido sobre la imagen (legibilidad del texto): <b>{value.overlay_opacity ?? 55}%</b></label>
+          <input type="range" min={0} max={90} value={value.overlay_opacity ?? 55} onChange={(e) => set({ ...value, overlay_opacity: Number(e.target.value) })} className="w-full accent-[#E8612D]" />
+        </div>
+      )}
+      <p className="text-xs text-gray-500 sm:col-span-2">📐 Resolución recomendada para <b>{slotLabel(value.slot)}</b>: <b>{slotRes(value.slot)}</b> · JPG, PNG o WEBP · máx 5 MB</p>
+      <div className="sm:col-span-2 flex flex-col sm:flex-row gap-2 items-stretch">
+        <input placeholder="URL de imagen" value={value.image_url} onChange={(e) => set({ ...value, image_url: e.target.value })} className="border rounded-lg px-3 py-2 text-sm flex-1" />
+        <label className="border rounded-lg px-3 py-2 text-sm text-gray-600 cursor-pointer hover:bg-gray-50 flex items-center justify-center gap-2 whitespace-nowrap">
+          <Upload size={14} /> {uploading ? "Subiendo…" : "Subir imagen"}
+          <input type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => e.target.files?.[0] && upload(e.target.files[0])} />
+        </label>
+      </div>
+      <div>
+        <label className="text-xs text-gray-500">Link al hacer clic <span className="text-gray-400">(opcional)</span></label>
+        <input placeholder="https://… a dónde lleva el banner" value={value.link} onChange={(e) => set({ ...value, link: e.target.value })} className="border rounded-lg px-3 py-2 text-sm w-full" />
+      </div>
+      <div>
+        <label className="text-xs text-gray-500">Orden de aparición</label>
+        <input type="number" min={0} value={value.order} onChange={(e) => set({ ...value, order: Number(e.target.value) })} className="border rounded-lg px-3 py-2 text-sm w-full" />
+        <p className="text-[11px] text-gray-400 mt-0.5">Menor número = aparece primero {value.slot === "carousel" ? "en el carrusel" : ""}</p>
+      </div>
+      <BannerPreview slot={value.slot} image_url={value.image_url} title={value.title} subtitle={value.subtitle} overlay={value.overlay_opacity} />
+    </div>
+  );
+}
+
+const BLANK_BANNER = { title: "", subtitle: "", image_url: "", link: "", slot: "carousel", overlay_opacity: 55, order: 0, is_active: true };
+
+/** Tarjeta de un banner en el listado. */
+function BannerCard({ b, onEdit, onToggle, onDel }: { b: any; onEdit: () => void; onToggle: () => void; onDel: () => void }) {
+  return (
+    <div className="bg-white border border-gray-200 rounded-xl overflow-hidden flex flex-col">
+      <div className="relative">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={b.image_url} alt={b.title} className={`w-full h-28 object-cover ${b.is_active ? "" : "opacity-40 grayscale"}`} />
+        {!b.is_active && <span className="absolute top-2 left-2 bg-gray-700/80 text-white text-[10px] px-2 py-0.5 rounded">Inactivo</span>}
+      </div>
+      <div className="p-3 flex flex-col flex-1">
+        <p className="font-semibold text-sm truncate">{b.title || "(sin título)"}</p>
+        <p className="text-xs text-gray-400 mb-2">Orden: {b.order}</p>
+        <div className="flex gap-1.5 mt-auto">
+          <button onClick={onEdit} className="flex-1 text-xs px-2 py-1.5 rounded-lg bg-orange-50 text-[#E8612D] font-medium flex items-center justify-center gap-1 transition hover:bg-orange-100"><Pencil size={12} /> Editar</button>
+          <button onClick={onToggle} title={b.is_active ? "Desactivar" : "Activar"} className={`text-xs px-2 py-1.5 rounded-lg transition ${b.is_active ? "bg-green-100 text-green-700 hover:bg-green-200" : "bg-gray-100 text-gray-500 hover:bg-gray-200"}`}>{b.is_active ? "Activo" : "Inactivo"}</button>
+          <button onClick={onDel} title="Eliminar" className="text-xs px-2 py-1.5 rounded-lg bg-red-50 text-red-600 transition hover:bg-red-100"><Trash2 size={13} /></button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Editor de banner en modal (crear o editar), con vista previa en vivo. */
+function BannerEditorModal({ apiBaseUrl, mode, initial, onClose, onSaved }: {
+  apiBaseUrl: string; mode: "new" | "edit"; initial: any; onClose: () => void; onSaved: () => void;
+}) {
+  const [value, setValue] = useState<any>(initial);
+  const [saving, setSaving] = useState(false);
+  const save = async () => {
+    if (!value.image_url) return alert("Subí o pegá la URL de una imagen.");
+    setSaving(true);
+    const payload = { title: value.title, subtitle: value.subtitle, image_url: value.image_url, link: value.link, slot: value.slot, overlay_opacity: value.overlay_opacity, order: value.order, is_active: value.is_active };
+    const url = mode === "new" ? `${apiBaseUrl}/catalog/banners/` : `${apiBaseUrl}/catalog/banners/${value.id}/`;
+    const r = await apiFetch(url, { method: mode === "new" ? "POST" : "PATCH", body: JSON.stringify(payload) });
+    setSaving(false);
+    if (r.ok) onSaved(); else { const e = await r.json().catch(() => ({})); alert("No se pudo guardar: " + JSON.stringify(e)); }
+  };
+  return (
+    <div className="fixed inset-0 bg-black/50 z-[60] flex items-center justify-center p-4 ck-fade-in" onClick={onClose}>
+      <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 sticky top-0 bg-white z-10">
+          <h2 className="font-bold text-[#1a1a2e]">{mode === "new" ? "Nuevo banner" : "Editar banner"} · {slotLabel(value.slot)}</h2>
+          <button onClick={onClose} className="text-gray-400 hover:text-[#E8612D]"><X size={20} /></button>
+        </div>
+        <div className="p-5">
+          <BannerFields value={value} set={setValue} apiBaseUrl={apiBaseUrl} />
+          <label className="flex items-center gap-2 text-sm mt-3"><input type="checkbox" checked={value.is_active} onChange={(e) => setValue({ ...value, is_active: e.target.checked })} /> Activo (visible en el catálogo)</label>
+          <div className="flex gap-2 mt-5 justify-end">
+            <button onClick={onClose} className="border border-gray-200 rounded-lg px-4 py-2 text-sm transition hover:bg-gray-50">Cancelar</button>
+            <button onClick={save} disabled={saving} className="bg-[#E8612D] text-white rounded-lg px-5 py-2 text-sm font-medium transition active:scale-[0.98] hover:brightness-105 disabled:opacity-50">{saving ? "Guardando…" : (mode === "new" ? "Crear banner" : "Guardar cambios")}</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function BannersSub({ apiBaseUrl }: { apiBaseUrl: string }) {
   const [rows, setRows] = useState<any[]>([]);
-  const [form, setForm] = useState({ title: "", image_url: "", link: "", order: 0, is_active: true });
+  const [editor, setEditor] = useState<{ mode: "new" | "edit"; value: any } | null>(null);
   const load = useCallback(() => {
     apiFetch(`${apiBaseUrl}/catalog/banners/`).then((r) => r.json()).then((d) => setRows(d.results || d || []));
   }, [apiBaseUrl]);
   useEffect(() => { load(); }, [load]);
-  const create = async () => {
-    if (!form.image_url) return alert("La imagen es obligatoria.");
-    await apiFetch(`${apiBaseUrl}/catalog/banners/`, { method: "POST", body: JSON.stringify(form) });
-    setForm({ title: "", image_url: "", link: "", order: 0, is_active: true }); load();
-  };
-  const del = async (id: number) => { await apiFetch(`${apiBaseUrl}/catalog/banners/${id}/`, { method: "DELETE" }); load(); };
+  const del = async (id: number) => { if (!confirm("¿Eliminar este banner?")) return; await apiFetch(`${apiBaseUrl}/catalog/banners/${id}/`, { method: "DELETE" }); load(); };
   const toggle = async (b: any) => { await apiFetch(`${apiBaseUrl}/catalog/banners/${b.id}/`, { method: "PATCH", body: JSON.stringify({ is_active: !b.is_active }) }); load(); };
+
   return (
-    <div>
-      <div className="bg-white border border-gray-200 rounded-xl p-4 mb-4 grid gap-2 sm:grid-cols-2">
-        <input placeholder="Título" value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="border rounded-lg px-3 py-2 text-sm" />
-        <input placeholder="URL de imagen *" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="border rounded-lg px-3 py-2 text-sm" />
-        <input placeholder="Link (opcional)" value={form.link} onChange={(e) => setForm({ ...form, link: e.target.value })} className="border rounded-lg px-3 py-2 text-sm" />
-        <input type="number" placeholder="Orden" value={form.order} onChange={(e) => setForm({ ...form, order: Number(e.target.value) })} className="border rounded-lg px-3 py-2 text-sm" />
-        <button onClick={create} className="flex items-center justify-center gap-1 bg-[#E8612D] text-white px-3 py-2 rounded-lg text-sm font-medium sm:col-span-2"><Plus size={15} /> Agregar banner</button>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {rows.sort((a, b) => a.order - b.order).map((b) => (
-          <div key={b.id} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={b.image_url} alt={b.title} className="w-full h-28 object-cover" />
-            <div className="p-3">
-              <p className="font-semibold text-sm truncate">{b.title || "(sin título)"}</p>
-              <p className="text-xs text-gray-400">Orden: {b.order}</p>
-              <div className="flex gap-2 mt-2">
-                <button onClick={() => toggle(b)} className={`text-xs px-2 py-1 rounded ${b.is_active ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-500"}`}>{b.is_active ? "Activo" : "Inactivo"}</button>
-                <button onClick={() => del(b.id)} className="text-xs px-2 py-1 rounded bg-red-50 text-red-600 flex items-center gap-1"><Trash2 size={12} /> Eliminar</button>
+    <div className="space-y-7">
+      <p className="text-sm text-[#6b7280] -mt-3">Elegí la ubicación del catálogo y personalizá la imagen, los textos y el contraste. Los cambios se ven al instante en el catálogo público.</p>
+      {SLOTS.map((s) => {
+        const list = rows.filter((b) => b.slot === s.value).sort((a, b) => a.order - b.order);
+        return (
+          <section key={s.value}>
+            <div className="flex items-start justify-between mb-3 gap-3">
+              <div>
+                <h3 className="font-semibold text-[#1a1a2e]">{s.label}</h3>
+                <p className="text-xs text-gray-400">Resolución recomendada: {s.res}{s.value === "hero" ? " · se muestra 1 a la vez" : " · rotan en orden"}</p>
               </div>
+              <button onClick={() => setEditor({ mode: "new", value: { ...BLANK_BANNER, slot: s.value } })} className="shrink-0 flex items-center gap-1 bg-[#E8612D] text-white px-3 py-2 rounded-lg text-sm font-medium transition active:scale-[0.98] hover:brightness-105"><Plus size={15} /> Agregar</button>
             </div>
-          </div>
-        ))}
-        {!rows.length && <p className="text-gray-400 text-sm">Sin banners.</p>}
-      </div>
+            {list.length === 0 ? (
+              <div className="border-2 border-dashed border-gray-200 rounded-xl p-8 text-center">
+                <p className="text-sm text-gray-400">
+                  {s.value === "hero" ? "Sin banner activo: el catálogo usa la imagen por defecto." : "Todavía no hay banners en esta ubicación."}
+                </p>
+              </div>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {list.map((b) => (
+                  <BannerCard key={b.id} b={b}
+                    onEdit={() => setEditor({ mode: "edit", value: { ...b } })}
+                    onToggle={() => toggle(b)} onDel={() => del(b.id)} />
+                ))}
+              </div>
+            )}
+          </section>
+        );
+      })}
+      {editor && (
+        <BannerEditorModal apiBaseUrl={apiBaseUrl} mode={editor.mode} initial={editor.value}
+          onClose={() => setEditor(null)} onSaved={() => { setEditor(null); load(); }} />
+      )}
     </div>
   );
 }
