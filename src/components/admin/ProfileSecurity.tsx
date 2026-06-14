@@ -47,6 +47,25 @@ interface ProfileSecurityProps {
   setShowCreateUserForm: (show: boolean) => void;
 }
 
+// Permisos de cara al cliente (el resto son de gestión interna/staff)
+const CLIENT_CODES = new Set([
+  "catalogo.ver_catalogo", "catalogo.busqueda_semantica", "pedidos.ver",
+  "carrito.gestionar", "carrito.checkout", "tutor.acceder", "tutor.ver_historial",
+]);
+
+const moduleLabel = (raw: string) => {
+  const m = (raw || "").toLowerCase().trim();
+  if (m === "catalog" || m === "catalogo") return "Catálogo";
+  if (m === "orders") return "Pedidos";
+  if (m === "ventas") return "Ventas";
+  if (m === "cart") return "Carrito";
+  if (m === "tutor") return "Tutor IA";
+  if (m === "gestion") return "Gestión Interna";
+  if (m === "admin") return "Administración";
+  if (m === "auth") return "Autenticación";
+  return raw.charAt(0).toUpperCase() + raw.slice(1);
+};
+
 // Toggle component
 const Toggle = ({ checked, onChange }: { checked: boolean, onChange: () => void }) => (
   <div 
@@ -82,6 +101,8 @@ export default function ProfileSecurity({
   const [newProfileName, setNewProfileName] = useState("");
   const [newProfileDesc, setNewProfileDesc] = useState("");
   const [showCreateForm, setShowCreateForm] = useState(false);
+  const [profileSearch, setProfileSearch] = useState("");
+  const [permSearch, setPermSearch] = useState("");
 
   // Estado local para agrupar cambios de asignación antes de guardar
   const [localAssignments, setLocalAssignments] = useState<{ [profileId: number]: boolean }>({});
@@ -186,24 +207,26 @@ export default function ProfileSecurity({
     );
   }, [users, userSearch]);
 
-  const permissionsByModule = useMemo(() => {
-    const grouped: { [module: string]: PermissionAtom[] } = {};
+  // Permisos agrupados por categoría (Clientes / Gestión Interna) y módulo, con filtro de búsqueda
+  const categorized = useMemo(() => {
+    const term = permSearch.toLowerCase().trim();
+    const result: { [cat: string]: { [mod: string]: PermissionAtom[] } } = { "Clientes": {}, "Gestión Interna": {} };
     permissions.forEach(p => {
-      let mod = p.module.toLowerCase().trim();
-      if (mod === "catalog" || mod === "catalogo") mod = "Catálogo";
-      else if (mod === "orders") mod = "Pedidos";
-      else if (mod === "cart") mod = "Carrito";
-      else if (mod === "tutor") mod = "Tutor IA";
-      else if (mod === "gestion") mod = "Gestión";
-      else if (mod === "admin") mod = "Administración";
-      else if (mod === "auth") mod = "Autenticación";
-      else mod = p.module.charAt(0).toUpperCase() + p.module.slice(1);
-
-      if (!grouped[mod]) grouped[mod] = [];
-      grouped[mod].push(p);
+      if (term && !(p.code.toLowerCase().includes(term) || (p.description || "").toLowerCase().includes(term))) return;
+      const cat = CLIENT_CODES.has(p.code) ? "Clientes" : "Gestión Interna";
+      const mod = moduleLabel(p.module);
+      if (!result[cat][mod]) result[cat][mod] = [];
+      result[cat][mod].push(p);
     });
-    return grouped;
-  }, [permissions]);
+    return result;
+  }, [permissions, permSearch]);
+
+  const filteredProfiles = useMemo(() => {
+    const term = profileSearch.toLowerCase().trim();
+    if (!term) return profiles;
+    return profiles.filter(p =>
+      p.name.toLowerCase().includes(term) || (p.description || "").toLowerCase().includes(term));
+  }, [profiles, profileSearch]);
 
   return (
     <div className="flex-grow flex flex-col gap-6 text-left max-w-7xl mx-auto w-full animate-[fadeIn_0.3s_ease]">
@@ -407,8 +430,23 @@ export default function ProfileSecurity({
                 )}
               </button>
             </div>
+            <div className="p-3 border-b border-gray-200">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                <input
+                  type="text"
+                  placeholder="Buscar perfil..."
+                  value={profileSearch}
+                  onChange={e => setProfileSearch(e.target.value)}
+                  className="w-full pl-9 pr-3 py-2 bg-gray-50 border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#E8612D]/30 focus:border-[#E8612D] transition-all"
+                />
+              </div>
+            </div>
             <div className="flex-1 overflow-y-auto p-2 flex flex-col gap-1 custom-scrollbar">
-              {profiles.map(p => (
+              {filteredProfiles.length === 0 && (
+                <p className="p-6 text-center text-sm text-gray-400 italic">No se encontraron perfiles.</p>
+              )}
+              {filteredProfiles.map(p => (
                 <button
                   key={p.id}
                   onClick={() => {
@@ -510,14 +548,35 @@ export default function ProfileSecurity({
                     <strong>Instrucciones:</strong> Enciende los permisos correspondientes y ajusta su nivel de alcance. <em>Propios</em> limita al usuario a ver sus propios registros, <em>Todos</em> permite acceso global.
                   </p>
                   
+                  {/* Buscador de permisos */}
+                  <div className="relative mb-6">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
+                    <input
+                      type="text"
+                      placeholder="Buscar permiso por código o descripción..."
+                      value={permSearch}
+                      onChange={e => setPermSearch(e.target.value)}
+                      className="w-full pl-9 pr-3 py-2.5 bg-white border border-gray-200 rounded-lg text-sm outline-none focus:ring-2 focus:ring-[#E8612D]/30 focus:border-[#E8612D] transition-all"
+                    />
+                  </div>
+
                   <div className="flex flex-col gap-10">
-                    {Object.keys(permissionsByModule).sort().map(moduleName => (
+                    {(["Clientes", "Gestión Interna"] as const).map(cat => {
+                      const mods = categorized[cat];
+                      const modNames = Object.keys(mods).sort();
+                      if (modNames.length === 0) return null;
+                      return (
+                      <div key={cat} className="flex flex-col gap-6">
+                        <span className={`self-start text-xs font-bold px-3 py-1.5 rounded-full ${cat === "Clientes" ? "bg-blue-100 text-blue-700" : "bg-orange-100 text-[#E8612D]"}`}>
+                          {cat === "Clientes" ? "🛒 Permisos para Clientes" : "🛠️ Permisos para Gestión Interna"}
+                        </span>
+                        {modNames.map(moduleName => (
                       <div key={moduleName} className="flex flex-col gap-4">
                         <h4 className="text-sm font-bold text-gray-400 uppercase tracking-wider border-b border-gray-200 pb-2 flex items-center gap-2">
                           <Settings size={14} /> Módulo: {moduleName}
                         </h4>
                         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
-                          {permissionsByModule[moduleName].map(perm => {
+                          {mods[moduleName].map(perm => {
                             const profilePerm = editingProfile.permissions_detail?.find((pd: any) => pd.permission === perm.id);
                             const hasPerm = !!profilePerm;
 
@@ -568,7 +627,13 @@ export default function ProfileSecurity({
                           })}
                         </div>
                       </div>
-                    ))}
+                        ))}
+                      </div>
+                      );
+                    })}
+                    {Object.keys(categorized["Clientes"]).length === 0 && Object.keys(categorized["Gestión Interna"]).length === 0 && (
+                      <p className="text-center text-sm text-gray-400 italic py-8">No se encontraron permisos.</p>
+                    )}
                   </div>
                 </div>
               </div>

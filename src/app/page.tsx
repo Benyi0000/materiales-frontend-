@@ -232,15 +232,18 @@ function DashboardInner() {
     )
   );
 
-  // Determinar si el usuario debe entrar al Dashboard Interno (tiene algún perfil aparte de los de cliente o es superuser)
+  // Permisos de cara al cliente (deben coincidir con CLIENT_CODES de ProfileSecurity)
+  const CLIENT_PERMS = [
+    "catalogo.ver_catalogo", "catalogo.busqueda_semantica", "pedidos.ver",
+    "carrito.gestionar", "carrito.checkout", "tutor.acceder", "tutor.ver_historial",
+  ];
+  // Entra al Dashboard Interno solo si es superuser o tiene al menos un permiso
+  // que NO es de cliente (es decir, algún permiso de gestión interna/staff).
+  // Quien solo tiene permisos de cliente ve la tienda (PublicLanding), sin sidebar interno.
   const isDashboardUser = currentUser && (
     currentUser.is_superuser ||
-    (currentUser.assignments || []).some(
-      (asg: any) => {
-        const pName = (asg.profile_name || "").toLowerCase();
-        return pName !== "comprar en la tienda" && pName !== "chat bot" && asg.is_active && !asg.has_expired;
-      }
-    )
+    (currentUser.active_permissions && typeof currentUser.active_permissions === "object" &&
+      Object.keys(currentUser.active_permissions).some((code) => code !== "all" && !CLIENT_PERMS.includes(code)))
   );
 
   const canViewCatalog = currentUser?.is_superuser || (
