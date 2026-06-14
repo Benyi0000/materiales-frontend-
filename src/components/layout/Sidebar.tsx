@@ -46,18 +46,7 @@ export default function Sidebar({
       p in currentUser.active_permissions
     );
 
-  const gestionItems: { tab: typeof activeTab; label: string; perm: string; icon: React.ReactNode }[] = [
-    { tab: "g_dashboard", label: "Dashboard de ventas", perm: "gestion.ver_dashboard", icon: <LayoutDashboard size={18} /> },
-    { tab: "g_reportes", label: "Reportes de pedidos", perm: "gestion.exportar_reportes", icon: <FileText size={18} /> },
-    { tab: "g_stock", label: "Stock bajo", perm: "gestion.ver_stock_bajo", icon: <PackageX size={18} /> },
-    { tab: "g_banners", label: "Banners", perm: "gestion.gestionar_banners", icon: <ImageIcon size={18} /> },
-    { tab: "g_promos", label: "Promociones", perm: "gestion.gestionar_promociones", icon: <Ticket size={18} /> },
-    { tab: "g_planes", label: "Planes", perm: "gestion.gestionar_planes", icon: <CreditCard size={18} /> },
-    { tab: "g_subs", label: "Suscripciones", perm: "gestion.gestionar_suscripciones", icon: <Users2 size={18} /> },
-  ];
-  const visibleGestion = gestionItems.filter((i) => gestionPerm(i.perm));
-
-  const permissions = currentUser?.active_permissions && typeof currentUser.active_permissions === "object" 
+  const permissions = currentUser?.active_permissions && typeof currentUser.active_permissions === "object"
     ? Object.keys(currentUser.active_permissions)
     : [];
 
@@ -71,6 +60,36 @@ export default function Sidebar({
   const showManageProfiles = canManageProfiles;
   const showCreateUser = canCreateUser && !showManageProfiles;
   const showAudits = isAdmin;
+
+  type Item = { tab: typeof activeTab; label: string; icon: React.ReactNode; show: boolean; tutor?: boolean };
+  const groups: { title: string; items: Item[] }[] = [
+    { title: "Tienda", items: [
+      { tab: "catalog", label: "Catálogo E-commerce", icon: <Building2 size={18} />, show: !!canViewCatalog },
+      { tab: "tutor", label: "Tutor Visual IA", icon: <Bot size={18} />, show: true, tutor: true },
+    ]},
+    { title: "Inventario", items: [
+      { tab: "inventory", label: "Gestión de Inventario", icon: <Package size={18} />, show: !!canManageCatalog },
+      { tab: "g_stock", label: "Stock bajo", icon: <PackageX size={18} />, show: !!gestionPerm("gestion.ver_stock_bajo") },
+    ]},
+    { title: "Ventas", items: [
+      { tab: "sales", label: "Ventas", icon: <Store size={18} />, show: !!canViewSales },
+      { tab: "g_dashboard", label: "Dashboard de ventas", icon: <LayoutDashboard size={18} />, show: !!gestionPerm("gestion.ver_dashboard") },
+      { tab: "g_reportes", label: "Reportes de pedidos", icon: <FileText size={18} />, show: !!gestionPerm("gestion.exportar_reportes") },
+    ]},
+    { title: "Marketing", items: [
+      { tab: "g_banners", label: "Banners", icon: <ImageIcon size={18} />, show: !!gestionPerm("gestion.gestionar_banners") },
+      { tab: "g_promos", label: "Promociones", icon: <Ticket size={18} />, show: !!gestionPerm("gestion.gestionar_promociones") },
+    ]},
+    { title: "Suscripciones", items: [
+      { tab: "g_planes", label: "Planes", icon: <CreditCard size={18} />, show: !!gestionPerm("gestion.gestionar_planes") },
+      { tab: "g_subs", label: "Suscripciones", icon: <Users2 size={18} />, show: !!gestionPerm("gestion.gestionar_suscripciones") },
+    ]},
+    { title: "Seguridad y Usuarios", items: [
+      { tab: "profiles", label: "Gestión de Perfiles", icon: <ShieldCheck size={18} />, show: !!showManageProfiles },
+      { tab: "create-user", label: "Alta de Usuario", icon: <Users size={18} />, show: !!showCreateUser },
+      { tab: "audits", label: "Logs de Auditoría", icon: <Clock size={18} />, show: !!showAudits },
+    ]},
+  ];
 
   const handleTabClick = (tab: typeof activeTab) => {
     setActiveTab(tab);
@@ -112,167 +131,41 @@ export default function Sidebar({
           </button>
         </div>
 
-        {/* Opciones de navegación */}
+        {/* Opciones de navegación (agrupadas por sección) */}
         <nav className="flex-1 p-4 flex flex-col gap-1 overflow-y-auto">
-          <p className="text-[10px] font-bold text-[#9ca3af] px-3 py-2 uppercase tracking-wider text-left">Módulos del Sistema</p>
-          
-          {canViewCatalog && (
-            <button
-              type="button"
-              onClick={() => handleTabClick("catalog")}
-              className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "catalog" 
-                  ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
-                  : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Building2 size={18} />
-                <span>Catálogo E-commerce</span>
+          {groups.map((group, gi) => {
+            const items = group.items.filter((i) => i.show);
+            if (items.length === 0) return null;
+            return (
+              <div key={group.title}>
+                <p className={`text-[10px] font-bold text-[#9ca3af] px-3 py-2 uppercase tracking-wider text-left ${gi === 0 ? "" : "mt-3"}`}>{group.title}</p>
+                {items.map((item) => (
+                  <button
+                    key={item.tab}
+                    type="button"
+                    onClick={() => handleTabClick(item.tab)}
+                    className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
+                      activeTab === item.tab
+                        ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20"
+                        : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      {item.icon}
+                      <span>{item.label}</span>
+                    </div>
+                    {item.tutor ? (
+                      isPremium
+                        ? <span className="bg-[#E8612D] text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PREMIUM</span>
+                        : <span className="text-[#9ca3af] text-[9px]">🔒</span>
+                    ) : (
+                      <ChevronRight size={14} className="opacity-50" />
+                    )}
+                  </button>
+                ))}
               </div>
-              <ChevronRight size={14} className="opacity-50" />
-            </button>
-          )}
-
-          <button
-            type="button"
-            onClick={() => handleTabClick("tutor")}
-            className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-              activeTab === "tutor" 
-                ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
-                : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
-            }`}
-          >
-            <div className="flex items-center gap-3">
-              <Bot size={18} />
-              <span>Tutor Visual IA</span>
-            </div>
-            {isPremium ? (
-              <span className="bg-[#E8612D] text-white text-[9px] font-bold px-1.5 py-0.5 rounded">PREMIUM</span>
-            ) : (
-              <span className="text-[#9ca3af] text-[9px]">🔒</span>
-            )}
-          </button>
-
-          {canManageCatalog && (
-            <button
-              type="button"
-              onClick={() => handleTabClick("inventory")}
-              className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "inventory" 
-                  ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
-                  : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Package size={18} />
-                <span>Gestión de Inventario</span>
-              </div>
-              <ChevronRight size={14} className="opacity-50" />
-            </button>
-          )}
-
-          {canViewSales && (
-            <button
-              type="button"
-              onClick={() => handleTabClick("sales")}
-              className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "sales"
-                  ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20"
-                  : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <Store size={18} />
-                <span>Ventas</span>
-              </div>
-              <ChevronRight size={14} className="opacity-50" />
-            </button>
-          )}
-
-          {visibleGestion.length > 0 && (
-            <>
-              <p className="text-[10px] font-bold text-[#9ca3af] px-3 py-2 uppercase tracking-wider mt-4 text-left">Gestión Interna</p>
-              {visibleGestion.map((item) => (
-                <button
-                  key={item.tab}
-                  type="button"
-                  onClick={() => handleTabClick(item.tab)}
-                  className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-                    activeTab === item.tab
-                      ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20"
-                      : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    {item.icon}
-                    <span>{item.label}</span>
-                  </div>
-                  <ChevronRight size={14} className="opacity-50" />
-                </button>
-              ))}
-            </>
-          )}
-
-          {(showManageProfiles || showCreateUser || showAudits) && (
-            <>
-              <p className="text-[10px] font-bold text-[#9ca3af] px-3 py-2 uppercase tracking-wider mt-4 text-left">Seguridad y Usuarios</p>
-              
-              {showManageProfiles && (
-                <button
-                  type="button"
-                  onClick={() => handleTabClick("profiles")}
-                  className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-                    activeTab === "profiles" 
-                      ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
-                      : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <ShieldCheck size={18} />
-                    <span>Gestión de Perfiles</span>
-                  </div>
-                  <ChevronRight size={14} className="opacity-50" />
-                </button>
-              )}
-
-              {showCreateUser && (
-                <button
-                  type="button"
-                  onClick={() => handleTabClick("create-user")}
-                  className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-                    activeTab === "create-user" 
-                      ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
-                      : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Users size={18} />
-                    <span>Alta de Usuario</span>
-                  </div>
-                  <ChevronRight size={14} className="opacity-50" />
-                </button>
-              )}
-
-              {showAudits && (
-                <button
-                  type="button"
-                  onClick={() => handleTabClick("audits")}
-                  className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-                    activeTab === "audits" 
-                      ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20" 
-                      : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
-                  }`}
-                >
-                  <div className="flex items-center gap-3">
-                    <Clock size={18} />
-                    <span>Logs de Auditoría</span>
-                  </div>
-                  <ChevronRight size={14} className="opacity-50" />
-                </button>
-              )}
-            </>
-          )}
+            );
+          })}
         </nav>
       </aside>
     </>

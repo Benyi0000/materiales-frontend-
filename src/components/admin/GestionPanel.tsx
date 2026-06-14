@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
-import { Plus, Trash2, Download, RefreshCw, Upload, Pencil, X } from "lucide-react";
+import { Plus, Trash2, Download, RefreshCw, Upload, Pencil, X, Check } from "lucide-react";
 
 export type GestionSection =
   | "dashboard" | "reportes" | "stock" | "banners"
@@ -452,49 +452,90 @@ function CuponesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
 function PlanesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
   const [rows, setRows] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
-  const [form, setForm] = useState<any>({ name: "", price: 0, duration_days: 30, trial_days: 0, auto_renew: true, profiles: [], is_active: true });
+  const blank = { name: "", price: 0, duration_days: 30, trial_days: 0, auto_renew: true, profiles: [] as number[], is_active: true };
+  const [form, setForm] = useState<any>(blank);
   const load = useCallback(() => {
     apiFetch(`${apiBaseUrl}/orders/plans/`).then((r) => r.json()).then((d) => setRows(d.results || d || []));
     apiFetch(`${apiBaseUrl}/users/admin/profiles/`).then((r) => r.json()).then((d) => setProfiles(d.results || d || []));
   }, [apiBaseUrl]);
   useEffect(() => { load(); }, [load]);
+  // Un plan solo otorga perfiles de Chat bot (acceso al Tutor), excluyendo
+  // perfiles de staff/admin (que también tienen tutor.acceder pero no son planes).
+  const planProfiles = profiles.filter((p) => {
+    const codes: string[] = (p.permissions_detail || []).map((pd: any) => pd.permission_code);
+    const isChat = codes.includes("tutor.acceder");
+    const isStaff = codes.some((cd) => cd.startsWith("admin.") || cd.startsWith("gestion.") || cd.startsWith("pedidosventas."));
+    return isChat && !isStaff;
+  });
   const create = async () => {
-    if (!form.name) return alert("El nombre es obligatorio.");
+    if (!form.name) return alert("Poné un nombre al plan.");
+    if (!form.profiles.length) return alert("Elegí qué acceso otorga el plan.");
     const r = await apiFetch(`${apiBaseUrl}/orders/plans/`, { method: "POST", body: JSON.stringify(form) });
     if (!r.ok) { return alert(JSON.stringify(await r.json())); }
-    setForm({ name: "", price: 0, duration_days: 30, trial_days: 0, auto_renew: true, profiles: [], is_active: true }); load();
+    setForm(blank); load();
   };
-  const del = async (id: number) => { await apiFetch(`${apiBaseUrl}/orders/plans/${id}/`, { method: "DELETE" }); load(); };
+  const del = async (id: number) => { if (!confirm("¿Eliminar este plan?")) return; await apiFetch(`${apiBaseUrl}/orders/plans/${id}/`, { method: "DELETE" }); load(); };
   const toggleProfile = (id: number) =>
     setForm((f: any) => ({ ...f, profiles: f.profiles.includes(id) ? f.profiles.filter((x: number) => x !== id) : [...f.profiles, id] }));
+
+  const lbl = "text-xs font-medium text-gray-500";
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-2">
+    <div className="grid gap-4 lg:grid-cols-2 items-start">
+      {/* Formulario */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 space-y-3">
         <p className="font-semibold text-sm">Nuevo plan</p>
-        <input placeholder="Nombre" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="border rounded-lg px-3 py-2 text-sm w-full" />
+        <div>
+          <label className={lbl}>Nombre del plan</label>
+          <input placeholder="Ej. Premium Tutor" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="border rounded-lg px-3 py-2 text-sm w-full" />
+        </div>
         <div className="grid grid-cols-3 gap-2">
-          <input type="number" placeholder="Precio" value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} className="border rounded-lg px-2 py-2 text-sm" />
-          <input type="number" placeholder="Días" value={form.duration_days} onChange={(e) => setForm({ ...form, duration_days: Number(e.target.value) })} className="border rounded-lg px-2 py-2 text-sm" />
-          <input type="number" placeholder="Prueba" value={form.trial_days} onChange={(e) => setForm({ ...form, trial_days: Number(e.target.value) })} className="border rounded-lg px-2 py-2 text-sm" />
+          <div>
+            <label className={lbl}>Precio ($)</label>
+            <input type="number" min={0} value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} className="border rounded-lg px-2 py-2 text-sm w-full" />
+          </div>
+          <div>
+            <label className={lbl}>Duración (días)</label>
+            <input type="number" min={1} value={form.duration_days} onChange={(e) => setForm({ ...form, duration_days: Number(e.target.value) })} className="border rounded-lg px-2 py-2 text-sm w-full" />
+          </div>
+          <div>
+            <label className={lbl}>Prueba gratis (días)</label>
+            <input type="number" min={0} value={form.trial_days} onChange={(e) => setForm({ ...form, trial_days: Number(e.target.value) })} className="border rounded-lg px-2 py-2 text-sm w-full" />
+          </div>
         </div>
-        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.auto_renew} onChange={(e) => setForm({ ...form, auto_renew: e.target.checked })} /> Auto-renovación</label>
-        <p className="text-xs text-gray-500 mt-1">Perfiles que otorga:</p>
-        <div className="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
-          {profiles.map((p) => (
-            <button key={p.id} onClick={() => toggleProfile(p.id)} className={`text-xs px-2 py-1 rounded ${form.profiles.includes(p.id) ? "bg-[#E8612D] text-white" : "bg-gray-100 text-gray-600"}`}>{p.name}</button>
-          ))}
+        <p className="text-[11px] text-gray-400">Se cobra <b>${form.price}</b> cada <b>{form.duration_days} días</b>{form.trial_days > 0 ? <> · primeros <b>{form.trial_days} días gratis</b></> : " · sin prueba"}.</p>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.auto_renew} onChange={(e) => setForm({ ...form, auto_renew: e.target.checked })} /> Renovar automáticamente al vencer</label>
+        <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={form.is_active} onChange={(e) => setForm({ ...form, is_active: e.target.checked })} /> Plan activo (visible para clientes)</label>
+        <div>
+          <label className={lbl}>¿Qué acceso otorga este plan?</label>
+          <div className="space-y-1.5 mt-1">
+            {planProfiles.map((p) => {
+              const sel = form.profiles.includes(p.id);
+              return (
+                <button key={p.id} onClick={() => toggleProfile(p.id)} className={`w-full text-left border rounded-lg px-3 py-2 transition ${sel ? "border-[#E8612D] bg-orange-50" : "border-gray-200 hover:bg-gray-50"}`}>
+                  <span className="text-sm font-medium flex items-center gap-2">{sel && <Check size={14} className="text-[#E8612D]" />}{p.name}</span>
+                  {p.description && <span className="block text-xs text-gray-500 mt-0.5">{p.description}</span>}
+                </button>
+              );
+            })}
+            {!planProfiles.length && <p className="text-xs text-gray-400">No hay perfiles de Chat bot disponibles.</p>}
+          </div>
         </div>
-        <button onClick={create} className="flex items-center justify-center gap-1 bg-[#E8612D] text-white px-3 py-2 rounded-lg text-sm font-medium w-full"><Plus size={15} /> Crear plan</button>
+        <button onClick={create} className="flex items-center justify-center gap-1 bg-[#E8612D] text-white px-3 py-2 rounded-lg text-sm font-medium w-full transition active:scale-[0.98] hover:brightness-105"><Plus size={15} /> Crear plan</button>
       </div>
+
+      {/* Listado */}
       <div className="space-y-2">
         {rows.map((p) => (
-          <div key={p.id} className="bg-white border border-gray-200 rounded-xl p-3 flex justify-between items-start">
-            <div>
-              <p className="font-semibold text-sm">{p.name} {p.is_active ? "" : <span className="text-gray-400">(inactivo)</span>}</p>
-              <p className="text-xs text-gray-500">{money(p.price)} · {p.duration_days}d · prueba {p.trial_days}d · {p.auto_renew ? "auto-renueva" : "no renueva"}</p>
-              <p className="text-xs text-gray-400">Perfiles: {(p.profile_names || []).join(", ") || "—"}</p>
+          <div key={p.id} className="bg-white border border-gray-200 rounded-xl p-3">
+            <div className="flex justify-between items-start">
+              <p className="font-semibold text-sm">{p.name}{!p.is_active && <span className="text-gray-400 font-normal"> (inactivo)</span>}</p>
+              <button onClick={() => del(p.id)} className="text-red-600"><Trash2 size={15} /></button>
             </div>
-            <button onClick={() => del(p.id)} className="text-red-600"><Trash2 size={15} /></button>
+            <div className="text-xs text-gray-600 mt-1.5 space-y-0.5">
+              <p>💲 {money(p.price)} cada {p.duration_days} días</p>
+              <p>🎁 {p.trial_days > 0 ? `${p.trial_days} días de prueba gratis` : "Sin prueba"} · {p.auto_renew ? "renovación automática" : "no renueva"}</p>
+              <p>🔑 Otorga: {(p.profile_names || []).join(", ") || "—"}</p>
+            </div>
           </div>
         ))}
         {!rows.length && <p className="text-gray-400 text-sm">Sin planes.</p>}
