@@ -1,13 +1,13 @@
 import React from "react";
-import { Building2, Bot, ShieldCheck, Users, Clock, ChevronRight, Package, Store, X, LayoutDashboard } from "lucide-react";
+import { Building2, Bot, ShieldCheck, Users, Clock, ChevronRight, Package, Store, X, LayoutDashboard, FileText, PackageX, Image as ImageIcon, Ticket, CreditCard, Users2 } from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   isAdmin: boolean;
   isPremium: boolean;
-  activeTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "gestion";
-  setActiveTab: (tab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "gestion") => void;
+  activeTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs";
+  setActiveTab: (tab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs") => void;
   currentUser: any;
 }
 
@@ -39,11 +39,23 @@ export default function Sidebar({
     "pedidosventas.ver" in currentUser.active_permissions
   );
 
-  const canViewGestion = currentUser?.is_superuser || (
-    currentUser?.active_permissions &&
-    typeof currentUser.active_permissions === "object" &&
-    Object.keys(currentUser.active_permissions).some((p) => p.startsWith("gestion."))
-  );
+  const gestionPerm = (p: string) =>
+    currentUser?.is_superuser || (
+      currentUser?.active_permissions &&
+      typeof currentUser.active_permissions === "object" &&
+      p in currentUser.active_permissions
+    );
+
+  const gestionItems: { tab: typeof activeTab; label: string; perm: string; icon: React.ReactNode }[] = [
+    { tab: "g_dashboard", label: "Dashboard de ventas", perm: "gestion.ver_dashboard", icon: <LayoutDashboard size={18} /> },
+    { tab: "g_reportes", label: "Reportes de pedidos", perm: "gestion.exportar_reportes", icon: <FileText size={18} /> },
+    { tab: "g_stock", label: "Stock bajo", perm: "gestion.ver_stock_bajo", icon: <PackageX size={18} /> },
+    { tab: "g_banners", label: "Banners", perm: "gestion.gestionar_banners", icon: <ImageIcon size={18} /> },
+    { tab: "g_promos", label: "Promociones", perm: "gestion.gestionar_promociones", icon: <Ticket size={18} /> },
+    { tab: "g_planes", label: "Planes", perm: "gestion.gestionar_planes", icon: <CreditCard size={18} /> },
+    { tab: "g_subs", label: "Suscripciones", perm: "gestion.gestionar_suscripciones", icon: <Users2 size={18} /> },
+  ];
+  const visibleGestion = gestionItems.filter((i) => gestionPerm(i.perm));
 
   const permissions = currentUser?.active_permissions && typeof currentUser.active_permissions === "object" 
     ? Object.keys(currentUser.active_permissions)
@@ -178,22 +190,28 @@ export default function Sidebar({
             </button>
           )}
 
-          {canViewGestion && (
-            <button
-              type="button"
-              onClick={() => handleTabClick("gestion")}
-              className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
-                activeTab === "gestion"
-                  ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20"
-                  : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
-              }`}
-            >
-              <div className="flex items-center gap-3">
-                <LayoutDashboard size={18} />
-                <span>Gestión Interna</span>
-              </div>
-              <ChevronRight size={14} className="opacity-50" />
-            </button>
+          {visibleGestion.length > 0 && (
+            <>
+              <p className="text-[10px] font-bold text-[#9ca3af] px-3 py-2 uppercase tracking-wider mt-4 text-left">Gestión Interna</p>
+              {visibleGestion.map((item) => (
+                <button
+                  key={item.tab}
+                  type="button"
+                  onClick={() => handleTabClick(item.tab)}
+                  className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
+                    activeTab === item.tab
+                      ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20"
+                      : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
+                  }`}
+                >
+                  <div className="flex items-center gap-3">
+                    {item.icon}
+                    <span>{item.label}</span>
+                  </div>
+                  <ChevronRight size={14} className="opacity-50" />
+                </button>
+              ))}
+            </>
           )}
 
           {(showManageProfiles || showCreateUser || showAudits) && (

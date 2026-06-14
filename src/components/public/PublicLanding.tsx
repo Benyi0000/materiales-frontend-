@@ -24,6 +24,9 @@ import CartView from './CartView';
 import OrdersView from './OrdersView';
 import TutorVisualChat from '@/components/tutor/TutorVisualChat';
 import BannerCarousel from './BannerCarousel';
+import PlanCheckout from './PlanCheckout';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 /* ------------------------------------------------------------------ */
 /*  Tipos                                                              */
@@ -114,6 +117,7 @@ export default function PublicLanding({
   const [tutorWidgetOpen, setTutorWidgetOpen] = useState(false);
   const [lastAddedItem, setLastAddedItem] = useState<{product: Product, quantity: number} | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [plansOpen, setPlansOpen] = useState(false);
 
   /* ---- Fetch inicial ---- */
   useEffect(() => {
@@ -1142,6 +1146,22 @@ export default function PublicLanding({
           )}
         </div>
       )}
+      {/* CTA Premium (cliente no premium) */}
+      {currentUser && !isPremium && !showTutorView && (
+        <button
+          onClick={() => setPlansOpen(true)}
+          className="fixed bottom-6 left-6 z-40 bg-[#E8612D] text-white px-4 py-3 rounded-full shadow-lg hover:scale-105 transition-all text-sm font-semibold flex items-center gap-2"
+        >
+          <Sparkles size={18} /> Hazte Premium
+        </button>
+      )}
+
+      <PlanCheckout
+        open={plansOpen}
+        onClose={() => setPlansOpen(false)}
+        onSuccess={() => window.location.reload()}
+        apiBaseUrl={API_BASE}
+      />
     </div>
   );
 }

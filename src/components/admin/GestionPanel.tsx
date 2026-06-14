@@ -2,67 +2,43 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
-import {
-  BarChart3, FileText, PackageX, Image as ImageIcon, Ticket, CreditCard, Users2,
-  Plus, Trash2, Download, RefreshCw,
-} from "lucide-react";
+import { Plus, Trash2, Download, RefreshCw } from "lucide-react";
 
-interface Props {
-  apiBaseUrl: string;
-  currentUser: any;
-}
-
-type Sub =
+export type GestionSection =
   | "dashboard" | "reportes" | "stock" | "banners"
   | "promociones" | "planes" | "suscripciones";
 
+interface Props {
+  apiBaseUrl: string;
+  section: GestionSection;
+}
+
 const money = (n: any) => `$${Number(n || 0).toLocaleString("es-AR")}`;
 
-export default function GestionPanel({ apiBaseUrl, currentUser }: Props) {
-  const has = (perm: string) =>
-    currentUser?.is_superuser ||
-    (currentUser?.active_permissions &&
-      typeof currentUser.active_permissions === "object" &&
-      perm in currentUser.active_permissions);
+const TITLES: Record<GestionSection, string> = {
+  dashboard: "Dashboard de ventas",
+  reportes: "Reportes de pedidos",
+  stock: "Stock bajo",
+  banners: "Gestión de banners",
+  promociones: "Promociones",
+  planes: "Planes de suscripción",
+  suscripciones: "Suscripciones",
+};
 
-  const tabs: { key: Sub; label: string; perm: string; icon: React.ReactNode }[] = [
-    { key: "dashboard", label: "Dashboard", perm: "gestion.ver_dashboard", icon: <BarChart3 size={16} /> },
-    { key: "reportes", label: "Reportes de pedidos", perm: "gestion.exportar_reportes", icon: <FileText size={16} /> },
-    { key: "stock", label: "Stock bajo", perm: "gestion.ver_stock_bajo", icon: <PackageX size={16} /> },
-    { key: "banners", label: "Banners", perm: "gestion.gestionar_banners", icon: <ImageIcon size={16} /> },
-    { key: "promociones", label: "Promociones", perm: "gestion.gestionar_promociones", icon: <Ticket size={16} /> },
-    { key: "planes", label: "Planes", perm: "gestion.gestionar_planes", icon: <CreditCard size={16} /> },
-    { key: "suscripciones", label: "Suscripciones", perm: "gestion.gestionar_suscripciones", icon: <Users2 size={16} /> },
-  ];
-  const visible = tabs.filter((t) => has(t.perm));
-  const [sub, setSub] = useState<Sub | null>(visible[0]?.key ?? null);
-
+/** Renderiza UNA sub-sección de Gestión Interna (cada una es su propio módulo del sidebar). */
+export default function GestionPanel({ apiBaseUrl, section }: Props) {
   return (
     <div className="w-full">
-      <h1 className="text-2xl font-bold text-[#1a1a2e] mb-1">Gestión Interna</h1>
-      <p className="text-sm text-[#6b7280] mb-5">Administración del negocio</p>
+      <h1 className="text-2xl font-bold text-[#1a1a2e] mb-1">{TITLES[section]}</h1>
+      <p className="text-sm text-[#6b7280] mb-5">Gestión Interna</p>
 
-      <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-200 pb-3">
-        {visible.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setSub(t.key)}
-            className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all ${
-              sub === t.key ? "bg-[#E8612D] text-white" : "text-[#6b7280] hover:bg-orange-50"
-            }`}
-          >
-            {t.icon}{t.label}
-          </button>
-        ))}
-      </div>
-
-      {sub === "dashboard" && <DashboardSub apiBaseUrl={apiBaseUrl} />}
-      {sub === "reportes" && <ReportesSub apiBaseUrl={apiBaseUrl} />}
-      {sub === "stock" && <StockSub apiBaseUrl={apiBaseUrl} />}
-      {sub === "banners" && <BannersSub apiBaseUrl={apiBaseUrl} />}
-      {sub === "promociones" && <CuponesSub apiBaseUrl={apiBaseUrl} />}
-      {sub === "planes" && <PlanesSub apiBaseUrl={apiBaseUrl} />}
-      {sub === "suscripciones" && <SuscripcionesSub apiBaseUrl={apiBaseUrl} />}
+      {section === "dashboard" && <DashboardSub apiBaseUrl={apiBaseUrl} />}
+      {section === "reportes" && <ReportesSub apiBaseUrl={apiBaseUrl} />}
+      {section === "stock" && <StockSub apiBaseUrl={apiBaseUrl} />}
+      {section === "banners" && <BannersSub apiBaseUrl={apiBaseUrl} />}
+      {section === "promociones" && <CuponesSub apiBaseUrl={apiBaseUrl} />}
+      {section === "planes" && <PlanesSub apiBaseUrl={apiBaseUrl} />}
+      {section === "suscripciones" && <SuscripcionesSub apiBaseUrl={apiBaseUrl} />}
     </div>
   );
 }

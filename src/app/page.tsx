@@ -68,13 +68,13 @@ function DashboardInner() {
        setGlobalModal({ isOpen: true, title, message: msg, type });
     };
   }, []);
-  const [activeTab, setActiveTab] = useState<"catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "gestion">("catalog");
+  const [activeTab, setActiveTab] = useState<"catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs">("catalog");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cart, setCart] = useState<{ product: any; quantity: number }[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
 
-  const handleTabChange = (newTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "gestion") => {
+  const handleTabChange = (newTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs") => {
     if (newTab === activeTab) return;
     
     // Si estamos interactuando con el chat y cambiamos de contexto
@@ -443,39 +443,10 @@ function DashboardInner() {
     }
   };
 
-  const handleCheckout = async () => {
+  // Dirige a la página dedicada de checkout (estilo Mercado Libre)
+  const openCheckout = () => {
     if (cart.length === 0) return;
-    const headers = authHeaders();
-    if (!headers) return;
-
-    try {
-      // El pedido se crea desde el carrito persistido en el servidor (spec Carrito y Pedidos)
-      const res = await fetch(`${API_BASE_URL}/orders/orders/`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({})
-      });
-      if (res.ok) {
-        const order = await res.json();
-        const discountMsg = order.discount_amount && parseFloat(order.discount_amount) > 0
-          ? ` Descuento aplicado: $${order.discount_amount}.`
-          : "";
-        alert(`¡Pedido #${order.id} creado con éxito (Pendiente de Pago)!${discountMsg} Recibirás un email de confirmación.`);
-        clearCart();
-        checkBackendAPI(); // Refrescar stock de productos y auditorías
-      } else {
-        const errData = await res.json();
-        // Mostrar errores de stock (RN-11) o cupón (RN-09) de forma legible
-        const messages: string[] = [];
-        if (errData.stock) messages.push(...[].concat(errData.stock));
-        if (errData.coupon) messages.push(...[].concat(errData.coupon));
-        if (errData.non_field_errors) messages.push(...[].concat(errData.non_field_errors));
-        alert(`Error al realizar el pedido: ${messages.length ? messages.join(" ") : JSON.stringify(errData)}`);
-        loadServerCart();
-      }
-    } catch (err) {
-      alert("Error de conexión al procesar la compra.");
-    }
+    router.push("/checkout");
   };
 
   // ----------------------------------------------------
@@ -750,7 +721,7 @@ function DashboardInner() {
         addToCart={addToCart}
         updateCartQty={updateCartQty}
         removeFromCart={removeFromCart}
-        handleCheckout={handleCheckout}
+        handleCheckout={openCheckout}
         applyCoupon={applyCoupon}
         removeCoupon={removeCoupon}
         isPremium={isPremium}
@@ -794,7 +765,7 @@ function DashboardInner() {
               cartMeta={cartMeta}
               updateCartQty={updateCartQty}
               removeFromCart={removeFromCart}
-              handleCheckout={handleCheckout}
+              handleCheckout={openCheckout}
               applyCoupon={applyCoupon}
               removeCoupon={removeCoupon}
             />
@@ -830,11 +801,14 @@ function DashboardInner() {
             />
           )}
 
-          {/* TAB 2.7: MÓDULO DE GESTIÓN INTERNA */}
-          {activeTab === "gestion" && (
+          {/* MÓDULOS DE GESTIÓN INTERNA (cada uno su propia entrada en el sidebar) */}
+          {activeTab.startsWith("g_") && (
             <GestionPanel
               apiBaseUrl={API_BASE_URL}
-              currentUser={currentUser}
+              section={({
+                g_dashboard: "dashboard", g_reportes: "reportes", g_stock: "stock",
+                g_banners: "banners", g_promos: "promociones", g_planes: "planes", g_subs: "suscripciones",
+              } as const)[activeTab as "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs"]}
             />
           )}
 
