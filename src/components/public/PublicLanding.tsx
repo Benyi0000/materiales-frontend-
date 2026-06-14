@@ -23,6 +23,7 @@ import ProductDetail from './ProductDetail';
 import CartView from './CartView';
 import OrdersView from './OrdersView';
 import TutorVisualChat from '@/components/tutor/TutorVisualChat';
+import BannerCarousel from './BannerCarousel';
 
 /* ------------------------------------------------------------------ */
 /*  Tipos                                                              */
@@ -842,6 +843,9 @@ export default function PublicLanding({
               </div>
             </section>
           )}
+
+          {/* Banners promocionales dinámicos (Gestión Interna) */}
+          {appliedSearch.trim() === '' && !selectedCategory && <BannerCarousel />}
 
       {/* ============================================================ */}
       {/*  C) CATÁLOGO                                                  */}

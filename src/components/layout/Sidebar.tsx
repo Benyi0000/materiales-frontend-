@@ -1,13 +1,13 @@
 import React from "react";
-import { Building2, Bot, ShieldCheck, Users, Clock, ChevronRight, Package, Store, X } from "lucide-react";
+import { Building2, Bot, ShieldCheck, Users, Clock, ChevronRight, Package, Store, X, LayoutDashboard } from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   isAdmin: boolean;
   isPremium: boolean;
-  activeTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales";
-  setActiveTab: (tab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales") => void;
+  activeTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "gestion";
+  setActiveTab: (tab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "gestion") => void;
   currentUser: any;
 }
 
@@ -37,6 +37,12 @@ export default function Sidebar({
     currentUser?.active_permissions &&
     typeof currentUser.active_permissions === "object" &&
     "pedidosventas.ver" in currentUser.active_permissions
+  );
+
+  const canViewGestion = currentUser?.is_superuser || (
+    currentUser?.active_permissions &&
+    typeof currentUser.active_permissions === "object" &&
+    Object.keys(currentUser.active_permissions).some((p) => p.startsWith("gestion."))
   );
 
   const permissions = currentUser?.active_permissions && typeof currentUser.active_permissions === "object" 
@@ -167,6 +173,24 @@ export default function Sidebar({
               <div className="flex items-center gap-3">
                 <Store size={18} />
                 <span>Ventas</span>
+              </div>
+              <ChevronRight size={14} className="opacity-50" />
+            </button>
+          )}
+
+          {canViewGestion && (
+            <button
+              type="button"
+              onClick={() => handleTabClick("gestion")}
+              className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "gestion"
+                  ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20"
+                  : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <LayoutDashboard size={18} />
+                <span>Gestión Interna</span>
               </div>
               <ChevronRight size={14} className="opacity-50" />
             </button>
