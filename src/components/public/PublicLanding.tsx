@@ -72,6 +72,7 @@ interface PublicLandingProps {
   removeCoupon?: () => void;
   isPremium?: boolean;
   apiBaseUrl?: string;
+  initialHeroBanner?: any;
 }
 
 /* ------------------------------------------------------------------ */
@@ -93,6 +94,7 @@ export default function PublicLanding({
   removeCoupon = () => {},
   isPremium = false,
   apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"),
+  initialHeroBanner,
 }: PublicLandingProps) {
   const router = useRouter();
 
@@ -116,7 +118,7 @@ export default function PublicLanding({
   const [tutorWidgetOpen, setTutorWidgetOpen] = useState(false);
   const [lastAddedItem, setLastAddedItem] = useState<{product: Product, quantity: number} | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [heroBanner, setHeroBanner] = useState<any>(null);
+  const [heroBanner, setHeroBanner] = useState<any>(initialHeroBanner ?? null);
   const [userMenuOpen, setUserMenuOpen] = useState(false);
 
   const canVerSubs = currentUser?.is_superuser || (
@@ -124,8 +126,9 @@ export default function PublicLanding({
     "suscripciones.ver" in currentUser.active_permissions
   );
 
-  // Banner del slot "hero" (si hay activo, reemplaza la imagen por defecto)
+  // Fetch del banner solo si no fue provisto por el padre (recarga en background al cambiar de vista)
   useEffect(() => {
+    if (initialHeroBanner !== undefined) return;
     fetch(`${API_BASE}/catalog/banners/public/?slot=hero`)
       .then((r) => (r.ok ? r.json() : []))
       .then((d) => { const list = Array.isArray(d) ? d : d.results || []; setHeroBanner(list[0] || null); })

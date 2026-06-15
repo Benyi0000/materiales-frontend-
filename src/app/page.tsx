@@ -135,6 +135,7 @@ function DashboardInner() {
   // Estado de conexión a la API Django
   const [apiOnline, setApiOnline] = useState(false);
   const [loadingAPI, setLoadingAPI] = useState(false);
+  const [heroBannerData, setHeroBannerData] = useState<any>(undefined);
 
   // ----------------------------------------------------
   // CONEXIÓN CON EL BACKEND
@@ -144,15 +145,26 @@ function DashboardInner() {
     const token = localStorage.getItem("access_token");
 
     if (!token) {
-      // Sin token: cargar el catálogo público antes de mostrar la landing
+      // Sin token: cargar catálogo y banner antes de mostrar la landing
       try {
-        const prodRes = await fetch(`${API_BASE_URL}/catalog/products/`);
-        if (prodRes.ok) {
-          const prodData = await prodRes.json();
+        const [prodResult, bannerResult] = await Promise.allSettled([
+          fetch(`${API_BASE_URL}/catalog/products/`),
+          fetch(`${API_BASE_URL}/catalog/banners/public/?slot=hero`),
+        ]);
+        if (prodResult.status === "fulfilled" && prodResult.value.ok) {
+          const prodData = await prodResult.value.json();
           setProducts(Array.isArray(prodData) ? prodData : (prodData.results ?? []));
+        }
+        if (bannerResult.status === "fulfilled" && bannerResult.value.ok) {
+          const d = await bannerResult.value.json();
+          const list = Array.isArray(d) ? d : (d.results || []);
+          setHeroBannerData(list[0] || null);
+        } else {
+          setHeroBannerData(null);
         }
       } catch (err) {
         console.error("Error loading public catalog:", err);
+        setHeroBannerData(null);
       }
       setIsAuthenticated(false);
       setLoadingAPI(false);
@@ -167,12 +179,22 @@ function DashboardInner() {
       if (!profUserRes.ok) {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
-        // Token inválido: cargar catálogo antes de mostrar la landing pública
+        // Token inválido: cargar catálogo y banner antes de mostrar la landing pública
         try {
-          const prodRes = await fetch(`${API_BASE_URL}/catalog/products/`);
-          if (prodRes.ok) {
-            const prodData = await prodRes.json();
+          const [prodResult, bannerResult] = await Promise.allSettled([
+            fetch(`${API_BASE_URL}/catalog/products/`),
+            fetch(`${API_BASE_URL}/catalog/banners/public/?slot=hero`),
+          ]);
+          if (prodResult.status === "fulfilled" && prodResult.value.ok) {
+            const prodData = await prodResult.value.json();
             setProducts(Array.isArray(prodData) ? prodData : (prodData.results ?? []));
+          }
+          if (bannerResult.status === "fulfilled" && bannerResult.value.ok) {
+            const d = await bannerResult.value.json();
+            const list = Array.isArray(d) ? d : (d.results || []);
+            setHeroBannerData(list[0] || null);
+          } else {
+            setHeroBannerData(null);
           }
         } catch {}
         setIsAuthenticated(false);
@@ -222,12 +244,22 @@ function DashboardInner() {
           setAuditLogs(await auditResult.value.json());
         }
       } else {
-        // Cliente: solo cargar el catálogo de productos
+        // Cliente: cargar catálogo y banner en paralelo
         try {
-          const prodRes = await fetch(`${API_BASE_URL}/catalog/products/`);
-          if (prodRes.ok) {
-            const prodData = await prodRes.json();
+          const [prodResult, bannerResult] = await Promise.allSettled([
+            fetch(`${API_BASE_URL}/catalog/products/`),
+            fetch(`${API_BASE_URL}/catalog/banners/public/?slot=hero`),
+          ]);
+          if (prodResult.status === "fulfilled" && prodResult.value.ok) {
+            const prodData = await prodResult.value.json();
             setProducts(Array.isArray(prodData) ? prodData : (prodData.results ?? []));
+          }
+          if (bannerResult.status === "fulfilled" && bannerResult.value.ok) {
+            const d = await bannerResult.value.json();
+            const list = Array.isArray(d) ? d : (d.results || []);
+            setHeroBannerData(list[0] || null);
+          } else {
+            setHeroBannerData(null);
           }
         } catch {}
       }
@@ -765,6 +797,7 @@ function DashboardInner() {
         removeCoupon={removeCoupon}
         isPremium={isPremium}
         apiBaseUrl={API_BASE_URL}
+        initialHeroBanner={heroBannerData}
       />
     ) : (
     <div className="min-h-screen flex flex-col bg-[#f5f5f5]">
