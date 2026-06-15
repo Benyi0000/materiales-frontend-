@@ -127,10 +127,10 @@ export default function CheckoutPage() {
       {/* Header */}
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-2">
+          <button onClick={() => router.push("/")} className="flex items-center gap-2" title="Ir al inicio">
             <div className="bg-[#E8612D] p-1.5 rounded-lg text-white"><Building2 size={18} /></div>
             <span className="font-bold text-[#1a1a2e]">Craft<span className="text-[#E8612D]">IAr</span></span>
-          </div>
+          </button>
           <div className="flex items-center gap-1 text-xs text-gray-500"><Lock size={13} /> Pago seguro</div>
         </div>
       </header>

@@ -1,4 +1,6 @@
+"use client";
 import React from "react";
+import { useRouter } from "next/navigation";
 import { Building2, Loader, User as UserIcon, LogOut, Menu, Bot } from "lucide-react";
 
 interface UserProfile {
@@ -29,6 +31,7 @@ export default function Header({
   onToggleSidebar,
   onOpenTutor,
 }: HeaderProps) {
+  const router = useRouter();
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       {/* Lado izquierdo: Hamburguesa + Logo */}
@@ -42,14 +45,14 @@ export default function Header({
           <Menu size={22} />
         </button>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <button type="button" onClick={() => router.push("/")} className="flex items-center gap-2 shrink-0" title="Ir al inicio">
           <div className="bg-[#E8612D] p-1.5 rounded-lg text-white">
             <Building2 size={22} />
           </div>
           <span className="text-lg font-bold tracking-tight select-none text-[#1a1a2e]">
             Craft<span className="text-[#E8612D]">IAr</span>
           </span>
-        </div>
+        </button>
       </div>
 
       {/* Lado derecho: Estado API + Usuario + Logout */}
