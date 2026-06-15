@@ -172,9 +172,9 @@ export default function Cart({ cart, cartMeta, updateCartQty, removeFromCart, ha
           <button
             type="button"
             onClick={handleCheckout}
-            className="w-full bg-[#E8612D] hover:bg-[#d4551f] text-white py-3 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-2 transition-all"
+            className="w-full bg-[#6b7280] hover:bg-[#4b5563] text-white py-3 rounded-xl text-xs font-bold text-center flex items-center justify-center gap-2 transition-all"
           >
-            <span>Confirmar Pedido (Simulado)</span>
+            <span>Confirmar compra</span>
             <ArrowRight size={14} />
           </button>
         </div>

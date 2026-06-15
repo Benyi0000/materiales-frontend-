@@ -13,7 +13,7 @@ interface OrderItem {
 interface Order {
   id: number;
   username: string;
-  status: 'pending' | 'preparing' | 'shipped' | 'delivered' | 'cancelled';
+  status: 'pending_payment' | 'pending' | 'preparing' | 'shipped' | 'delivered' | 'cancelled';
   total: string;
   coupon_code: string | null;
   discount_amount: string;
@@ -27,6 +27,7 @@ interface OrdersViewProps {
 }
 
 const STATUS_LABELS: Record<string, string> = {
+  pending_payment: 'Esperando pago',
   pending: 'Pendiente',
   preparing: 'En preparación',
   shipped: 'Enviado',
@@ -35,6 +36,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 const STATUS_STYLES: Record<string, string> = {
+  pending_payment: 'bg-blue-50 text-blue-600 border-blue-200',
   pending: 'bg-amber-50 text-amber-700 border-amber-200',
   preparing: 'bg-blue-50 text-blue-700 border-blue-200',
   shipped: 'bg-purple-50 text-purple-700 border-purple-200',

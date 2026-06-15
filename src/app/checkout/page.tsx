@@ -4,8 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import {
-  Building2, MapPin, Truck, ShieldCheck, ChevronLeft, Check,
-  Loader, Pencil, Lock, ExternalLink,
+  Building2, MapPin, Truck, CreditCard, Banknote, ShieldCheck,
+  ChevronLeft, Check, Loader, Pencil, Lock, ExternalLink,
 } from "lucide-react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
@@ -14,7 +14,8 @@ const money = (n: any) => `$${Number(n || 0).toLocaleString("es-AR")}`;
 interface CartItem { id: number; name: string; image_url: string; price: number; quantity: number; item_total?: number; }
 interface Cart { items: CartItem[]; subtotal: number; discount_amount: number; total: number; coupon_code: string | null; }
 
-type SectionKey = "shipping" | "delivery";
+type SectionKey = "shipping" | "delivery" | "payment";
+type PaymentMethod = "mercadopago" | "card" | "cash";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -27,6 +28,7 @@ export default function CheckoutPage() {
 
   const [ship, setShip] = useState({ name: "", address: "", city: "", zip: "", phone: "" });
   const [delivery, setDelivery] = useState("standard");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mercadopago");
 
   useEffect(() => {
     if (typeof window !== "undefined" && !localStorage.getItem("access_token")) {
@@ -49,7 +51,9 @@ export default function CheckoutPage() {
   };
 
   const shippingValid = ship.name && ship.address && ship.city;
-  const allDone = done.has("shipping") && done.has("delivery");
+  const allDone = done.has("shipping") && done.has("delivery") && done.has("payment");
+
+  const [mpTab, setMpTab] = useState<boolean>(false);
 
   const goToMercadoPago = async () => {
     setRedirecting(true);
@@ -68,16 +72,44 @@ export default function CheckoutPage() {
         setRedirecting(false);
         return;
       }
-      // En sandbox usamos sandbox_init_point; en producción usar init_point
       const url = data.sandbox_init_point || data.init_point;
       if (!url) {
         setMpError("No se recibió el link de pago de MercadoPago.");
         setRedirecting(false);
         return;
       }
-      window.location.href = url;
-    } catch {
+      window.open(url, "_blank");
+      setRedirecting(false);
+      setMpTab(true);
+      setTimeout(() => router.push("/"), 1500);
+    } catch (e) {
+      console.error("MP error:", e);
       setMpError("Error de conexión. Verificá tu internet e intentá de nuevo.");
+      setRedirecting(false);
+    }
+  };
+
+  const confirmOrder = async () => {
+    setRedirecting(true);
+    setMpError(null);
+    try {
+      const res = await apiFetch(`${API_BASE_URL}/orders/orders/`, {
+        method: "POST",
+        body: JSON.stringify({
+          shipping: { name: ship.name, address: ship.address, city: ship.city, zip: ship.zip, phone: ship.phone },
+          delivery_type: delivery,
+          payment_method: paymentMethod,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMpError(data.error || "No se pudo confirmar el pedido.");
+        setRedirecting(false);
+        return;
+      }
+      router.push(`/checkout/result?status=approved&order_id=${data.id}`);
+    } catch {
+      setMpError("Error de conexión.");
       setRedirecting(false);
     }
   };
@@ -99,11 +131,11 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#ededed] ck-fade-in">
-      {/* Overlay de redirección a MercadoPago */}
-      {redirecting && (
+      {/* Overlay solo para métodos que no abren nueva pestaña */}
+      {redirecting && paymentMethod !== "mercadopago" && (
         <div className="fixed inset-0 z-[70] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center ck-fade-in">
           <div className="w-16 h-16 rounded-full border-4 border-orange-100 border-t-[#E8612D] animate-spin" />
-          <p className="mt-5 font-semibold text-[#333]">Redirigiendo a MercadoPago…</p>
+          <p className="mt-5 font-semibold text-[#333]">Confirmando pedido…</p>
           <p className="text-sm text-gray-400 mt-2">No cierres esta ventana</p>
         </div>
       )}
@@ -115,7 +147,7 @@ export default function CheckoutPage() {
             <div className="bg-[#E8612D] p-1.5 rounded-lg text-white"><Building2 size={18} /></div>
             <span className="font-bold text-[#1a1a2e]">Craft<span className="text-[#E8612D]">IAr</span></span>
           </button>
-          <div className="flex items-center gap-1 text-xs text-gray-500"><Lock size={13} /> Pago seguro con MercadoPago</div>
+          <div className="flex items-center gap-1 text-xs text-gray-500"><Lock size={13} /> Pago seguro</div>
         </div>
       </header>
 
@@ -126,8 +158,12 @@ export default function CheckoutPage() {
         <div className="grid lg:grid-cols-[1fr_340px] gap-5 items-start">
           {/* Columna izquierda: pasos */}
           <div className="space-y-3">
-            <SectionCard n={1} index={0} title="Datos de envío" icon={<MapPin size={18} />} active={active === "shipping"} done={done.has("shipping")}
-              summary={done.has("shipping") ? `${ship.name} · ${ship.address}, ${ship.city}` : ""} onEdit={() => setActive("shipping")}>
+
+            {/* Paso 1: Envío */}
+            <SectionCard n={1} index={0} title="Datos de envío" icon={<MapPin size={18} />}
+              active={active === "shipping"} done={done.has("shipping")}
+              summary={done.has("shipping") ? `${ship.name} · ${ship.address}, ${ship.city}` : ""}
+              onEdit={() => setActive("shipping")}>
               <div className="space-y-2">
                 <input placeholder="Nombre y apellido *" value={ship.name} onChange={(e) => setShip({ ...ship, name: e.target.value })} className="border rounded-lg px-3 py-2.5 text-sm outline-none transition focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100 w-full" />
                 <input placeholder="Dirección y número *" value={ship.address} onChange={(e) => setShip({ ...ship, address: e.target.value })} className="border rounded-lg px-3 py-2.5 text-sm outline-none transition focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100 w-full" />
@@ -136,12 +172,18 @@ export default function CheckoutPage() {
                   <input placeholder="Código postal" value={ship.zip} onChange={(e) => setShip({ ...ship, zip: e.target.value })} className="border rounded-lg px-3 py-2.5 text-sm outline-none transition focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100" />
                 </div>
                 <input placeholder="Teléfono de contacto" value={ship.phone} onChange={(e) => setShip({ ...ship, phone: e.target.value })} className="border rounded-lg px-3 py-2.5 text-sm outline-none transition focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100 w-full" />
-                <button disabled={!shippingValid} onClick={() => complete("shipping", "delivery")} className="bg-[#E8612D] text-white rounded-lg py-2.5 px-6 text-sm font-medium transition active:scale-[0.98] hover:brightness-105 disabled:opacity-50 mt-1">Continuar</button>
+                <button disabled={!shippingValid} onClick={() => complete("shipping", "delivery")}
+                  className="bg-[#E8612D] text-white rounded-lg py-2.5 px-6 text-sm font-medium transition active:scale-[0.98] hover:brightness-105 disabled:opacity-50 mt-1">
+                  Continuar
+                </button>
               </div>
             </SectionCard>
 
-            <SectionCard n={2} index={1} title="Forma de entrega" icon={<Truck size={18} />} active={active === "delivery"} done={done.has("delivery")}
-              summary={done.has("delivery") ? (delivery === "express" ? "Express (24-48 hs)" : "Estándar (3-5 días) · Gratis") : ""} onEdit={() => setActive("delivery")}>
+            {/* Paso 2: Entrega */}
+            <SectionCard n={2} index={1} title="Forma de entrega" icon={<Truck size={18} />}
+              active={active === "delivery"} done={done.has("delivery")}
+              summary={done.has("delivery") ? (delivery === "express" ? "Express (24-48 hs)" : "Estándar (3-5 días) · Gratis") : ""}
+              onEdit={() => setActive("delivery")}>
               <div className="space-y-2">
                 {[["standard", "Envío estándar", "3 a 5 días hábiles", "Gratis"], ["express", "Envío express", "24 a 48 hs", money(4000)]].map(([v, t, d, p]) => (
                   <label key={v} className={`flex items-center justify-between border rounded-lg px-3 py-3 text-sm cursor-pointer transition-all duration-200 ${delivery === v ? "border-[#E8612D] bg-orange-50" : "border-gray-200"}`}>
@@ -152,19 +194,57 @@ export default function CheckoutPage() {
                     <span className={`font-semibold ${p === "Gratis" ? "text-green-600" : "text-[#333]"}`}>{p}</span>
                   </label>
                 ))}
-                <button onClick={() => complete("delivery")} className="bg-[#E8612D] text-white rounded-lg py-2.5 px-6 text-sm font-medium transition active:scale-[0.98] hover:brightness-105 mt-1">Confirmar entrega</button>
+                <button onClick={() => complete("delivery", "payment")}
+                  className="bg-[#E8612D] text-white rounded-lg py-2.5 px-6 text-sm font-medium transition active:scale-[0.98] hover:brightness-105 mt-1">
+                  Continuar
+                </button>
               </div>
             </SectionCard>
 
-            {/* Aviso de pago con MP */}
-            {allDone && (
-              <div className="bg-white rounded-xl border border-[#009EE3]/30 p-4 flex items-center gap-3 ck-fade-up">
-                <img src="https://http2.mlstatic.com/frontend-assets/ui-navigation/5.21.22/mercadopago/logo__large@2x.png" alt="MercadoPago" className="h-6 object-contain" />
-                <p className="text-sm text-gray-600">
-                  Al confirmar serás redirigido a MercadoPago para completar el pago de forma segura.
-                </p>
+            {/* Paso 3: Método de pago */}
+            <SectionCard n={3} index={2} title="Método de pago" icon={<CreditCard size={18} />}
+              active={active === "payment"} done={done.has("payment")}
+              summary={done.has("payment") ? (paymentMethod === "mercadopago" ? "MercadoPago" : paymentMethod === "card" ? "Tarjeta de crédito/débito" : "Efectivo") : ""}
+              onEdit={() => setActive("payment")}>
+              <div className="space-y-2">
+                {/* Opción MercadoPago */}
+                <label className={`flex items-center gap-3 border rounded-lg px-3 py-3 text-sm cursor-pointer transition-all duration-200 ${paymentMethod === "mercadopago" ? "border-[#009EE3] bg-blue-50" : "border-gray-200"}`}>
+                  <input type="radio" name="payment" checked={paymentMethod === "mercadopago"} onChange={() => setPaymentMethod("mercadopago")} />
+                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#009EE3] shrink-0">
+                    <span className="text-white font-black text-xs">MP</span>
+                  </div>
+                  <div>
+                    <p className="font-medium text-[#333]">MercadoPago</p>
+                    <p className="text-xs text-gray-500">Tarjeta, efectivo o cuotas</p>
+                  </div>
+                </label>
+
+                {/* Opción Tarjeta */}
+                <label className={`flex items-center gap-3 border rounded-lg px-3 py-3 text-sm cursor-pointer transition-all duration-200 ${paymentMethod === "card" ? "border-[#E8612D] bg-orange-50" : "border-gray-200"}`}>
+                  <input type="radio" name="payment" checked={paymentMethod === "card"} onChange={() => setPaymentMethod("card")} />
+                  <CreditCard size={20} className="text-gray-500 shrink-0" />
+                  <div>
+                    <p className="font-medium text-[#333]">Tarjeta de crédito / débito</p>
+                    <p className="text-xs text-gray-500">Visa, Mastercard, Amex</p>
+                  </div>
+                </label>
+
+                {/* Opción Efectivo */}
+                <label className={`flex items-center gap-3 border rounded-lg px-3 py-3 text-sm cursor-pointer transition-all duration-200 ${paymentMethod === "cash" ? "border-[#E8612D] bg-orange-50" : "border-gray-200"}`}>
+                  <input type="radio" name="payment" checked={paymentMethod === "cash"} onChange={() => setPaymentMethod("cash")} />
+                  <Banknote size={20} className="text-gray-500 shrink-0" />
+                  <div>
+                    <p className="font-medium text-[#333]">Efectivo</p>
+                    <p className="text-xs text-gray-500">Pagás al retirar o al recibir el pedido</p>
+                  </div>
+                </label>
+
+                <button onClick={() => complete("payment")}
+                  className="bg-[#E8612D] text-white rounded-lg py-2.5 px-6 text-sm font-medium transition active:scale-[0.98] hover:brightness-105 mt-1">
+                  Confirmar
+                </button>
               </div>
-            )}
+            </SectionCard>
 
             {mpError && (
               <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
@@ -196,21 +276,49 @@ export default function CheckoutPage() {
               <div className="flex justify-between font-bold text-lg text-[#333] pt-2"><span>Total</span><span>{money(total)}</span></div>
             </div>
 
-            <button
-              disabled={!allDone || redirecting}
-              onClick={goToMercadoPago}
-              className="w-full mt-4 bg-[#009EE3] hover:bg-[#007fc0] text-white rounded-lg py-3 text-sm font-semibold disabled:opacity-50 transition active:scale-[0.98] flex items-center justify-center gap-2"
-            >
-              {redirecting
-                ? <><Loader size={16} className="animate-spin" /> Redirigiendo…</>
-                : <><ExternalLink size={16} /> Pagar con MercadoPago</>
-              }
-            </button>
+            {/* Botón principal — siempre "Confirmar pedido" hasta completar los 3 pasos */}
+            {!allDone ? (
+              <button
+                disabled
+                className="w-full mt-4 bg-[#E8612D]/50 text-white rounded-lg py-3 text-sm font-semibold flex items-center justify-center gap-2 cursor-not-allowed"
+              >
+                <Check size={16} /> Confirmar pedido
+              </button>
+            ) : paymentMethod === "mercadopago" ? (
+              <>
+                <button
+                  disabled={redirecting}
+                  onClick={goToMercadoPago}
+                  className="w-full mt-4 bg-[#009EE3] hover:bg-[#007fc0] text-white rounded-lg py-3 text-sm font-semibold transition active:scale-[0.98] flex items-center justify-center gap-2"
+                >
+                  {redirecting
+                    ? <><Loader size={16} className="animate-spin" /> Procesando…</>
+                    : <><ExternalLink size={16} /> Continuar con MercadoPago</>
+                  }
+                </button>
+                {mpTab && (
+                  <div className="mt-3 bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-700 text-center ck-fade-in">
+                    Se abrió MercadoPago en una nueva pestaña. Una vez confirmado el pago aparecerá en <strong>Mis compras</strong>.
+                  </div>
+                )}
+              </>
+            ) : (
+              <button
+                disabled={redirecting}
+                onClick={confirmOrder}
+                className="w-full mt-4 bg-[#E8612D] hover:brightness-105 text-white rounded-lg py-3 text-sm font-semibold transition active:scale-[0.98] flex items-center justify-center gap-2"
+              >
+                {redirecting
+                  ? <><Loader size={16} className="animate-spin" /> Procesando…</>
+                  : <><Check size={16} /> Confirmar pedido</>
+                }
+              </button>
+            )}
+
             <div className="flex items-center justify-center gap-1 mt-2">
               <ShieldCheck size={13} className="text-gray-400" />
-              <p className="text-[11px] text-gray-400 text-center">Pago 100% seguro. No guardamos datos de tarjeta.</p>
+              <p className="text-[11px] text-gray-400 text-center">Pago 100% seguro.</p>
             </div>
-            {!allDone && <p className="text-[11px] text-gray-400 text-center mt-1">Completá los pasos para continuar.</p>}
           </aside>
         </div>
       </div>
@@ -218,7 +326,7 @@ export default function CheckoutPage() {
   );
 }
 
-/* ---- Tarjeta de sección (acordeón estilo ML) ---- */
+/* ---- Tarjeta de sección (acordeón) ---- */
 function SectionCard({ n, title, icon, active, done, summary, onEdit, index = 0, children }: {
   n: number; title: string; icon: React.ReactNode; active: boolean; done: boolean;
   summary: string; onEdit: () => void; index?: number; children: React.ReactNode;
