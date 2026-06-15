@@ -210,9 +210,8 @@ export default function CheckoutPage() {
                 {/* Opción MercadoPago */}
                 <label className={`flex items-center gap-3 border rounded-lg px-3 py-3 text-sm cursor-pointer transition-all duration-200 ${paymentMethod === "mercadopago" ? "border-[#009EE3] bg-blue-50" : "border-gray-200"}`}>
                   <input type="radio" name="payment" checked={paymentMethod === "mercadopago"} onChange={() => setPaymentMethod("mercadopago")} />
-                  <div className="flex items-center justify-center w-8 h-8 rounded-full bg-[#009EE3] shrink-0">
-                    <span className="text-white font-black text-xs">MP</span>
-                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src="/mercadopago-logo.png" alt="MercadoPago" className="h-7 w-auto object-contain shrink-0" />
                   <div>
                     <p className="font-medium text-[#333]">MercadoPago</p>
                     <p className="text-xs text-gray-500">Tarjeta, efectivo o cuotas</p>
