@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Users, CheckCircle2, AlertCircle, Info, X, Bot } from "lucide-react";
+import { Users, CheckCircle2, AlertCircle, Info, X, Bot, Building2 } from "lucide-react";
 
 
 // Componentes Modularizados
@@ -23,6 +23,12 @@ import { startSessionWatch, stopSessionWatch } from "@/lib/session";
 
 // URL Base de la API de Django
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api");
+
+const CLIENT_PERMS = [
+  "catalogo.ver_catalogo", "catalogo.busqueda_semantica", "pedidos.ver",
+  "carrito.gestionar", "carrito.checkout", "tutor.acceder", "tutor.ver_historial",
+  "suscripciones.ver", "suscripciones.suscribirse",
+];
 
 export default function Dashboard() {
   return (
@@ -136,72 +142,102 @@ function DashboardInner() {
   const checkBackendAPI = async () => {
     setLoadingAPI(true);
     const token = localStorage.getItem("access_token");
+
     if (!token) {
-      // Sin token: mostrar la landing pública en lugar de redirigir al login
+      // Sin token: cargar el catálogo público antes de mostrar la landing
+      try {
+        const prodRes = await fetch(`${API_BASE_URL}/catalog/products/`);
+        if (prodRes.ok) {
+          const prodData = await prodRes.json();
+          setProducts(Array.isArray(prodData) ? prodData : (prodData.results ?? []));
+        }
+      } catch (err) {
+        console.error("Error loading public catalog:", err);
+      }
       setIsAuthenticated(false);
       setLoadingAPI(false);
       return;
     }
+
     const headers = { "Authorization": `Bearer ${token}` };
 
     try {
-      // 1. Cargar perfil del usuario logueado
+      // 1. Verificar token y cargar perfil del usuario
       const profUserRes = await fetch(`${API_BASE_URL}/users/auth/profile/`, { headers });
-      if (profUserRes.ok) {
-        const userData = await profUserRes.json();
-        setCurrentUser(userData);
-        setApiOnline(true);
-        setIsAuthenticated(true);
-      } else {
+      if (!profUserRes.ok) {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
+        // Token inválido: cargar catálogo antes de mostrar la landing pública
+        try {
+          const prodRes = await fetch(`${API_BASE_URL}/catalog/products/`);
+          if (prodRes.ok) {
+            const prodData = await prodRes.json();
+            setProducts(Array.isArray(prodData) ? prodData : (prodData.results ?? []));
+          }
+        } catch {}
         setIsAuthenticated(false);
         return;
       }
 
-      // 2. Cargar catálogo de productos
-      const prodRes = await fetch(`${API_BASE_URL}/catalog/products/`);
-      if (prodRes.ok) {
-        const prodData = await prodRes.json();
-        setProducts(Array.isArray(prodData) ? prodData : (prodData.results ?? []));
-      }
+      const userData = await profUserRes.json();
+      setCurrentUser(userData);
+      setApiOnline(true);
 
-      // 3. Cargar perfiles
-      const profRes = await fetch(`${API_BASE_URL}/users/admin/profiles/`, { headers });
-      if (profRes.ok) {
-        const profData = await profRes.json();
-        setProfiles(profData);
-        if (profData.length > 0) {
-          setEditingProfile(profData[0]);
+      // Determinar si el usuario necesita datos de gestión interna
+      const userIsDashboard = userData.is_superuser || (
+        userData.active_permissions && typeof userData.active_permissions === "object" &&
+        Object.keys(userData.active_permissions).some(
+          (code) => code !== "all" && !CLIENT_PERMS.includes(code)
+        )
+      );
+
+      if (userIsDashboard) {
+        // Dashboard: cargar todo en paralelo
+        const [prodResult, profResult, permResult, userResult, auditResult] = await Promise.allSettled([
+          fetch(`${API_BASE_URL}/catalog/products/`),
+          fetch(`${API_BASE_URL}/users/admin/profiles/`, { headers }),
+          fetch(`${API_BASE_URL}/users/admin/permissions/`, { headers }),
+          fetch(`${API_BASE_URL}/users/admin/users/`, { headers }),
+          fetch(`${API_BASE_URL}/users/admin/audit-logs/`, { headers }),
+        ]);
+
+        if (prodResult.status === "fulfilled" && prodResult.value.ok) {
+          const prodData = await prodResult.value.json();
+          setProducts(Array.isArray(prodData) ? prodData : (prodData.results ?? []));
         }
-      }
-
-      // 4. Cargar permisos
-      const permRes = await fetch(`${API_BASE_URL}/users/admin/permissions/`, { headers });
-      if (permRes.ok) {
-        const permData = await permRes.json();
-        setPermissions(permData);
-      }
-
-      // 5. Cargar usuarios (ABM)
-      const userRes = await fetch(`${API_BASE_URL}/users/admin/users/`, { headers });
-      if (userRes.ok) {
-        const userData = await userRes.json();
-        setUsers(userData);
-        if (userData.length > 0) {
-          setSelectedAdminUser(userData[0]);
+        if (profResult.status === "fulfilled" && profResult.value.ok) {
+          const profData = await profResult.value.json();
+          setProfiles(profData);
+          if (profData.length > 0) setEditingProfile(profData[0]);
         }
+        if (permResult.status === "fulfilled" && permResult.value.ok) {
+          setPermissions(await permResult.value.json());
+        }
+        if (userResult.status === "fulfilled" && userResult.value.ok) {
+          const usersData = await userResult.value.json();
+          setUsers(usersData);
+          if (usersData.length > 0) setSelectedAdminUser(usersData[0]);
+        }
+        if (auditResult.status === "fulfilled" && auditResult.value.ok) {
+          setAuditLogs(await auditResult.value.json());
+        }
+      } else {
+        // Cliente: solo cargar el catálogo de productos
+        try {
+          const prodRes = await fetch(`${API_BASE_URL}/catalog/products/`);
+          if (prodRes.ok) {
+            const prodData = await prodRes.json();
+            setProducts(Array.isArray(prodData) ? prodData : (prodData.results ?? []));
+          }
+        } catch {}
       }
 
-      // 6. Cargar logs de auditoría
-      const auditRes = await fetch(`${API_BASE_URL}/users/admin/audit-logs/`, { headers });
-      if (auditRes.ok) {
-        const auditData = await auditRes.json();
-        setAuditLogs(auditData);
-      }
+      // Solo mostrar la página cuando todos los datos están listos
+      setIsAuthenticated(true);
     } catch (err) {
       console.error("Error connecting to backend API:", err);
       setApiOnline(false);
+      setIsAuthenticated(false);
     } finally {
       setLoadingAPI(false);
     }
@@ -232,12 +268,6 @@ function DashboardInner() {
     )
   );
 
-  // Permisos de cara al cliente (deben coincidir con CLIENT_CODES de ProfileSecurity)
-  const CLIENT_PERMS = [
-    "catalogo.ver_catalogo", "catalogo.busqueda_semantica", "pedidos.ver",
-    "carrito.gestionar", "carrito.checkout", "tutor.acceder", "tutor.ver_historial",
-    "suscripciones.ver", "suscripciones.suscribirse",
-  ];
   // Entra al Dashboard Interno solo si es superuser o tiene al menos un permiso
   // que NO es de cliente (es decir, algún permiso de gestión interna/staff).
   // Quien solo tiene permisos de cliente ve la tienda (PublicLanding), sin sidebar interno.
@@ -710,11 +740,16 @@ function DashboardInner() {
     <>
     {/* BIFURCACIÓN: Landing Pública vs Dashboard Interno */}
     {isAuthenticated === null ? (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f5]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-[#E8612D] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm text-[#6b7280]">Cargando...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f5f5f5] gap-5">
+        <div className="flex items-center gap-2">
+          <div className="bg-[#E8612D] p-1.5 rounded-lg text-white">
+            <Building2 size={22} />
+          </div>
+          <span className="text-xl font-bold tracking-tight select-none text-[#1a1a2e]">
+            Craft<span className="text-[#E8612D]">IAr</span>
+          </span>
         </div>
+        <div className="w-7 h-7 border-2 border-[#E8612D] border-t-transparent rounded-full animate-spin"></div>
       </div>
     ) : isAuthenticated === false || !isDashboardUser ? (
       <PublicLanding
