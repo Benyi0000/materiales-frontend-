@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { Store, ChevronDown, ChevronUp, Package, Ticket, ArrowRight, Filter } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Store, ChevronDown, ChevronUp, Package, Ticket, ArrowRight, Filter, RefreshCw } from 'lucide-react';
 
 interface OrderItem {
   id: number;
@@ -74,6 +74,8 @@ export default function SalesPanel({ apiBaseUrl, currentUser }: SalesPanelProps)
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const pageSize = 10;
   const totalPages = Math.max(1, Math.ceil(count / pageSize));
@@ -84,10 +86,10 @@ export default function SalesPanel({ apiBaseUrl, currentUser }: SalesPanelProps)
       typeof currentUser.active_permissions === 'object' &&
       'pedidosventas.cambiar_estado' in currentUser.active_permissions);
 
-  const fetchSales = useCallback(async () => {
+  const fetchSales = useCallback(async (silent = false) => {
     const token = localStorage.getItem('access_token');
     if (!token) return;
-    setLoading(true);
+    if (!silent) setLoading(true);
     try {
       const params = new URLSearchParams({ view: 'ventas', page: String(page) });
       if (statusFilter) params.set('status', statusFilter);
@@ -100,16 +102,23 @@ export default function SalesPanel({ apiBaseUrl, currentUser }: SalesPanelProps)
         const data = await res.json();
         setOrders(data.results ?? data);
         setCount(data.count ?? (Array.isArray(data) ? data.length : 0));
+        setLastRefresh(new Date());
       }
     } catch {
       /* sin conexión */
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [apiBaseUrl, page, statusFilter, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchSales();
+  }, [fetchSales]);
+
+  // Auto-refresh cada 30 s para capturar webhooks de MP u otros cambios externos
+  useEffect(() => {
+    intervalRef.current = setInterval(() => fetchSales(true), 30_000);
+    return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [fetchSales]);
 
   const handleAdvanceStatus = async (order: Order) => {
@@ -146,17 +155,30 @@ export default function SalesPanel({ apiBaseUrl, currentUser }: SalesPanelProps)
   return (
     <div className="flex-grow flex flex-col gap-6 text-left max-w-5xl mx-auto w-full animate-[fadeIn_0.3s_ease]">
       {/* Header */}
-      <div>
-        <h2 className="text-3xl font-bold tracking-tight flex items-center gap-3 text-[#1a1a2e]">
-          <div className="p-2 bg-[#E8612D]/10 rounded-xl">
-            <Store className="text-[#E8612D]" size={28} />
-          </div>
-          <span>Ventas</span>
-        </h2>
-        <p className="text-sm text-[#6b7280] mt-2">
-          Listado de ventas del ecommerce. Filtra por estado y fecha
-          {canChangeStatus ? ', y avanza el estado de cada pedido (notifica al cliente).' : '.'}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h2 className="text-3xl font-bold tracking-tight flex items-center gap-3 text-[#1a1a2e]">
+            <div className="p-2 bg-[#E8612D]/10 rounded-xl">
+              <Store className="text-[#E8612D]" size={28} />
+            </div>
+            <span>Ventas</span>
+          </h2>
+          <p className="text-sm text-[#6b7280] mt-2">
+            Listado de ventas del ecommerce. Filtra por estado y fecha
+            {canChangeStatus ? ', y avanza el estado de cada pedido (notifica al cliente).' : '.'}
+          </p>
+        </div>
+        <button
+          onClick={() => fetchSales()}
+          className="shrink-0 flex items-center gap-1.5 text-sm font-medium text-gray-500 hover:text-[#E8612D] border border-gray-200 hover:border-[#E8612D] bg-white px-3 py-2 rounded-lg transition-all mt-1"
+          title="Actualizar listado"
+        >
+          <RefreshCw size={14} />
+          <span className="hidden sm:inline">Actualizar</span>
+          <span className="text-[11px] text-gray-400 hidden sm:inline">
+            {lastRefresh.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+          </span>
+        </button>
       </div>
 
       {/* Filtros */}
