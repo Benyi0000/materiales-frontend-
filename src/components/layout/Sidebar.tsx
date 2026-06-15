@@ -108,7 +108,7 @@ export default function Sidebar({
 
       {/* Sidebar Panel */}
       <aside
-        className={`fixed top-0 left-0 h-full w-72 bg-white border-r border-[#e5e7eb] shadow-xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${
+        className={`fixed top-0 left-0 h-full w-72 max-w-[85vw] bg-white border-r border-[#e5e7eb] shadow-xl z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         }`}
       >

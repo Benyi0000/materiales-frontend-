@@ -863,7 +863,7 @@ export default function PublicLanding({
           {/*  HERO BANNER                                                  */}
           {/* ============================================================ */}
           {appliedSearch.trim() === '' && !selectedCategory && (
-            <section className="relative w-full h-[380px] md:h-[440px] flex items-center justify-center overflow-hidden">
+            <section className="relative w-full h-[260px] sm:h-[340px] md:h-[440px] flex items-center justify-center overflow-hidden">
               {/* Imagen de fondo */}
               <div
                 className="absolute inset-0 bg-cover bg-center transition-all duration-500"
@@ -873,15 +873,15 @@ export default function PublicLanding({
               <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${(heroBanner?.overlay_opacity ?? 55) / 100})` }} />
 
               {/* Contenido */}
-              <div className="relative z-10 text-center px-6 max-w-2xl">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight">
+              <div className="relative z-10 text-center px-4 sm:px-6 max-w-2xl">
+                <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white leading-tight">
                   {heroBanner?.title ? (
                     heroBanner.title
                   ) : (
                     <>Construye mejor con{' '}<span className="text-[#E8612D]">CraftIAr</span></>
                   )}
                 </h1>
-                <p className="mt-4 text-base sm:text-lg text-gray-200 leading-relaxed">
+                <p className="mt-3 text-sm sm:text-base md:text-lg text-gray-200 leading-relaxed">
                   {heroBanner?.subtitle || "Materiales de construcción premium con herramientas de estimación basadas en IA."}
                 </p>
                 <a
@@ -947,7 +947,7 @@ export default function PublicLanding({
                       className="group border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col transition-shadow duration-200 hover:shadow-lg cursor-pointer"
                     >
                       {/* Imagen */}
-                      <div className="relative h-48 bg-gray-100 overflow-hidden p-4">
+                      <div className="relative h-40 sm:h-48 bg-gray-100 overflow-hidden p-4">
                         <img
                           src={prod.image_url || `https://placehold.co/400x300/f5f5f5/999?text=${encodeURIComponent(prod.name)}`}
                           alt={prod.name}

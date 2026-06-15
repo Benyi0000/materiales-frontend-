@@ -52,7 +52,7 @@ function VerifyEmailContent() {
 
   return (
     <div className="flex-1 flex items-start pt-[15vh] justify-center p-4 sm:p-8">
-      <div className="w-full max-w-[400px] bg-white border border-gray-200 p-8 sm:p-10 rounded-2xl flex flex-col items-center gap-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-center">
+      <div className="w-full max-w-[400px] bg-white border border-gray-200 p-5 sm:p-8 rounded-2xl flex flex-col items-center gap-6 shadow-[0_8px_30px_rgb(0,0,0,0.04)] text-center">
         
         {status === "loading" && (
           <>

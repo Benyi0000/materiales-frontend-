@@ -112,7 +112,8 @@ export default function LoginPage() {
       if (!g?.accounts?.id || !googleBtnRef.current) return;
       g.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: handleGoogleCredential });
       googleBtnRef.current.innerHTML = "";
-      g.accounts.id.renderButton(googleBtnRef.current, { theme: "outline", size: "large", text: "continue_with", width: 340, locale: "es" });
+      const containerW = googleBtnRef.current?.offsetWidth || 340;
+      g.accounts.id.renderButton(googleBtnRef.current, { theme: "outline", size: "large", text: "continue_with", width: Math.min(340, containerW), locale: "es" });
     };
     if (document.getElementById(SCRIPT_ID)) { init(); return; }
     const s = document.createElement("script");
@@ -153,7 +154,7 @@ export default function LoginPage() {
 
       {/* Contenedor del formulario */}
       <div className="flex-1 flex items-start pt-[10vh] justify-center p-4 sm:p-8">
-        <div className="w-full max-w-[420px] bg-white border border-gray-200 p-8 sm:p-10 rounded-xl flex flex-col gap-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+        <div className="w-full max-w-[420px] bg-white border border-gray-200 p-5 sm:p-8 rounded-xl flex flex-col gap-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
           <div className="flex flex-col gap-1 text-left">
             <h2 className="text-2xl font-semibold text-[#1a1a2e] tracking-tight">
               Ingresá a tu cuenta

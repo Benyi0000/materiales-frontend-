@@ -114,7 +114,7 @@ function ChangeInitialPasswordContent() {
       </header>
 
       <div className="flex-1 flex items-start pt-[10vh] justify-center p-4 sm:p-8">
-        <div className="w-full max-w-[420px] bg-white border border-gray-200 p-8 sm:p-10 rounded-xl flex flex-col gap-6 shadow-sm">
+        <div className="w-full max-w-[420px] bg-white border border-gray-200 p-5 sm:p-8 rounded-xl flex flex-col gap-6 shadow-sm">
           {success ? (
             <div className="flex flex-col items-center justify-center gap-4 py-8 text-center animate-in fade-in zoom-in-95 duration-500">
               <div className="w-16 h-16 bg-green-50 rounded-full flex items-center justify-center mb-2">

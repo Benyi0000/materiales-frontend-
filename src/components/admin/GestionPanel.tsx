@@ -141,7 +141,8 @@ function ReportesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
         </button>
       </div>
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[480px] text-sm">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
             <tr><th className="text-left p-3">#</th><th className="text-left p-3">Cliente</th><th className="text-left p-3">Estado</th><th className="text-right p-3">Total</th><th className="text-left p-3">Fecha</th></tr>
           </thead>
@@ -157,6 +158,7 @@ function ReportesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
             {!rows.length && <tr><td colSpan={5} className="p-6 text-center text-gray-400">Sin pedidos.</td></tr>}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
@@ -174,7 +176,8 @@ function StockSub({ apiBaseUrl }: { apiBaseUrl: string }) {
     <div className="grid gap-4 lg:grid-cols-2">
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <p className="p-3 font-semibold text-sm border-b">Productos con stock bajo</p>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[320px] text-sm">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase"><tr><th className="text-left p-2">SKU</th><th className="text-left p-2">Producto</th><th className="text-right p-2">Stock</th><th className="text-right p-2">Mín.</th></tr></thead>
           <tbody>
             {rows.map((p) => (
@@ -186,10 +189,12 @@ function StockSub({ apiBaseUrl }: { apiBaseUrl: string }) {
             {!rows.length && <tr><td colSpan={4} className="p-6 text-center text-gray-400">Todo el stock está por encima del umbral.</td></tr>}
           </tbody>
         </table>
+        </div>
       </div>
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
         <p className="p-3 font-semibold text-sm border-b">Movimientos recientes</p>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[320px] text-sm">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase"><tr><th className="text-left p-2">Producto</th><th className="text-left p-2">Motivo</th><th className="text-right p-2">Δ</th><th className="text-right p-2">Stock</th></tr></thead>
           <tbody>
             {movs.map((m) => (
@@ -202,6 +207,7 @@ function StockSub({ apiBaseUrl }: { apiBaseUrl: string }) {
             {!movs.length && <tr><td colSpan={4} className="p-6 text-center text-gray-400">Sin movimientos.</td></tr>}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
@@ -428,7 +434,8 @@ function CuponesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
         <button onClick={create} className="flex items-center justify-center gap-1 bg-[#E8612D] text-white px-3 py-2 rounded-lg text-sm font-medium sm:col-span-3"><Plus size={15} /> Crear cupón</button>
       </div>
       <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[380px] text-sm">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase"><tr><th className="text-left p-3">Código</th><th className="text-left p-3">Tipo</th><th className="text-right p-3">Valor</th><th className="text-right p-3">Usos</th><th className="p-3"></th></tr></thead>
           <tbody>
             {rows.map((c) => (
@@ -443,6 +450,7 @@ function CuponesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
             {!rows.length && <tr><td colSpan={5} className="p-6 text-center text-gray-400">Sin cupones.</td></tr>}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );
@@ -561,7 +569,8 @@ function SuscripcionesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
         <p className="font-semibold text-sm">Suscripciones</p>
         <button onClick={load} className="text-gray-500 hover:text-[#E8612D]"><RefreshCw size={15} /></button>
       </div>
-      <table className="w-full text-sm">
+      <div className="overflow-x-auto">
+      <table className="w-full min-w-[380px] text-sm">
         <thead className="bg-gray-50 text-gray-500 text-xs uppercase"><tr><th className="text-left p-3">Usuario</th><th className="text-left p-3">Plan</th><th className="text-left p-3">Estado</th><th className="text-left p-3">Vence</th></tr></thead>
         <tbody>
           {rows.map((s) => (
@@ -575,6 +584,7 @@ function SuscripcionesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
           {!rows.length && <tr><td colSpan={4} className="p-6 text-center text-gray-400">Sin suscripciones.</td></tr>}
         </tbody>
       </table>
+      </div>
     </div>
   );
 }

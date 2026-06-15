@@ -239,7 +239,7 @@ export default function CartView({
                         onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(null); }}
                         onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
                         placeholder="Cupón de descuento"
-                        className="flex-1 border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#E8612D] uppercase"
+                        className="flex-1 min-w-0 border border-[#e5e7eb] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[#E8612D] uppercase"
                       />
                       <button
                         onClick={handleApplyCoupon}

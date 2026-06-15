@@ -759,7 +759,7 @@ function DashboardInner() {
       {/* DASHBOARD PRINCIPAL */}
       <div className="flex-1 flex">
         {/* CONTENIDO PRINCIPAL */}
-        <main className={`flex-1 p-6 sm:p-8 flex flex-col max-h-[calc(100vh-64px)] w-full ${activeTab === 'tutor' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+        <main className={`flex-1 p-4 sm:p-6 lg:p-8 flex flex-col max-h-[calc(100vh-64px)] w-full ${activeTab === 'tutor' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           {/* TAB 1: CATÁLOGO DE PRODUCTOS (E-COMMERCE) */}
           {activeTab === "catalog" && (
             <CatalogView
@@ -851,7 +851,7 @@ function DashboardInner() {
                 <p className="text-xs text-[#6b7280]">Creación de usuarios internos del sistema y asignación de perfiles iniciales con expiración.</p>
               </div>
 
-              <div className="bg-white border border-[#e5e7eb] rounded-xl p-8 flex flex-col gap-6 shadow-sm">
+              <div className="bg-white border border-[#e5e7eb] rounded-xl p-4 sm:p-8 flex flex-col gap-6 shadow-sm">
                 <UserCreateForm
                   profiles={profiles}
                   onSubmit={handleCreateUserSubmit}
@@ -869,7 +869,7 @@ function DashboardInner() {
           {/* GLOBAL ALERT MODAL */}
           {globalModal.isOpen && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[200] p-4 animate-[fadeIn_0.2s_ease]">
-              <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl relative text-center flex flex-col items-center">
+              <div className="bg-white rounded-3xl p-5 sm:p-8 w-full max-w-sm shadow-2xl relative text-center flex flex-col items-center">
                 {(globalModal.type === "confirm" || globalModal.type === "custom_confirm") && (
                   <div className="bg-orange-50 text-[#E8612D] p-4 rounded-full mb-4">
                     <AlertCircle size={32} />
@@ -925,7 +925,7 @@ function DashboardInner() {
 
           {/* FLOATING WIDGET (TutorIA) */}
           {isPremium && isWidgetOpen && activeTab !== "tutor" && (
-            <div className="fixed bottom-4 right-4 w-[350px] h-[500px] z-50 flex flex-col shadow-2xl rounded-xl overflow-hidden border border-[#e5e7eb] bg-white animate-[fadeIn_0.3s_ease-out]">
+            <div className="fixed bottom-4 right-4 w-[350px] max-w-[calc(100vw-32px)] h-[500px] max-h-[calc(100vh-100px)] z-50 flex flex-col shadow-2xl rounded-xl overflow-hidden border border-[#e5e7eb] bg-white animate-[fadeIn_0.3s_ease-out]">
               {/* Header del Chat Flotante */}
               <div className="flex items-center justify-between p-3 border-b border-[#E8612D]/20 bg-[#E8612D] text-white shrink-0">
                 <div className="flex items-center gap-2 font-semibold">

@@ -459,7 +459,7 @@ export default function TutorVisualChat({
 
           {/* SIDEBAR CON EJEMPLOS Y GUÍAS DE USO (SOLO ADMIN) */}
           {isAdmin && layoutMode === 'full' && (
-            <div className="w-72 flex flex-col gap-6 shrink-0">
+            <div className="hidden lg:flex w-72 flex-col gap-6 shrink-0">
               <div className="bg-white border border-[#e5e7eb] p-5 rounded-xl text-left shadow-sm">
                 <h4 className="text-sm font-bold text-[#1a1a2e] flex items-center gap-2">
                   <Sparkles size={16} className="text-[#E8612D]" />

@@ -86,7 +86,7 @@ export default function CatalogView({
   });
 
   return (
-    <div className="flex-1 flex gap-8 text-left">
+    <div className="flex-1 flex gap-6 text-left">
       {selectedProduct ? (
         <div className="flex-1 overflow-y-auto">
           <ProductDetail
@@ -159,7 +159,7 @@ export default function CatalogView({
                     className="group border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col transition-shadow duration-200 hover:shadow-lg cursor-pointer"
                   >
                     {/* Imagen */}
-                    <div className="relative h-48 bg-gray-100 overflow-hidden p-4">
+                    <div className="relative h-40 sm:h-48 bg-gray-100 overflow-hidden p-4">
                       <img
                         src={prod.image_url?.replace("via.placeholder.com", "placehold.co") || `https://placehold.co/400x300/f5f5f5/999?text=${encodeURIComponent(prod.name)}`}
                         alt={prod.name}
