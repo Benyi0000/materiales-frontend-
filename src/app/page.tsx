@@ -236,6 +236,7 @@ function DashboardInner() {
   const CLIENT_PERMS = [
     "catalogo.ver_catalogo", "catalogo.busqueda_semantica", "pedidos.ver",
     "carrito.gestionar", "carrito.checkout", "tutor.acceder", "tutor.ver_historial",
+    "suscripciones.ver", "suscripciones.suscribirse",
   ];
   // Entra al Dashboard Interno solo si es superuser o tiene al menos un permiso
   // que NO es de cliente (es decir, algún permiso de gestión interna/staff).

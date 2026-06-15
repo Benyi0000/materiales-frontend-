@@ -452,7 +452,7 @@ function CuponesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
 function PlanesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
   const [rows, setRows] = useState<any[]>([]);
   const [profiles, setProfiles] = useState<any[]>([]);
-  const blank = { name: "", price: 0, duration_days: 30, trial_days: 0, auto_renew: true, profiles: [] as number[], is_active: true };
+  const blank = { name: "", description: "", price: 0, duration_days: 30, trial_days: 0, auto_renew: true, profiles: [] as number[], is_active: true };
   const [form, setForm] = useState<any>(blank);
   const load = useCallback(() => {
     apiFetch(`${apiBaseUrl}/orders/plans/`).then((r) => r.json()).then((d) => setRows(d.results || d || []));
@@ -488,18 +488,22 @@ function PlanesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
           <label className={lbl}>Nombre del plan</label>
           <input placeholder="Ej. Premium Tutor" value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className="border rounded-lg px-3 py-2 text-sm w-full" />
         </div>
+        <div>
+          <label className={lbl}>Descripción</label>
+          <textarea placeholder="Breve descripción del plan (lo que verá el cliente)" value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="border rounded-lg px-3 py-2 text-sm w-full h-16 resize-none" />
+        </div>
         <div className="grid grid-cols-3 gap-2">
           <div>
             <label className={lbl}>Precio ($)</label>
-            <input type="number" min={0} value={form.price} onChange={(e) => setForm({ ...form, price: Number(e.target.value) })} className="border rounded-lg px-2 py-2 text-sm w-full" />
+            <input type="number" min={0} value={form.price || ""} placeholder="0" onChange={(e) => setForm({ ...form, price: e.target.value === "" ? 0 : Number(e.target.value) })} className="border rounded-lg px-2 py-2 text-sm w-full" />
           </div>
           <div>
             <label className={lbl}>Duración (días)</label>
-            <input type="number" min={1} value={form.duration_days} onChange={(e) => setForm({ ...form, duration_days: Number(e.target.value) })} className="border rounded-lg px-2 py-2 text-sm w-full" />
+            <input type="number" min={1} value={form.duration_days || ""} placeholder="30" onChange={(e) => setForm({ ...form, duration_days: e.target.value === "" ? 0 : Number(e.target.value) })} className="border rounded-lg px-2 py-2 text-sm w-full" />
           </div>
           <div>
             <label className={lbl}>Prueba gratis (días)</label>
-            <input type="number" min={0} value={form.trial_days} onChange={(e) => setForm({ ...form, trial_days: Number(e.target.value) })} className="border rounded-lg px-2 py-2 text-sm w-full" />
+            <input type="number" min={0} value={form.trial_days || ""} placeholder="0" onChange={(e) => setForm({ ...form, trial_days: e.target.value === "" ? 0 : Number(e.target.value) })} className="border rounded-lg px-2 py-2 text-sm w-full" />
           </div>
         </div>
         <p className="text-[11px] text-gray-400">Se cobra <b>${form.price}</b> cada <b>{form.duration_days} días</b>{form.trial_days > 0 ? <> · primeros <b>{form.trial_days} días gratis</b></> : " · sin prueba"}.</p>

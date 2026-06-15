@@ -51,6 +51,7 @@ interface ProfileSecurityProps {
 const CLIENT_CODES = new Set([
   "catalogo.ver_catalogo", "catalogo.busqueda_semantica", "pedidos.ver",
   "carrito.gestionar", "carrito.checkout", "tutor.acceder", "tutor.ver_historial",
+  "suscripciones.ver", "suscripciones.suscribirse",
 ]);
 
 const moduleLabel = (raw: string) => {
@@ -60,6 +61,7 @@ const moduleLabel = (raw: string) => {
   if (m === "ventas") return "Ventas";
   if (m === "cart") return "Carrito";
   if (m === "tutor") return "Tutor IA";
+  if (m === "suscripciones") return "Suscripciones";
   if (m === "gestion") return "Gestión Interna";
   if (m === "admin") return "Administración";
   if (m === "auth") return "Autenticación";
