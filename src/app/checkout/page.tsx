@@ -31,6 +31,7 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mercadopago");
 
   useEffect(() => {
+    new window.Image().src = "/mercadopago-logo.png";
     if (typeof window !== "undefined" && !localStorage.getItem("access_token")) {
       router.push("/auth/login");
       return;
@@ -54,6 +55,7 @@ export default function CheckoutPage() {
   const allDone = done.has("shipping") && done.has("delivery") && done.has("payment");
 
   const [mpTab, setMpTab] = useState<boolean>(false);
+  const [leaving, setLeaving] = useState<boolean>(false);
 
   const goToMercadoPago = async () => {
     setRedirecting(true);
@@ -81,7 +83,8 @@ export default function CheckoutPage() {
       window.open(url, "_blank");
       setRedirecting(false);
       setMpTab(true);
-      setTimeout(() => router.push("/"), 1500);
+      setTimeout(() => setLeaving(true), 800);
+      setTimeout(() => router.push("/"), 1800);
     } catch (e) {
       console.error("MP error:", e);
       setMpError("Error de conexión. Verificá tu internet e intentá de nuevo.");
@@ -131,6 +134,20 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#ededed] ck-fade-in">
+      {/* Overlay de salida al inicio después de abrir MP */}
+      {leaving && (
+        <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-white animate-[fadeIn_0.4s_ease]">
+          <div className="flex items-center gap-2 mb-6 animate-[fadeIn_0.5s_ease_0.1s_both]">
+            <div className="bg-[#E8612D] p-2 rounded-xl text-white"><Building2 size={26} /></div>
+            <span className="text-2xl font-bold tracking-tight text-[#1a1a2e]">Craft<span className="text-[#E8612D]">IAr</span></span>
+          </div>
+          <div className="flex flex-col items-center gap-3 animate-[fadeIn_0.5s_ease_0.2s_both]">
+            <div className="w-8 h-8 border-[3px] border-[#E8612D] border-t-transparent rounded-full animate-spin" />
+            <p className="text-sm text-gray-500 font-medium">Volviendo al inicio…</p>
+          </div>
+        </div>
+      )}
+
       {/* Overlay solo para métodos que no abren nueva pestaña */}
       {redirecting && paymentMethod !== "mercadopago" && (
         <div className="fixed inset-0 z-[70] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center ck-fade-in">

@@ -887,14 +887,28 @@ export default function PublicLanding({
                 <p className="mt-3 text-sm sm:text-base md:text-lg text-gray-200 leading-relaxed">
                   {heroBanner?.subtitle || "Materiales de construcción premium con herramientas de estimación basadas en IA."}
                 </p>
-                <a
-                  href={heroBanner?.link || "#catalogo"}
-                  target={heroBanner?.link ? "_blank" : undefined}
-                  rel={heroBanner?.link ? "noreferrer" : undefined}
-                  className="mt-6 inline-block bg-white text-[#1a1a2e] font-semibold px-7 py-3 rounded-full text-sm shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
-                >
-                  Ver Promociones
-                </a>
+                {heroBanner?.link ? (
+                  <a
+                    href={heroBanner.link}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-6 inline-block bg-white text-[#1a1a2e] font-semibold px-7 py-3 rounded-full text-sm shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+                  >
+                    Ver Promociones
+                  </a>
+                ) : (
+                  <button
+                    onClick={() => {
+                      const el = document.getElementById('catalogo');
+                      if (!el) return;
+                      const y = el.getBoundingClientRect().top + window.scrollY - 72;
+                      window.scrollTo({ top: y, behavior: 'smooth' });
+                    }}
+                    className="mt-6 inline-block bg-white text-[#1a1a2e] font-semibold px-7 py-3 rounded-full text-sm shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
+                  >
+                    Ver Promociones
+                  </button>
+                )}
               </div>
             </section>
           )}
