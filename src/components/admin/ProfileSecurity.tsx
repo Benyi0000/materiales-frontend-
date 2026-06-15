@@ -60,7 +60,7 @@ const moduleLabel = (raw: string) => {
   if (m === "orders") return "Pedidos";
   if (m === "ventas") return "Ventas";
   if (m === "cart") return "Carrito";
-  if (m === "tutor") return "Tutor IA";
+  if (m === "tutor") return "TutorIA";
   if (m === "suscripciones") return "Suscripciones";
   if (m === "gestion") return "Gestión Interna";
   if (m === "admin") return "Administración";

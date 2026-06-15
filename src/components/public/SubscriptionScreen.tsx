@@ -61,7 +61,7 @@ export default function SubscriptionScreen({ mode }: { mode: "planes" | "mi" }) 
   }
 
   return (
-    <Shell router={router} title={mode === "planes" ? "Planes de Tutoría IA" : "Mis suscripciones"}>
+    <Shell router={router} title={mode === "planes" ? "Planes TutorIA" : "Mis suscripciones"}>
       {mode === "planes" ? (
         <>
           <p className="text-center text-gray-500 mb-8 -mt-2">Potenciá tus proyectos con el Tutor Visual IA. Elegí el plan que mejor te quede.</p>

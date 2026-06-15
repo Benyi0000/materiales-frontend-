@@ -519,26 +519,26 @@ export default function PublicLanding({
                   )}
                 </div>
 
-                {/* 2. Tutoría: activo si suscripto; gris si tiene permiso pero no suscripto */}
+                {/* 2. TutorIA: activo si suscripto; gris si tiene permiso pero no suscripto */}
                 {isPremium ? (
                   <button
                     type="button"
                     onClick={openTutorView}
                     className={`flex items-center gap-2 px-2 py-2 text-sm font-medium transition-colors ${showTutorView ? 'text-amber-700' : 'text-amber-600 hover:text-amber-700'}`}
-                    title="Tutor de IA"
+                    title="TutorIA"
                   >
                     <Sparkles size={18} />
-                    <span className="hidden lg:inline">Tutoría</span>
+                    <span className="hidden lg:inline">TutorIA</span>
                   </button>
                 ) : canVerSubs ? (
                   <button
                     type="button"
                     onClick={() => router.push("/planes")}
                     className="flex items-center gap-2 px-2 py-2 text-sm font-medium text-gray-400 hover:text-[#E8612D] transition-colors"
-                    title="Suscribite para acceder al Tutor"
+                    title="Suscribite para acceder al TutorIA"
                   >
                     <Sparkles size={18} />
-                    <span className="hidden lg:inline">Tutoría</span>
+                    <span className="hidden lg:inline">TutorIA</span>
                   </button>
                 ) : null}
 
@@ -779,7 +779,7 @@ export default function PublicLanding({
                   <PackageSearch size={18} /> Mis pedidos
                 </button>
               )}
-              {isPremium && (
+              {isPremium ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -788,7 +788,30 @@ export default function PublicLanding({
                   }}
                   className="flex items-center gap-2 py-2 text-sm font-medium text-amber-600"
                 >
-                  <Sparkles size={18} /> Tutor IA
+                  <Sparkles size={18} /> TutorIA
+                </button>
+              ) : canVerSubs ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    router.push("/planes");
+                  }}
+                  className="flex items-center gap-2 py-2 text-sm font-medium text-gray-400 hover:text-[#E8612D]"
+                >
+                  <Sparkles size={18} /> TutorIA
+                </button>
+              ) : null}
+              {canVerSubs && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMobileMenuOpen(false);
+                    router.push("/mis-suscripciones");
+                  }}
+                  className="flex items-center gap-2 py-2 text-sm font-medium text-[#1a1a2e]/70 hover:text-[#E8612D]"
+                >
+                  <Sparkles size={18} /> Mis suscripciones
                 </button>
               )}
               {currentUser ? (
@@ -1168,7 +1191,7 @@ export default function PublicLanding({
             <div className="flex items-center justify-between p-3 border-b border-[#E8612D]/20 bg-[#E8612D] text-white">
               <div className="flex items-center gap-2 font-semibold">
                 <Bot size={20} />
-                <span className="text-sm">Tutor IA</span>
+                <span className="text-sm">TutorIA</span>
               </div>
               <div className="flex items-center gap-1">
                 <button
@@ -1201,7 +1224,7 @@ export default function PublicLanding({
             <button
               onClick={() => setTutorWidgetOpen(true)}
               className="bg-[#E8612D] text-white p-4 rounded-full shadow-lg hover:bg-[#d4551f] transition-transform hover:scale-105 flex items-center justify-center pointer-events-auto"
-              title="Abrir Tutor IA"
+              title="Abrir TutorIA"
             >
               <Sparkles size={24} />
             </button>

@@ -998,7 +998,7 @@ function DashboardInner() {
               <div className="flex items-center justify-between p-3 border-b border-[#E8612D]/20 bg-[#E8612D] text-white shrink-0">
                 <div className="flex items-center gap-2 font-semibold">
                   <Bot size={20} />
-                  <span className="text-sm">Tutor IA</span>
+                  <span className="text-sm">TutorIA</span>
                 </div>
                 <button onClick={() => setIsWidgetOpen(false)} className="p-1.5 hover:bg-white/20 rounded-lg transition-colors">
                   <X size={18} />
