@@ -89,12 +89,25 @@ function CheckoutResultContent() {
               </div>
               <h1 className="text-xl font-semibold text-[#333] ck-fade-up">¡Pago exitoso!</h1>
               {order && (
-                <p className="text-gray-500 text-sm mt-2 ck-fade-up">
-                  Pedido <b>#{order.id}</b> · Total {money(order.total)}
-                  {order.discount_amount > 0 ? ` (descuento ${money(order.discount_amount)})` : ""}
-                </p>
+                <div className="mt-3 ck-fade-up text-sm space-y-1">
+                  <p className="text-gray-500">Pedido <b>#{order.id}</b></p>
+                  <div className="border border-gray-100 rounded-lg p-3 text-left space-y-1.5 mt-2 bg-gray-50">
+                    {parseFloat(order.discount_amount || 0) > 0 && (
+                      <div className="flex justify-between text-green-600">
+                        <span>Descuento</span><span>-{money(order.discount_amount)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between text-gray-500">
+                      <span>Envío</span>
+                      <span>{parseFloat(order.shipping_cost || 0) > 0 ? money(order.shipping_cost) : <span className="text-green-600">Gratis</span>}</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-[#1a1a2e] pt-1 border-t border-gray-200">
+                      <span>Total</span><span>{money(order.total)}</span>
+                    </div>
+                  </div>
+                </div>
               )}
-              <p className="text-gray-400 text-xs mt-1 ck-fade-up">Te enviamos un email con el detalle de tu compra.</p>
+              <p className="text-gray-400 text-xs mt-3 ck-fade-up">Te enviamos un email con el detalle de tu compra.</p>
               <button
                 onClick={() => router.push("/")}
                 className="mt-6 w-full bg-[#E8612D] text-white rounded-lg py-2.5 text-sm font-medium transition active:scale-[0.98] hover:brightness-105"

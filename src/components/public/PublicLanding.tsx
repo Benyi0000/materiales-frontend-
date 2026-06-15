@@ -569,15 +569,7 @@ export default function PublicLanding({
                   )}
                 </button>
 
-                {/* 4. Cerrar sesión */}
-                <button
-                  type="button"
-                  onClick={onLogout}
-                  className="p-2 text-[#1a1a2e]/60 hover:text-red-500 transition-colors"
-                  title="Cerrar sesión"
-                >
-                  <LogOut size={20} />
-                </button>
+
               </>
             ) : (
               <>

@@ -27,6 +27,7 @@ export default function CheckoutPage() {
   const [mpError, setMpError] = useState<string | null>(null);
 
   const [ship, setShip] = useState({ name: "", address: "", city: "", zip: "", phone: "" });
+  const [shipErrors, setShipErrors] = useState<Record<string, string>>({});
   const [delivery, setDelivery] = useState("standard");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mercadopago");
 
@@ -51,7 +52,35 @@ export default function CheckoutPage() {
     if (next) setActive(next);
   };
 
-  const shippingValid = ship.name && ship.address && ship.city;
+  const validateShipping = (): boolean => {
+    const errs: Record<string, string> = {};
+    const name = ship.name.trim();
+    const address = ship.address.trim();
+    const city = ship.city.trim();
+    const zip = ship.zip.trim();
+    const phone = ship.phone.trim();
+
+    if (!name) errs.name = "El nombre es obligatorio.";
+    else if (name.length < 3) errs.name = "El nombre debe tener al menos 3 caracteres.";
+    else if (!/^[a-zA-ZáéíóúÁÉÍÓÚüÜñÑ\s'\-]+$/.test(name)) errs.name = "Solo letras y espacios.";
+
+    if (!address) errs.address = "La dirección es obligatoria.";
+    else if (address.length < 5) errs.address = "Ingresá una dirección válida (mínimo 5 caracteres).";
+
+    if (!city) errs.city = "La ciudad es obligatoria.";
+
+    if (zip && !/^\d{4}$/.test(zip)) errs.zip = "Debe tener exactamente 4 dígitos.";
+
+    if (phone) {
+      if (phone.length < 10) errs.phone = "El teléfono debe tener al menos 10 dígitos.";
+      else if (phone.length > 13) errs.phone = "El teléfono no puede superar los 13 dígitos.";
+    }
+
+    setShipErrors(errs);
+    return Object.keys(errs).length === 0;
+  };
+
+  const shippingValid = ship.name.trim() && ship.address.trim() && ship.city.trim();
   const allDone = done.has("shipping") && done.has("delivery") && done.has("payment");
 
   const [mpTab, setMpTab] = useState<boolean>(false);
@@ -60,6 +89,13 @@ export default function CheckoutPage() {
   const goToMercadoPago = async () => {
     setRedirecting(true);
     setMpError(null);
+
+    // iOS Safari bloquea window.open hacia dominios externos aunque la ventana
+    // se abra de forma síncrona antes del await. En móvil redirigimos en la
+    // misma pestaña; MP nos devuelve a /checkout/result con los query params.
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const newTab = isMobile ? null : window.open("", "_blank");
+
     try {
       const res = await apiFetch(`${API_BASE_URL}/orders/mp/create-preference/`, {
         method: "POST",
@@ -70,22 +106,35 @@ export default function CheckoutPage() {
       });
       const data = await res.json();
       if (!res.ok) {
+        newTab?.close();
         setMpError(data.error || "No se pudo iniciar el pago. Intentá de nuevo.");
         setRedirecting(false);
         return;
       }
       const url = data.sandbox_init_point || data.init_point;
       if (!url) {
+        newTab?.close();
         setMpError("No se recibió el link de pago de MercadoPago.");
         setRedirecting(false);
         return;
       }
-      window.open(url, "_blank");
-      setRedirecting(false);
-      setMpTab(true);
-      setTimeout(() => setLeaving(true), 800);
-      setTimeout(() => router.push("/"), 1800);
+
+      if (isMobile) {
+        // Móvil: misma pestaña, MP redirige de vuelta a /checkout/result
+        window.location.href = url;
+      } else if (newTab) {
+        // Desktop: nueva pestaña + volver a inicio en la pestaña original
+        newTab.location.href = url;
+        setRedirecting(false);
+        setMpTab(true);
+        setTimeout(() => setLeaving(true), 800);
+        setTimeout(() => router.push("/"), 1800);
+      } else {
+        // Fallback desktop: browser bloqueó window.open, redirigir igual
+        window.location.href = url;
+      }
     } catch (e) {
+      newTab?.close();
       console.error("MP error:", e);
       setMpError("Error de conexión. Verificá tu internet e intentá de nuevo.");
       setRedirecting(false);
@@ -182,15 +231,65 @@ export default function CheckoutPage() {
               summary={done.has("shipping") ? `${ship.name} · ${ship.address}, ${ship.city}` : ""}
               onEdit={() => setActive("shipping")}>
               <div className="space-y-2">
-                <input placeholder="Nombre y apellido *" value={ship.name} onChange={(e) => setShip({ ...ship, name: e.target.value })} className="border rounded-lg px-3 py-2.5 text-sm outline-none transition focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100 w-full" />
-                <input placeholder="Dirección y número *" value={ship.address} onChange={(e) => setShip({ ...ship, address: e.target.value })} className="border rounded-lg px-3 py-2.5 text-sm outline-none transition focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100 w-full" />
-                <div className="grid grid-cols-2 gap-2">
-                  <input placeholder="Ciudad *" value={ship.city} onChange={(e) => setShip({ ...ship, city: e.target.value })} className="border rounded-lg px-3 py-2.5 text-sm outline-none transition focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100" />
-                  <input placeholder="Código postal" value={ship.zip} onChange={(e) => setShip({ ...ship, zip: e.target.value })} className="border rounded-lg px-3 py-2.5 text-sm outline-none transition focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100" />
+                <div>
+                  <input
+                    placeholder="Nombre y apellido *"
+                    value={ship.name}
+                    onChange={(e) => { setShip({ ...ship, name: e.target.value }); setShipErrors((p) => ({ ...p, name: "" })); }}
+                    className={`border rounded-lg px-3 py-2.5 text-sm outline-none transition w-full ${shipErrors.name ? "border-red-400 focus:ring-red-100" : "focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100"}`}
+                  />
+                  {shipErrors.name && <p className="text-xs text-red-500 mt-1">{shipErrors.name}</p>}
                 </div>
-                <input placeholder="Teléfono de contacto" value={ship.phone} onChange={(e) => setShip({ ...ship, phone: e.target.value })} className="border rounded-lg px-3 py-2.5 text-sm outline-none transition focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100 w-full" />
-                <button disabled={!shippingValid} onClick={() => complete("shipping", "delivery")}
-                  className="bg-[#E8612D] text-white rounded-lg py-2.5 px-6 text-sm font-medium transition active:scale-[0.98] hover:brightness-105 disabled:opacity-50 mt-1">
+                <div>
+                  <input
+                    placeholder="Dirección y número *"
+                    value={ship.address}
+                    onChange={(e) => { setShip({ ...ship, address: e.target.value }); setShipErrors((p) => ({ ...p, address: "" })); }}
+                    className={`border rounded-lg px-3 py-2.5 text-sm outline-none transition w-full ${shipErrors.address ? "border-red-400 focus:ring-red-100" : "focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100"}`}
+                  />
+                  {shipErrors.address && <p className="text-xs text-red-500 mt-1">{shipErrors.address}</p>}
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <input
+                      placeholder="Ciudad *"
+                      value={ship.city}
+                      onChange={(e) => { setShip({ ...ship, city: e.target.value }); setShipErrors((p) => ({ ...p, city: "" })); }}
+                      className={`border rounded-lg px-3 py-2.5 text-sm outline-none transition w-full ${shipErrors.city ? "border-red-400 focus:ring-red-100" : "focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100"}`}
+                    />
+                    {shipErrors.city && <p className="text-xs text-red-500 mt-1">{shipErrors.city}</p>}
+                  </div>
+                  <div>
+                    <input
+                      placeholder="Código postal (4 dígitos)"
+                      value={ship.zip}
+                      maxLength={4}
+                      onChange={(e) => { setShip({ ...ship, zip: e.target.value.replace(/\D/g, "") }); setShipErrors((p) => ({ ...p, zip: "" })); }}
+                      className={`border rounded-lg px-3 py-2.5 text-sm outline-none transition w-full ${shipErrors.zip ? "border-red-400 focus:ring-red-100" : "focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100"}`}
+                    />
+                    {shipErrors.zip && <p className="text-xs text-red-500 mt-1">{shipErrors.zip}</p>}
+                  </div>
+                </div>
+                <div>
+                  <input
+                    placeholder="Teléfono (ej: 1145678901)"
+                    value={ship.phone}
+                    maxLength={13}
+                    inputMode="numeric"
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      setShip({ ...ship, phone: digits });
+                      setShipErrors((p) => ({ ...p, phone: "" }));
+                    }}
+                    className={`border rounded-lg px-3 py-2.5 text-sm outline-none transition w-full ${shipErrors.phone ? "border-red-400 focus:ring-red-100" : "focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100"}`}
+                  />
+                  {shipErrors.phone && <p className="text-xs text-red-500 mt-1">{shipErrors.phone}</p>}
+                </div>
+                <button
+                  disabled={!shippingValid}
+                  onClick={() => { if (validateShipping()) complete("shipping", "delivery"); }}
+                  className="bg-[#E8612D] text-white rounded-lg py-2.5 px-6 text-sm font-medium transition active:scale-[0.98] hover:brightness-105 disabled:opacity-50 mt-1"
+                >
                   Continuar
                 </button>
               </div>

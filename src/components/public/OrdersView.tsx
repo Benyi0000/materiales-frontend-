@@ -17,6 +17,8 @@ interface Order {
   total: string;
   coupon_code: string | null;
   discount_amount: string;
+  shipping_cost: string;
+  checkout_payment_method: string;
   created_at: string;
   items: OrderItem[];
 }
@@ -25,6 +27,18 @@ interface OrdersViewProps {
   apiBaseUrl: string;
   onBack: () => void;
 }
+
+const PAYMENT_METHOD_LABELS: Record<string, string> = {
+  mercadopago: 'MercadoPago',
+  card: 'Tarjeta',
+  cash: 'Efectivo',
+};
+
+const PAYMENT_METHOD_STYLES: Record<string, string> = {
+  mercadopago: 'bg-blue-50 text-blue-600 border-blue-200',
+  card: 'bg-orange-50 text-orange-600 border-orange-200',
+  cash: 'bg-green-50 text-green-700 border-green-200',
+};
 
 const STATUS_LABELS: Record<string, string> = {
   pending_payment: 'Esperando pago',
@@ -206,10 +220,24 @@ export default function OrdersView({ apiBaseUrl, onBack }: OrdersViewProps) {
                       </div>
                     )}
 
+                    <div className="flex justify-between text-sm text-gray-600 pt-3 border-t border-gray-100 mt-1">
+                      <span>Envío</span>
+                      <span>{parseFloat(order.shipping_cost || '0') > 0 ? formatPrice(order.shipping_cost) : <span className="text-green-600 font-medium">Gratis</span>}</span>
+                    </div>
+
                     <div className="flex justify-between items-center pt-3 mt-1 border-t border-gray-100">
                       <span className="font-bold text-[#1a1a2e]">Total</span>
                       <span className="font-black text-lg text-[#1a1a2e]">{formatPrice(order.total)}</span>
                     </div>
+
+                    {order.checkout_payment_method && (
+                      <div className="flex items-center gap-2 pt-3 mt-1 border-t border-gray-100">
+                        <span className="text-xs text-gray-400">Método de pago</span>
+                        <span className={`text-xs font-semibold px-2 py-0.5 rounded-full border ${PAYMENT_METHOD_STYLES[order.checkout_payment_method] ?? 'bg-gray-100 text-gray-600 border-gray-200'}`}>
+                          {PAYMENT_METHOD_LABELS[order.checkout_payment_method] ?? order.checkout_payment_method}
+                        </span>
+                      </div>
+                    )}
 
                     {/* RN-15: cancelación solo para pedidos pendientes */}
                     {order.status === 'pending' && (
