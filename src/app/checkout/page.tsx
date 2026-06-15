@@ -4,8 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import {
-  Building2, MapPin, Truck, CreditCard, ShieldCheck, ChevronLeft, Check,
-  Loader, CheckCircle2, Pencil, Lock,
+  Building2, MapPin, Truck, ShieldCheck, ChevronLeft, Check,
+  Loader, Pencil, Lock, ExternalLink,
 } from "lucide-react";
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
@@ -14,7 +14,7 @@ const money = (n: any) => `$${Number(n || 0).toLocaleString("es-AR")}`;
 interface CartItem { id: number; name: string; image_url: string; price: number; quantity: number; item_total?: number; }
 interface Cart { items: CartItem[]; subtotal: number; discount_amount: number; total: number; coupon_code: string | null; }
 
-type SectionKey = "shipping" | "delivery" | "payment";
+type SectionKey = "shipping" | "delivery";
 
 export default function CheckoutPage() {
   const router = useRouter();
@@ -22,12 +22,11 @@ export default function CheckoutPage() {
   const [loading, setLoading] = useState(true);
   const [active, setActive] = useState<SectionKey>("shipping");
   const [done, setDone] = useState<Set<SectionKey>>(new Set());
-  const [placing, setPlacing] = useState(false);
-  const [order, setOrder] = useState<any>(null);
+  const [redirecting, setRedirecting] = useState(false);
+  const [mpError, setMpError] = useState<string | null>(null);
 
   const [ship, setShip] = useState({ name: "", address: "", city: "", zip: "", phone: "" });
   const [delivery, setDelivery] = useState("standard");
-  const [pay, setPay] = useState({ method: "card", cardName: "", cardNumber: "", expiry: "", cvc: "" });
 
   useEffect(() => {
     if (typeof window !== "undefined" && !localStorage.getItem("access_token")) {
@@ -50,49 +49,42 @@ export default function CheckoutPage() {
   };
 
   const shippingValid = ship.name && ship.address && ship.city;
-  const paymentValid = pay.method !== "card" || (pay.cardName && pay.cardNumber && pay.expiry && pay.cvc);
-  const allDone = done.has("shipping") && done.has("delivery") && done.has("payment");
+  const allDone = done.has("shipping") && done.has("delivery");
 
-  const placeOrder = async () => {
-    setPlacing(true);
-    await new Promise((r) => setTimeout(r, 1600)); // simular procesamiento de pago
+  const goToMercadoPago = async () => {
+    setRedirecting(true);
+    setMpError(null);
     try {
-      const res = await apiFetch(`${API_BASE_URL}/orders/orders/`, { method: "POST", body: JSON.stringify({}) });
-      if (res.ok) {
-        setOrder(await res.json());
-      } else {
-        const e = await res.json();
-        const msgs: string[] = [];
-        if (e.stock) msgs.push(...[].concat(e.stock));
-        if (e.coupon) msgs.push(...[].concat(e.coupon));
-        alert(`No se pudo completar la compra: ${msgs.length ? msgs.join(" ") : "intentá de nuevo."}`);
+      const res = await apiFetch(`${API_BASE_URL}/orders/mp/create-preference/`, {
+        method: "POST",
+        body: JSON.stringify({
+          shipping: { name: ship.name, address: ship.address, city: ship.city, zip: ship.zip, phone: ship.phone },
+          delivery_type: delivery,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setMpError(data.error || "No se pudo iniciar el pago. Intentá de nuevo.");
+        setRedirecting(false);
+        return;
       }
-    } finally {
-      setPlacing(false);
+      // En sandbox usamos sandbox_init_point; en producción usar init_point
+      const url = data.sandbox_init_point || data.init_point;
+      if (!url) {
+        setMpError("No se recibió el link de pago de MercadoPago.");
+        setRedirecting(false);
+        return;
+      }
+      window.location.href = url;
+    } catch {
+      setMpError("Error de conexión. Verificá tu internet e intentá de nuevo.");
+      setRedirecting(false);
     }
   };
 
   /* ----------------- Estados especiales ----------------- */
   if (loading) {
     return <div className="min-h-screen flex items-center justify-center bg-[#ededed]"><Loader className="animate-spin text-[#E8612D]" /></div>;
-  }
-  if (order) {
-    return (
-      <div className="min-h-screen bg-[#ededed] flex items-center justify-center p-4 ck-fade-in">
-        <div className="bg-white rounded-xl shadow-sm max-w-md w-full p-8 text-center">
-          <div className="relative w-fit mx-auto">
-            <span className="absolute inset-0 rounded-full bg-green-400 ck-ring" />
-            <CheckCircle2 size={64} className="text-green-500 relative ck-success" />
-          </div>
-          <h1 className="text-xl font-semibold text-[#333] mt-4 ck-fade-up" style={{ animationDelay: "150ms" }}>¡Listo! Tu compra fue confirmada</h1>
-          <p className="text-gray-500 text-sm mt-2 ck-fade-up" style={{ animationDelay: "250ms" }}>Pedido <b>#{order.id}</b> · Total {money(order.total)}{order.discount_amount > 0 ? ` (descuento ${money(order.discount_amount)})` : ""}</p>
-          <p className="text-gray-400 text-xs mt-1 ck-fade-up" style={{ animationDelay: "320ms" }}>Te enviamos un email con el detalle.</p>
-          <div className="flex flex-col gap-2 mt-6 ck-fade-up" style={{ animationDelay: "400ms" }}>
-            <button onClick={() => router.push("/")} className="bg-[#E8612D] text-white rounded-lg py-2.5 text-sm font-medium transition active:scale-[0.98] hover:brightness-105">Volver al inicio</button>
-          </div>
-        </div>
-      </div>
-    );
   }
   if (!cart || !cart.items?.length) {
     return (
@@ -107,20 +99,12 @@ export default function CheckoutPage() {
 
   return (
     <div className="min-h-screen bg-[#ededed] ck-fade-in">
-      {/* Overlay de procesamiento del pago */}
-      {placing && (
+      {/* Overlay de redirección a MercadoPago */}
+      {redirecting && (
         <div className="fixed inset-0 z-[70] bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center ck-fade-in">
           <div className="w-16 h-16 rounded-full border-4 border-orange-100 border-t-[#E8612D] animate-spin" />
-          <p className="mt-5 font-semibold text-[#333]">Procesando tu pago…</p>
-          <div className="flex gap-1.5 mt-2">
-            <span className="w-2 h-2 rounded-full bg-[#E8612D] ck-dot" style={{ animationDelay: "0ms" }} />
-            <span className="w-2 h-2 rounded-full bg-[#E8612D] ck-dot" style={{ animationDelay: "150ms" }} />
-            <span className="w-2 h-2 rounded-full bg-[#E8612D] ck-dot" style={{ animationDelay: "300ms" }} />
-          </div>
-          <div className="w-56 h-1.5 bg-gray-100 rounded-full mt-5 overflow-hidden">
-            <div className="h-full bg-[#E8612D] ck-progress" />
-          </div>
-          <p className="text-xs text-gray-400 mt-3">No cierres esta ventana</p>
+          <p className="mt-5 font-semibold text-[#333]">Redirigiendo a MercadoPago…</p>
+          <p className="text-sm text-gray-400 mt-2">No cierres esta ventana</p>
         </div>
       )}
 
@@ -131,7 +115,7 @@ export default function CheckoutPage() {
             <div className="bg-[#E8612D] p-1.5 rounded-lg text-white"><Building2 size={18} /></div>
             <span className="font-bold text-[#1a1a2e]">Craft<span className="text-[#E8612D]">IAr</span></span>
           </button>
-          <div className="flex items-center gap-1 text-xs text-gray-500"><Lock size={13} /> Pago seguro</div>
+          <div className="flex items-center gap-1 text-xs text-gray-500"><Lock size={13} /> Pago seguro con MercadoPago</div>
         </div>
       </header>
 
@@ -168,33 +152,25 @@ export default function CheckoutPage() {
                     <span className={`font-semibold ${p === "Gratis" ? "text-green-600" : "text-[#333]"}`}>{p}</span>
                   </label>
                 ))}
-                <button onClick={() => complete("delivery", "payment")} className="bg-[#E8612D] text-white rounded-lg py-2.5 px-6 text-sm font-medium transition active:scale-[0.98] hover:brightness-105 mt-1">Continuar</button>
+                <button onClick={() => complete("delivery")} className="bg-[#E8612D] text-white rounded-lg py-2.5 px-6 text-sm font-medium transition active:scale-[0.98] hover:brightness-105 mt-1">Confirmar entrega</button>
               </div>
             </SectionCard>
 
-            <SectionCard n={3} index={2} title="Forma de pago" icon={<CreditCard size={18} />} active={active === "payment"} done={done.has("payment")}
-              summary={done.has("payment") ? (pay.method === "card" ? `Tarjeta •••• ${pay.cardNumber.slice(-4)}` : pay.method === "mp" ? "Mercado Pago" : "Efectivo al recibir") : ""} onEdit={() => setActive("payment")}>
-              <div className="space-y-2">
-                {[["card", "Tarjeta de crédito/débito"], ["mp", "Mercado Pago"], ["cash", "Efectivo al recibir"]].map(([v, l]) => (
-                  <label key={v} className={`flex items-center gap-3 border rounded-lg px-3 py-3 text-sm cursor-pointer transition-all duration-200 ${pay.method === v ? "border-[#E8612D] bg-orange-50" : "border-gray-200"}`}>
-                    <input type="radio" name="pay" checked={pay.method === v} onChange={() => setPay({ ...pay, method: v as string })} />
-                    <span className="text-[#333]">{l}</span>
-                  </label>
-                ))}
-                {pay.method === "card" && (
-                  <div className="space-y-2 pt-1">
-                    <input placeholder="Nombre como figura en la tarjeta *" value={pay.cardName} onChange={(e) => setPay({ ...pay, cardName: e.target.value })} className="border rounded-lg px-3 py-2.5 text-sm outline-none transition focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100 w-full" />
-                    <input placeholder="Número de tarjeta *" value={pay.cardNumber} onChange={(e) => setPay({ ...pay, cardNumber: e.target.value })} className="border rounded-lg px-3 py-2.5 text-sm outline-none transition focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100 w-full" />
-                    <div className="grid grid-cols-2 gap-2">
-                      <input placeholder="Vencimiento MM/AA *" value={pay.expiry} onChange={(e) => setPay({ ...pay, expiry: e.target.value })} className="border rounded-lg px-3 py-2.5 text-sm outline-none transition focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100" />
-                      <input placeholder="Código de seguridad *" value={pay.cvc} onChange={(e) => setPay({ ...pay, cvc: e.target.value })} className="border rounded-lg px-3 py-2.5 text-sm outline-none transition focus:border-[#E8612D] focus:ring-2 focus:ring-orange-100" />
-                    </div>
-                  </div>
-                )}
-                <p className="text-xs text-gray-400 flex items-center gap-1 pt-1"><ShieldCheck size={13} /> Pago simulado — no se realiza ningún cobro real.</p>
-                <button disabled={!paymentValid} onClick={() => complete("payment")} className="bg-[#E8612D] text-white rounded-lg py-2.5 px-6 text-sm font-medium transition active:scale-[0.98] hover:brightness-105 disabled:opacity-50 mt-1">Continuar</button>
+            {/* Aviso de pago con MP */}
+            {allDone && (
+              <div className="bg-white rounded-xl border border-[#009EE3]/30 p-4 flex items-center gap-3 ck-fade-up">
+                <img src="https://http2.mlstatic.com/frontend-assets/ui-navigation/5.21.22/mercadopago/logo__large@2x.png" alt="MercadoPago" className="h-6 object-contain" />
+                <p className="text-sm text-gray-600">
+                  Al confirmar serás redirigido a MercadoPago para completar el pago de forma segura.
+                </p>
               </div>
-            </SectionCard>
+            )}
+
+            {mpError && (
+              <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-sm text-red-700">
+                {mpError}
+              </div>
+            )}
           </div>
 
           {/* Columna derecha: resumen sticky */}
@@ -219,14 +195,22 @@ export default function CheckoutPage() {
               <div className="flex justify-between text-gray-600"><span>Envío</span><span>{shippingCost ? money(shippingCost) : <span className="text-green-600">Gratis</span>}</span></div>
               <div className="flex justify-between font-bold text-lg text-[#333] pt-2"><span>Total</span><span>{money(total)}</span></div>
             </div>
+
             <button
-              disabled={!allDone || placing}
-              onClick={placeOrder}
-              className="w-full mt-4 bg-[#E8612D] text-white rounded-lg py-3 text-sm font-semibold disabled:opacity-50 transition active:scale-[0.98] hover:brightness-105 flex items-center justify-center gap-2"
+              disabled={!allDone || redirecting}
+              onClick={goToMercadoPago}
+              className="w-full mt-4 bg-[#009EE3] hover:bg-[#007fc0] text-white rounded-lg py-3 text-sm font-semibold disabled:opacity-50 transition active:scale-[0.98] flex items-center justify-center gap-2"
             >
-              {placing ? <><Loader size={16} className="animate-spin" /> Procesando…</> : "Confirmar compra"}
+              {redirecting
+                ? <><Loader size={16} className="animate-spin" /> Redirigiendo…</>
+                : <><ExternalLink size={16} /> Pagar con MercadoPago</>
+              }
             </button>
-            {!allDone && <p className="text-[11px] text-gray-400 text-center mt-2">Completá los pasos para confirmar.</p>}
+            <div className="flex items-center justify-center gap-1 mt-2">
+              <ShieldCheck size={13} className="text-gray-400" />
+              <p className="text-[11px] text-gray-400 text-center">Pago 100% seguro. No guardamos datos de tarjeta.</p>
+            </div>
+            {!allDone && <p className="text-[11px] text-gray-400 text-center mt-1">Completá los pasos para continuar.</p>}
           </aside>
         </div>
       </div>
