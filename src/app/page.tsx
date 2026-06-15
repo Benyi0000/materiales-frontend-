@@ -954,9 +954,8 @@ function DashboardInner() {
       </div>
 
       {/* FOOTER */}
-      <footer className="border-t border-[#e5e7eb] py-4 px-6 flex items-center justify-between text-xs text-[#9ca3af] bg-white mt-auto">
-        <p>© 2026 CraftIAr. Todos los derechos reservados.</p>
-        <p className="font-mono">Next.js 15.1 + Django REST Framework + pgvector</p>
+      <footer className="border-t border-[#e5e7eb] py-4 px-6 text-xs text-[#9ca3af] bg-white mt-auto text-center">
+        <p>© {new Date().getFullYear()} Craftiar. Todos los derechos reservados.</p>
       </footer>
     </div>
     )}

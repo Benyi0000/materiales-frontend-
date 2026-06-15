@@ -1134,10 +1134,7 @@ export default function PublicLanding({
         <footer className="bg-[#1a1a2e] mt-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
             <p className="text-sm text-gray-400">
-              © 2026 CraftIAr. Todos los derechos reservados.
-            </p>
-            <p className="mt-2 text-xs text-gray-500 font-mono">
-              Next.js 15.1 + Django REST Framework + pgvector
+              © {new Date().getFullYear()} Craftiar. Todos los derechos reservados.
             </p>
           </div>
         </footer>
