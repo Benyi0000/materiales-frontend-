@@ -41,7 +41,20 @@ interface Product {
   image_url: string;
   stock: number;
   weight_kg?: number;
+  length_cm?: number | null;
+  width_cm?: number | null;
+  height_cm?: number | null;
+  unit_of_sale?: string;
+  unit_of_sale_display?: string;
+  brand?: string;
+  material?: string;
+  material_display?: string;
   is_active?: boolean;
+}
+
+interface FilterOption {
+  value: string;
+  label: string;
 }
 
 interface SubCategory {
@@ -108,6 +121,10 @@ export default function PublicLanding({
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [selectedBrand, setSelectedBrand] = useState<string>('');
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('');
+  const [selectedUnit, setSelectedUnit] = useState<string>('');
+  const [filterOptions, setFilterOptions] = useState<{ brands: string[]; units: FilterOption[]; materials: FilterOption[] }>({ brands: [], units: [], materials: [] });
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [showCartView, setShowCartView] = useState(false);
   const [showOrdersView, setShowOrdersView] = useState(false);
@@ -134,12 +151,30 @@ export default function PublicLanding({
       .catch(() => {});
   }, []);
 
+  // Construye los query params de filtros activos (categoría, marca, material, unidad).
+  const buildFilterParams = (): URLSearchParams => {
+    const params = new URLSearchParams();
+    if (selectedCategory) params.set('category__name', selectedCategory);
+    if (selectedBrand) params.set('brand', selectedBrand);
+    if (selectedMaterial) params.set('material', selectedMaterial);
+    if (selectedUnit) params.set('unit_of_sale', selectedUnit);
+    return params;
+  };
+
+  // Opciones de filtro (marcas en uso, materiales y unidades de venta) — una sola vez.
+  useEffect(() => {
+    fetch(`${apiBaseUrl}/catalog/products/filter_options/`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setFilterOptions(d); })
+      .catch(() => {});
+  }, [apiBaseUrl]);
+
   /* ---- Fetch inicial ---- */
   useEffect(() => {
     async function fetchData() {
       try {
-        const catQuery = selectedCategory ? `?category__name=${encodeURIComponent(selectedCategory)}` : '';
-        const url = `${apiBaseUrl}/catalog/products/${catQuery}`;
+        const qs = buildFilterParams().toString();
+        const url = `${apiBaseUrl}/catalog/products/${qs ? `?${qs}` : ''}`;
         const [prodRes, catRes] = await Promise.all([
           fetch(url),
           fetch(`${apiBaseUrl}/catalog/categories/`),
@@ -158,7 +193,7 @@ export default function PublicLanding({
       }
     }
     fetchData();
-  }, [selectedCategory, apiBaseUrl]);
+  }, [selectedCategory, selectedBrand, selectedMaterial, selectedUnit, apiBaseUrl]);
 
   useEffect(() => {
     setHighlightedIndex(-1);
@@ -226,6 +261,9 @@ export default function PublicLanding({
     setSearchInput('');
     setAppliedSearch('');
     setSelectedCategory(null);
+    setSelectedBrand('');
+    setSelectedMaterial('');
+    setSelectedUnit('');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -288,9 +326,10 @@ export default function PublicLanding({
     
     try {
       const q = query.trim();
-      const catQuery = selectedCategory ? `&category__name=${encodeURIComponent(selectedCategory)}` : '';
+      const filterParams = buildFilterParams();
+      const filterQs = filterParams.toString();
       if (q === '') {
-        const prodRes = await fetch(`${apiBaseUrl}/catalog/products/?${catQuery.replace('&','')} `);
+        const prodRes = await fetch(`${apiBaseUrl}/catalog/products/${filterQs ? `?${filterQs}` : ''}`);
         if (prodRes.ok) {
           const prodData = await prodRes.json();
           setProducts(Array.isArray(prodData) ? prodData : prodData.results ?? []);
@@ -326,7 +365,9 @@ export default function PublicLanding({
         
         // Fallback a búsqueda clásica si no es premium o si falló (ej: 401/403)
         if (!searched) {
-          const res = await fetch(`${apiBaseUrl}/catalog/products/?search=${encodeURIComponent(q)}${catQuery}`);
+          const classicParams = buildFilterParams();
+          classicParams.set('search', q);
+          const res = await fetch(`${apiBaseUrl}/catalog/products/?${classicParams.toString()}`);
           if (res.ok) {
             const data = await res.json();
             setProducts(Array.isArray(data) ? data : data.results ?? []);
@@ -363,9 +404,16 @@ export default function PublicLanding({
         p.category_name === selectedCategory ||
         (p.subcategory_names && p.subcategory_names.includes(selectedCategory));
 
-      return matchesCat;
+      const matchesBrand = !selectedBrand || p.brand === selectedBrand;
+      const matchesMaterial = !selectedMaterial || p.material === selectedMaterial;
+      const matchesUnit = !selectedUnit || p.unit_of_sale === selectedUnit;
+
+      return matchesCat && matchesBrand && matchesMaterial && matchesUnit;
     });
-  }, [products, selectedCategory]);
+  }, [products, selectedCategory, selectedBrand, selectedMaterial, selectedUnit]);
+
+  const hasActiveExtraFilters = !!(selectedBrand || selectedMaterial || selectedUnit);
+  const clearExtraFilters = () => { setSelectedBrand(''); setSelectedMaterial(''); setSelectedUnit(''); };
 
   /* ---- Helpers ---- */
 
@@ -934,10 +982,55 @@ export default function PublicLanding({
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold tracking-tight">Todos los Materiales</h2>
           <span className="text-sm text-gray-500">
-            {products.length}{' '}
-            {products.length === 1 ? 'producto' : 'productos'}
+            {filteredProducts.length}{' '}
+            {filteredProducts.length === 1 ? 'producto' : 'productos'}
           </span>
         </div>
+
+        {/* Filtros: marca, material, unidad de venta */}
+        {(filterOptions.brands.length > 0 || filterOptions.materials.length > 0) && (
+          <div className="flex flex-wrap items-center gap-3 mb-6">
+            <select
+              value={selectedMaterial}
+              onChange={(e) => setSelectedMaterial(e.target.value)}
+              className="text-sm border border-gray-200 rounded-full px-4 py-2 bg-white text-[#1a1a2e] outline-none focus:border-[#E8612D]/40"
+            >
+              <option value="">Material: todos</option>
+              {filterOptions.materials.map((m) => (
+                <option key={m.value} value={m.value}>{m.label}</option>
+              ))}
+            </select>
+            <select
+              value={selectedBrand}
+              onChange={(e) => setSelectedBrand(e.target.value)}
+              className="text-sm border border-gray-200 rounded-full px-4 py-2 bg-white text-[#1a1a2e] outline-none focus:border-[#E8612D]/40"
+            >
+              <option value="">Marca: todas</option>
+              {filterOptions.brands.map((b) => (
+                <option key={b} value={b}>{b}</option>
+              ))}
+            </select>
+            <select
+              value={selectedUnit}
+              onChange={(e) => setSelectedUnit(e.target.value)}
+              className="text-sm border border-gray-200 rounded-full px-4 py-2 bg-white text-[#1a1a2e] outline-none focus:border-[#E8612D]/40"
+            >
+              <option value="">Unidad: todas</option>
+              {filterOptions.units.map((u) => (
+                <option key={u.value} value={u.value}>{u.label}</option>
+              ))}
+            </select>
+            {hasActiveExtraFilters && (
+              <button
+                type="button"
+                onClick={clearExtraFilters}
+                className="text-sm text-[#E8612D] font-semibold hover:underline"
+              >
+                Limpiar filtros
+              </button>
+            )}
+          </div>
+        )}
 
         <div>
           {/* ---------- Grilla de productos ---------- */}

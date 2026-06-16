@@ -12,6 +12,14 @@ interface Product {
   image_url: string;
   stock: number;
   weight_kg?: number;
+  length_cm?: number | null;
+  width_cm?: number | null;
+  height_cm?: number | null;
+  unit_of_sale?: string;
+  unit_of_sale_display?: string;
+  brand?: string;
+  material?: string;
+  material_display?: string;
 }
 
 interface ProductDetailProps {
@@ -199,9 +207,44 @@ export default function ProductDetail({
               </div>
               <div>
                 <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Formato</p>
-                <p className="font-semibold text-sm text-[#1a1a2e]">Unidad</p>
+                <p className="font-semibold text-sm text-[#1a1a2e]">{product.unit_of_sale_display || 'Unidad'}</p>
               </div>
             </div>
+            {product.brand && (
+              <div className="flex items-start gap-3 bg-white border border-[#e5e7eb] p-4 rounded-xl">
+                <div className="p-2 bg-orange-50 text-[#E8612D] rounded-lg">
+                  <Box size={20} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Marca</p>
+                  <p className="font-semibold text-sm text-[#1a1a2e]">{product.brand}</p>
+                </div>
+              </div>
+            )}
+            {product.material_display && (
+              <div className="flex items-start gap-3 bg-white border border-[#e5e7eb] p-4 rounded-xl">
+                <div className="p-2 bg-orange-50 text-[#E8612D] rounded-lg">
+                  <Package size={20} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Material</p>
+                  <p className="font-semibold text-sm text-[#1a1a2e]">{product.material_display}</p>
+                </div>
+              </div>
+            )}
+            {(product.length_cm || product.width_cm || product.height_cm) && (
+              <div className="flex items-start gap-3 bg-white border border-[#e5e7eb] p-4 rounded-xl col-span-2">
+                <div className="p-2 bg-orange-50 text-[#E8612D] rounded-lg">
+                  <Box size={20} />
+                </div>
+                <div>
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Dimensiones</p>
+                  <p className="font-semibold text-sm text-[#1a1a2e]">
+                    {[product.length_cm, product.width_cm, product.height_cm].map(v => v ?? '—').join(' x ')} cm
+                  </p>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Descripción Técnica */}

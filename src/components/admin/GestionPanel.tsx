@@ -575,9 +575,9 @@ function PlanesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
               <button onClick={() => del(p.id)} className="text-red-600"><Trash2 size={15} /></button>
             </div>
             <div className="text-xs text-gray-600 mt-1.5 space-y-0.5">
-              <p>💲 {money(p.price)} cada {p.duration_days} días</p>
-              <p>🎁 {p.trial_days > 0 ? `${p.trial_days} días de prueba gratis` : "Sin prueba"} · {p.auto_renew ? "renovación automática" : "no renueva"}</p>
-              <p>🔑 Otorga: {(p.profile_names || []).join(", ") || "—"}</p>
+              <p className="flex items-center gap-1.5"><Check size={13} className="text-green-500 shrink-0" /> {money(p.price)} cada {p.duration_days} días</p>
+              <p className="flex items-center gap-1.5"><Check size={13} className="text-green-500 shrink-0" /> {p.trial_days > 0 ? `${p.trial_days} días de prueba gratis` : "Sin prueba"} · {p.auto_renew ? "renovación automática" : "no renueva"}</p>
+              <p className="flex items-center gap-1.5"><Check size={13} className="text-green-500 shrink-0" /> Otorga: {(p.profile_names || []).join(", ") || "—"}</p>
             </div>
           </div>
         ))}

@@ -11,6 +11,14 @@ interface Product {
   stock: number;
   min_stock?: number;
   weight_kg: number;
+  length_cm?: number | null;
+  width_cm?: number | null;
+  height_cm?: number | null;
+  unit_of_sale?: string;
+  unit_of_sale_display?: string;
+  brand?: string;
+  material?: string;
+  material_display?: string;
   image_url: string;
   category: number;
   category_name: string;
@@ -20,6 +28,33 @@ interface Product {
   created_by?: number;
   created_by_username?: string;
 }
+
+// Deben coincidir con Product.UNIT_CHOICES / Product.MATERIAL_CHOICES en el backend.
+const UNIT_OPTIONS = [
+  { value: "unidad", label: "Unidad" },
+  { value: "kg", label: "Kilogramo" },
+  { value: "m", label: "Metro" },
+  { value: "m2", label: "Metro cuadrado" },
+  { value: "m3", label: "Metro cúbico" },
+  { value: "litro", label: "Litro" },
+  { value: "bolsa", label: "Bolsa" },
+  { value: "rollo", label: "Rollo" },
+  { value: "par", label: "Par" },
+  { value: "caja", label: "Caja" },
+  { value: "pallet", label: "Pallet" },
+];
+const MATERIAL_OPTIONS = [
+  { value: "", label: "Sin especificar" },
+  { value: "cemento", label: "Cemento / Hormigón" },
+  { value: "madera", label: "Madera" },
+  { value: "metal", label: "Metal / Acero" },
+  { value: "plastico", label: "Plástico / PVC" },
+  { value: "ceramico", label: "Cerámico" },
+  { value: "vidrio", label: "Vidrio" },
+  { value: "pintura", label: "Pintura / Química" },
+  { value: "electrico", label: "Eléctrico" },
+  { value: "otro", label: "Otro" },
+];
 
 interface InventoryPanelProps {
   products: Product[];
@@ -50,6 +85,12 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
   const [formCategory, setFormCategory] = useState<number | "">("");
   const [formSubcategories, setFormSubcategories] = useState<number[]>([]);
   const [formMinStock, setFormMinStock] = useState("5");
+  const [formLength, setFormLength] = useState("");
+  const [formWidth, setFormWidth] = useState("");
+  const [formHeight, setFormHeight] = useState("");
+  const [formUnit, setFormUnit] = useState("unidad");
+  const [formBrand, setFormBrand] = useState("");
+  const [formMaterial, setFormMaterial] = useState("");
 
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
@@ -193,6 +234,12 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
     setFormStock("0");
     setFormMinStock("5");
     setFormWeight("");
+    setFormLength("");
+    setFormWidth("");
+    setFormHeight("");
+    setFormUnit("unidad");
+    setFormBrand("");
+    setFormMaterial("");
     setFormImageUrl("");
     setFormCategory("");
     setFormSubcategories([]);
@@ -211,6 +258,12 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
     setFormStock(p.stock.toString());
     setFormMinStock((p.min_stock ?? 5).toString());
     setFormWeight(p.weight_kg.toString());
+    setFormLength(p.length_cm != null ? p.length_cm.toString() : "");
+    setFormWidth(p.width_cm != null ? p.width_cm.toString() : "");
+    setFormHeight(p.height_cm != null ? p.height_cm.toString() : "");
+    setFormUnit(p.unit_of_sale || "unidad");
+    setFormBrand(p.brand || "");
+    setFormMaterial(p.material || "");
     setFormImageUrl(p.image_url || "");
     setFormCategory(p.category);
     setFormSubcategories(p.subcategories || []);
@@ -313,6 +366,12 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
       stock: parseInt(formStock, 10) || 0,
       min_stock: parseInt(formMinStock, 10) || 0,
       weight_kg: parseFloat(formWeight) || 1.0,
+      length_cm: formLength ? parseFloat(formLength) : null,
+      width_cm: formWidth ? parseFloat(formWidth) : null,
+      height_cm: formHeight ? parseFloat(formHeight) : null,
+      unit_of_sale: formUnit,
+      brand: formBrand,
+      material: formMaterial,
       image_url: formImageUrl || `https://placehold.co/300?text=${formSku}`,
       category: formCategory,
       subcategories: formSubcategories.length > 0 ? formSubcategories : [formCategory]
@@ -840,6 +899,77 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                       onChange={(e) => setFormWeight(e.target.value)}
                       className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40"
                     />
+                  </div>
+
+                  {/* Unidad de venta */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-[#374151] font-semibold">Unidad de venta</label>
+                    <select
+                      value={formUnit}
+                      onChange={(e) => setFormUnit(e.target.value)}
+                      className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] outline-none focus:border-[#E8612D]/40"
+                    >
+                      {UNIT_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Marca */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-[#374151] font-semibold">Marca / Fabricante</label>
+                    <input
+                      type="text"
+                      placeholder="Ej: Loma Negra"
+                      value={formBrand}
+                      onChange={(e) => setFormBrand(e.target.value)}
+                      className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40"
+                    />
+                  </div>
+
+                  {/* Material principal */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-[#374151] font-semibold">Material principal</label>
+                    <select
+                      value={formMaterial}
+                      onChange={(e) => setFormMaterial(e.target.value)}
+                      className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] outline-none focus:border-[#E8612D]/40"
+                    >
+                      {MATERIAL_OPTIONS.map(opt => (
+                        <option key={opt.value} value={opt.value}>{opt.label}</option>
+                      ))}
+                    </select>
+                  </div>
+
+                  {/* Dimensiones */}
+                  <div className="flex flex-col gap-1 md:col-span-3">
+                    <label className="text-xs text-[#374151] font-semibold">Dimensiones (cm)</label>
+                    <div className="grid grid-cols-3 gap-3">
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="Largo"
+                        value={formLength}
+                        onChange={(e) => setFormLength(e.target.value)}
+                        className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40"
+                      />
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="Ancho"
+                        value={formWidth}
+                        onChange={(e) => setFormWidth(e.target.value)}
+                        className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40"
+                      />
+                      <input
+                        type="number"
+                        step="0.1"
+                        placeholder="Alto"
+                        value={formHeight}
+                        onChange={(e) => setFormHeight(e.target.value)}
+                        className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40"
+                      />
+                    </div>
                   </div>
 
                   {/* URL de Imagen con carga de archivo */}
