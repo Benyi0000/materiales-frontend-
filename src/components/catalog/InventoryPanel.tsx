@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Search, Plus, Pencil, Trash2, Loader, Sparkles, AlertTriangle, Check, X, RefreshCw } from "lucide-react";
+import { Search, Plus, Pencil, Trash2, Loader, Sparkles, X, RefreshCw, FolderPlus, ArrowUp, ArrowDown, ChevronsUpDown, ChevronLeft, AlertTriangle } from "lucide-react";
 import ConfirmModal from "../common/ConfirmModal";
 
 interface Product {
@@ -9,6 +9,7 @@ interface Product {
   description: string;
   price: number;
   stock: number;
+  min_stock?: number;
   weight_kg: number;
   image_url: string;
   category: number;
@@ -48,14 +49,29 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
   const [formImageUrl, setFormImageUrl] = useState("");
   const [formCategory, setFormCategory] = useState<number | "">("");
   const [formSubcategories, setFormSubcategories] = useState<number[]>([]);
+  const [formMinStock, setFormMinStock] = useState("5");
 
-  // Estado para Ajuste Rápido de Stock
-  const [adjustingStockId, setAdjustingStockId] = useState<number | null>(null);
-  const [newStockVal, setNewStockVal] = useState("");
-  const [adjustReason, setAdjustReason] = useState("");
-  const [adjustLoading, setAdjustLoading] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [deleteLoading, setDeleteLoading] = useState(false);
+
+  // Creación de categoría
+  const [showCatModal, setShowCatModal] = useState(false);
+  const [catName, setCatName] = useState("");
+  const [catMode, setCatMode] = useState<"top" | "sub">("sub");
+  const [catParent, setCatParent] = useState<number | "">("");
+  const [catLoading, setCatLoading] = useState(false);
+  const [catError, setCatError] = useState("");
+  const [catNotice, setCatNotice] = useState("");
+
+  // Ordenamiento de la tabla
+  const [ordering, setOrdering] = useState("");
+
+  // Errores de validación del formulario (inline)
+  const [formErrors, setFormErrors] = useState<Record<string, string>>({});
+
+  // Confirmaciones del formulario (guardar / cancelar)
+  const [confirmSave, setConfirmSave] = useState(false);
+  const [confirmCancel, setConfirmCancel] = useState(false);
 
   // Obtener permisos y alcances del usuario actual
   const activePerms = currentUser?.active_permissions || {};
@@ -69,8 +85,10 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
   const editScope = activePerms["catalogo.editar_producto"] || "propios";
 
   // Cargar categorías y subcategorías jerárquicas
-  const fetchCategories = async () => {
-    setLoadingCategories(true);
+  // silent=true evita togglear loadingCategories (que reemplaza el formulario por
+  // un spinner y reinicia el scroll al recargar tras crear una categoría).
+  const fetchCategories = async (silent = false) => {
+    if (!silent) setLoadingCategories(true);
     const token = localStorage.getItem("access_token");
     try {
       const res = await fetch(`${apiBaseUrl}/catalog/categories/`, {
@@ -83,26 +101,13 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
     } catch (err) {
       console.error("Error al cargar categorías:", err);
     } finally {
-      setLoadingCategories(false);
+      if (!silent) setLoadingCategories(false);
     }
   };
 
   useEffect(() => {
     fetchCategories();
   }, [apiBaseUrl]);
-
-  // Obtener una lista plana de todas las subcategorías (segundo nivel)
-  const getAllSubcategories = () => {
-    const subs: any[] = [];
-    categories.forEach(cat => {
-      if (cat.subcategories && cat.subcategories.length > 0) {
-        cat.subcategories.forEach((sub: any) => {
-          subs.push(sub);
-        });
-      }
-    });
-    return subs;
-  };
 
   // Paginación y búsqueda real
   const [localProducts, setLocalProducts] = useState<Product[]>([]);
@@ -112,13 +117,14 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
   const [appliedSearch, setAppliedSearch] = useState("");
   const [loadingProducts, setLoadingProducts] = useState(false);
 
-  const fetchProducts = async (page: number, search: string) => {
+  const fetchProducts = async (page: number, search: string, order = ordering) => {
     setLoadingProducts(true);
     const token = localStorage.getItem("access_token");
     try {
       const url = new URL(`${apiBaseUrl}/catalog/products/`);
       url.searchParams.append("page", page.toString());
       if (search) url.searchParams.append("search", search);
+      if (order) url.searchParams.append("ordering", order);
 
       const res = await fetch(url.toString(), {
         headers: token ? { "Authorization": `Bearer ${token}` } : {}
@@ -143,17 +149,37 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
   };
 
   useEffect(() => {
-    fetchProducts(currentPage, appliedSearch);
-  }, [apiBaseUrl, currentPage, appliedSearch]);
+    fetchProducts(currentPage, appliedSearch, ordering);
+  }, [apiBaseUrl, currentPage, appliedSearch, ordering]);
+
+  // Búsqueda en vivo con debounce de 400ms
+  useEffect(() => {
+    const t = setTimeout(() => {
+      setCurrentPage(1);
+      setAppliedSearch(searchQuery.trim());
+    }, 400);
+    return () => clearTimeout(t);
+  }, [searchQuery]);
 
   const handleSearchClick = () => {
     setCurrentPage(1);
-    setAppliedSearch(searchQuery);
+    setAppliedSearch(searchQuery.trim());
   };
-  
+
   const handleRefresh = () => {
     refreshCatalog();
-    fetchProducts(currentPage, appliedSearch);
+    fetchProducts(currentPage, appliedSearch, ordering);
+  };
+
+  // Click en encabezado ordenable: alterna asc/desc/sin orden
+  const toggleSort = (field: string) => {
+    setCurrentPage(1);
+    setOrdering((cur) => (cur === field ? `-${field}` : cur === `-${field}` ? "" : field));
+  };
+  const sortIcon = (field: string) => {
+    if (ordering === field) return <ArrowUp size={11} className="inline" />;
+    if (ordering === `-${field}`) return <ArrowDown size={11} className="inline" />;
+    return <ChevronsUpDown size={11} className="inline opacity-40" />;
   };
 
   // Abrir modal para crear
@@ -165,10 +191,12 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
     setFormDesc("");
     setFormPrice("");
     setFormStock("0");
+    setFormMinStock("5");
     setFormWeight("");
     setFormImageUrl("");
     setFormCategory("");
     setFormSubcategories([]);
+    setFormErrors({});
     setShowModal(true);
   };
 
@@ -181,10 +209,12 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
     setFormDesc(p.description);
     setFormPrice(p.price.toString());
     setFormStock(p.stock.toString());
+    setFormMinStock((p.min_stock ?? 5).toString());
     setFormWeight(p.weight_kg.toString());
     setFormImageUrl(p.image_url || "");
     setFormCategory(p.category);
     setFormSubcategories(p.subcategories || []);
+    setFormErrors({});
     setShowModal(true);
   };
 
@@ -246,18 +276,32 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
   };
 
   // Enviar Formulario de Creación/Edición
-  const handleSaveProduct = async (e: React.FormEvent) => {
+  // Valida el formulario y, si está correcto, abre la confirmación de guardado.
+  const handleSaveProduct = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formSku.trim() || !formName.trim() || !formPrice || !formCategory) {
-      alert("Por favor completa los campos requeridos (SKU, Nombre, Precio y Categoría principal).");
-      return;
-    }
 
+    // Validación inline por campo
+    const errs: Record<string, string> = {};
+    if (!formSku.trim()) errs.sku = "El SKU es obligatorio.";
+    if (!formName.trim()) errs.name = "El nombre es obligatorio.";
+    if (!formPrice || parseFloat(formPrice) <= 0) errs.price = "Ingresá un precio mayor a 0.";
+    if (formStock === "" || parseInt(formStock, 10) < 0) errs.stock = "El stock no puede ser negativo.";
+    if (!formCategory) errs.category = "Elegí una categoría principal.";
+    if (!formDesc.trim()) errs.description = "La descripción es obligatoria.";
+    setFormErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    setConfirmSave(true);
+  };
+
+  // Ejecuta el guardado tras confirmar.
+  const doSaveProduct = async () => {
     setModalLoading(true);
     const token = localStorage.getItem("access_token");
     if (!token) {
       alert("No estás autenticado.");
       setModalLoading(false);
+      setConfirmSave(false);
       return;
     }
 
@@ -267,6 +311,7 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
       description: formDesc,
       price: parseFloat(formPrice),
       stock: parseInt(formStock, 10) || 0,
+      min_stock: parseInt(formMinStock, 10) || 0,
       weight_kg: parseFloat(formWeight) || 1.0,
       image_url: formImageUrl || `https://placehold.co/300?text=${formSku}`,
       category: formCategory,
@@ -293,58 +338,91 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
         alert(isEditing ? "Producto modificado con éxito." : "Producto registrado con éxito.");
         setShowModal(false);
         refreshCatalog();
+        // Recargar la lista local de la tabla (usa fetchProducts, no el prop `products`).
+        if (isEditing) {
+          fetchProducts(currentPage, appliedSearch, ordering);
+        } else {
+          // Producto nuevo: volver a la primera página sin filtros para que se vea.
+          setSearchQuery("");
+          setAppliedSearch("");
+          setOrdering("");
+          setCurrentPage(1);
+          fetchProducts(1, "", "");
+        }
       } else {
-        const errData = await res.json();
-        alert(`Error al guardar: ${JSON.stringify(errData)}`);
+        const errData = await res.json().catch(() => ({}));
+        // Mapear errores de campo del backend a la validación inline del formulario
+        const mapped: Record<string, string> = {};
+        for (const key of ["sku", "name", "price", "stock", "category", "description"]) {
+          if (errData[key]) mapped[key] = Array.isArray(errData[key]) ? errData[key][0] : String(errData[key]);
+        }
+        if (Object.keys(mapped).length > 0) {
+          setFormErrors(mapped);
+        } else {
+          alert(`Error al guardar: ${errData.detail || JSON.stringify(errData)}`);
+        }
       }
     } catch (err) {
       console.error("Error al guardar producto:", err);
       alert("Error de conexión al guardar el producto.");
     } finally {
       setModalLoading(false);
+      setConfirmSave(false);
     }
   };
 
-  // Iniciar ajuste rápido de stock
-  const startStockAdjustment = (p: Product) => {
-    setAdjustingStockId(p.id);
-    setNewStockVal(p.stock.toString());
-    setAdjustReason("Ajuste manual de inventario");
+  // Crear categoría (nivel superior o subcategoría)
+  const openCategoryModal = () => {
+    setCatName("");
+    setCatMode("sub");
+    setCatParent("");
+    setCatError("");
+    setCatNotice("");
+    setShowCatModal(true);
   };
 
-  // Enviar ajuste rápido de stock (PATCH)
-  const handleSaveStockAdjustment = async () => {
-    if (!newStockVal || adjustingStockId === null) return;
-    setAdjustLoading(true);
+  const handleCreateCategory = async () => {
+    setCatError("");
+    setCatNotice("");
+    if (!catName.trim()) { setCatError("Ingresá un nombre para la categoría."); return; }
+    if (catMode === "sub" && !catParent) { setCatError("Elegí la categoría padre."); return; }
 
+    setCatLoading(true);
     const token = localStorage.getItem("access_token");
-    if (!token) return;
-
+    const wasSub = catMode === "sub";
     try {
-      const res = await fetch(`${apiBaseUrl}/catalog/products/${adjustingStockId}/stock/`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
+      const res = await fetch(`${apiBaseUrl}/catalog/categories/`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": `Bearer ${token}` },
         body: JSON.stringify({
-          stock: parseInt(newStockVal, 10) || 0,
-          reason: adjustReason
-        })
+          name: catName.trim(),
+          parent: wasSub ? catParent : null,
+        }),
       });
-
       if (res.ok) {
-        alert("Stock actualizado con éxito (Se registró en los logs del servidor).");
-        setAdjustingStockId(null);
-        refreshCatalog();
+        const created = await res.json();
+        await fetchCategories(true);
+        if (wasSub) {
+          // Subcategoría: queda seleccionada como categoría principal del producto.
+          setFormCategory(created.id);
+          setFormSubcategories(prev => prev.includes(created.id) ? prev : [...prev, created.id]);
+          setShowCatModal(false);
+        } else {
+          // Categoría principal creada: una principal sola no se puede asignar a un
+          // producto (los productos usan subcategorías). Ofrecemos crear una dentro.
+          setCatMode("sub");
+          setCatParent(created.id);
+          setCatName("");
+          setCatNotice(`Categoría "${created.name}" creada. Agregale una subcategoría para poder asignarla a productos, o cerrá si solo querías la categoría.`);
+        }
       } else {
-        const errData = await res.json();
-        alert(`Error: ${JSON.stringify(errData)}`);
+        const e = await res.json().catch(() => ({}));
+        setCatError(e.name?.[0] || e.error || "No se pudo crear la categoría.");
       }
-    } catch (err) {
-      alert("Error de conexión al actualizar stock.");
+    } catch {
+      setCatError("Error de conexión al crear la categoría.");
     } finally {
-      setAdjustLoading(false);
+      setCatLoading(false);
     }
   };
 
@@ -396,6 +474,8 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
 
   return (
     <div className="flex-1 flex flex-col gap-6 text-left">
+      {!showModal && (
+      <>
       {/* Header del Panel */}
       <div className="flex justify-between items-center">
         <div>
@@ -404,7 +484,7 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
         </div>
         <div className="flex gap-2">
           <button
-            onClick={refreshCatalog}
+            onClick={handleRefresh}
             className="bg-gray-50 hover:bg-gray-100 border border-[#e5e7eb] p-2.5 rounded-xl text-[#6b7280] hover:text-[#1a1a2e] transition-all"
             title="Refrescar catálogo"
           >
@@ -444,13 +524,25 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
       {/* Tabla de Productos */}
       <div className="bg-white border border-[#e5e7eb] rounded-xl overflow-hidden shadow-sm">
         <div className="overflow-x-auto">
-          <table className="w-full text-xs text-left text-[#1a1a2e]">
-            <thead className="bg-gray-50 text-[10px] font-bold text-[#E8612D] uppercase tracking-wider border-b border-[#e5e7eb]">
+          <table className="w-full text-sm text-left text-[#1a1a2e]">
+            <thead className="bg-gray-50 text-[11px] font-bold text-[#E8612D] uppercase tracking-wider border-b border-[#e5e7eb]">
               <tr>
                 <th className="px-6 py-4">SKU</th>
-                <th className="px-6 py-4">Nombre / Categoría</th>
-                <th className="px-6 py-4">Precio</th>
-                <th className="px-6 py-4">Stock</th>
+                <th className="px-6 py-4">
+                  <button onClick={() => toggleSort('name')} className="flex items-center gap-1 uppercase hover:text-[#1a1a2e] transition-colors">
+                    Nombre / Categoría {sortIcon('name')}
+                  </button>
+                </th>
+                <th className="px-6 py-4">
+                  <button onClick={() => toggleSort('price')} className="flex items-center gap-1 uppercase hover:text-[#1a1a2e] transition-colors">
+                    Precio {sortIcon('price')}
+                  </button>
+                </th>
+                <th className="px-6 py-4">
+                  <button onClick={() => toggleSort('stock')} className="flex items-center gap-1 uppercase hover:text-[#1a1a2e] transition-colors">
+                    Stock {sortIcon('stock')}
+                  </button>
+                </th>
                 <th className="px-6 py-4">Estado</th>
                 <th className="px-6 py-4">Creador</th>
                 <th className="px-6 py-4 text-right">Acciones</th>
@@ -490,13 +582,13 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                       {/* Nombre y Categoría */}
                       <td className="px-6 py-4">
                         <div className="font-bold text-[#1a1a2e] text-sm">{p.name}</div>
-                        <div className="text-[10px] text-[#9ca3af] mt-1 flex flex-wrap gap-1">
-                          <span className="bg-blue-50 border border-blue-200 text-blue-600 text-[8px] font-bold px-1.5 py-0.5 rounded uppercase font-mono">
+                        <div className="text-[10px] text-[#9ca3af] mt-1.5 flex flex-wrap gap-1">
+                          <span className="bg-blue-50 border border-blue-200 text-blue-600 text-[10px] font-semibold px-2 py-0.5 rounded-full">
                             {p.category_name}
                           </span>
                           {p.subcategory_names && p.subcategory_names.map((name, idx) => (
                             name !== p.category_name && (
-                              <span key={idx} className="bg-gray-100 text-[#6b7280] text-[8px] font-bold px-1.5 py-0.5 rounded font-mono">
+                              <span key={idx} className="bg-gray-100 text-[#6b7280] text-[10px] font-semibold px-2 py-0.5 rounded-full">
                                 {name}
                               </span>
                             )
@@ -511,62 +603,33 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
 
                       {/* Stock */}
                       <td className="px-6 py-4">
-                        {adjustingStockId === p.id ? (
-                          <div className="flex flex-col gap-1.5 max-w-[140px] bg-gray-50 p-2 rounded-lg border border-[#e5e7eb]">
-                            <div className="flex items-center gap-1">
-                              <input
-                                type="number"
-                                value={newStockVal}
-                                onChange={(e) => setNewStockVal(e.target.value)}
-                                className="bg-white border border-[#e5e7eb] text-xs rounded px-1.5 py-1 text-[#1a1a2e] w-16"
-                              />
-                              <button
-                                onClick={handleSaveStockAdjustment}
-                                disabled={adjustLoading}
-                                className="bg-green-600 hover:bg-green-700 text-white p-1 rounded"
-                              >
-                                {adjustLoading ? <Loader size={12} className="animate-spin" /> : <Check size={12} />}
-                              </button>
-                              <button
-                                onClick={() => setAdjustingStockId(null)}
-                                className="bg-gray-100 hover:bg-gray-200 border border-[#e5e7eb] text-[#6b7280] p-1 rounded"
-                              >
-                                <X size={12} />
-                              </button>
+                        {(() => {
+                          const min = p.min_stock ?? 5;
+                          const out = p.stock <= 0;
+                          const low = !out && p.stock <= min;
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <span className={`font-bold text-sm ${out ? "text-red-500" : low ? "text-amber-600" : "text-[#1a1a2e]"}`}>
+                                {p.stock} <span className="font-normal text-[#9ca3af] text-xs">u.</span>
+                              </span>
+                              {out ? (
+                                <span className="w-fit bg-red-50 border border-red-200 text-red-500 text-[10px] font-bold px-2 py-0.5 rounded-full">Sin stock</span>
+                              ) : low ? (
+                                <span className="w-fit bg-amber-50 border border-amber-200 text-amber-600 text-[10px] font-bold px-2 py-0.5 rounded-full">Stock bajo</span>
+                              ) : null}
                             </div>
-                            <input
-                              type="text"
-                              placeholder="Motivo del cambio..."
-                              value={adjustReason}
-                              onChange={(e) => setAdjustReason(e.target.value)}
-                              className="bg-white border border-[#e5e7eb] text-[9px] rounded px-1 py-0.5 text-[#6b7280]"
-                            />
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span className={`font-bold ${p.stock <= 20 ? "text-red-500" : "text-[#1a1a2e]"}`}>
-                              {p.stock} unidades
-                            </span>
-                            {canManageStock && (
-                              <button
-                                onClick={() => startStockAdjustment(p)}
-                                className="text-[#E8612D]/80 hover:text-[#E8612D] text-[10px] font-semibold underline"
-                              >
-                                Ajustar
-                              </button>
-                            )}
-                          </div>
-                        )}
+                          );
+                        })()}
                       </td>
 
                       {/* Estado */}
                       <td className="px-6 py-4">
                         {isProductActive ? (
-                          <span className="bg-green-50 border border-green-200 text-green-600 text-[9px] font-bold px-2 py-0.5 rounded-full">
+                          <span className="bg-green-50 border border-green-200 text-green-600 text-[10px] font-bold px-2 py-0.5 rounded-full">
                             Activo
                           </span>
                         ) : (
-                          <span className="bg-red-50 border border-red-200 text-red-500 text-[9px] font-bold px-2 py-0.5 rounded-full">
+                          <span className="bg-red-50 border border-red-200 text-red-500 text-[10px] font-bold px-2 py-0.5 rounded-full">
                             Inactivo
                           </span>
                         )}
@@ -579,26 +642,28 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
 
                       {/* Acciones */}
                       <td className="px-6 py-4 text-right">
-                        <div className="flex justify-end gap-2.5">
+                        <div className="flex justify-end gap-1.5">
                           {canEdit && (
                             <button
                               onClick={() => handleOpenEdit(p)}
                               disabled={!isOwner}
-                              className={`p-1.5 rounded transition-all ${
-                                isOwner 
-                                  ? "text-blue-500 hover:bg-blue-50 hover:text-blue-600" 
+                              title={isOwner ? "Editar producto" : "No tenés permiso sobre este producto"}
+                              className={`p-2 rounded-lg transition-all ${
+                                isOwner
+                                  ? "text-blue-500 hover:bg-blue-50 hover:text-blue-600"
                                   : "text-gray-300 cursor-not-allowed"
                               }`}
                             >
-                              <Pencil size={14} />
+                              <Pencil size={16} />
                             </button>
                           )}
                           {canDelete && (
                             <button
                               onClick={() => handleDeleteProduct(p)}
-                              className="text-red-400 hover:bg-red-50 hover:text-red-500 p-1.5 rounded transition-all"
+                              title="Eliminar producto"
+                              className="text-red-400 hover:bg-red-50 hover:text-red-500 p-2 rounded-lg transition-all"
                             >
-                              <Trash2 size={14} />
+                              <Trash2 size={16} />
                             </button>
                           )}
                         </div>
@@ -664,92 +729,108 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
         )}
       </div>
 
-      {/* MODAL DE CREACIÓN / EDICIÓN */}
+      </>
+      )}
+
+      {/* PANTALLA DE FORMULARIO (crear / editar producto) */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
-          <div className="bg-white border border-[#e5e7eb] rounded-xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-xl overflow-hidden relative text-left">
-            {/* Header Fijo */}
-            <div className="px-6 py-4 border-b border-[#e5e7eb] flex justify-between items-center bg-white shrink-0 z-10">
-              <h3 className="text-lg font-bold text-[#E8612D] flex items-center gap-2">
-                <Sparkles size={18} />
-                <span>{isEditing ? `Editar Producto: ${formName}` : "Registrar Nuevo Producto"}</span>
-              </h3>
-              <button
-                type="button"
-                onClick={() => setShowModal(false)}
-                className="text-[#9ca3af] hover:text-[#1a1a2e] transition-all text-sm font-bold"
-              >
-                ✕
-              </button>
+        <div className="flex flex-col gap-5 max-w-5xl w-full mx-auto">
+          {/* Barra superior */}
+          <button
+            type="button"
+            onClick={() => setConfirmCancel(true)}
+            className="flex items-center gap-1.5 text-sm font-semibold text-[#6b7280] hover:text-[#E8612D] transition-colors w-fit"
+          >
+            <ChevronLeft size={18} /> Volver al inventario
+          </button>
+          <div>
+            <h2 className="text-2xl font-bold tracking-tight text-[#1a1a2e] flex items-center gap-2">
+              <Sparkles size={20} className="text-[#E8612D]" />
+              {isEditing ? "Editar producto" : "Registrar nuevo producto"}
+            </h2>
+            {isEditing && <p className="text-sm text-[#6b7280] mt-1">{formName}</p>}
+          </div>
+
+          {loadingCategories ? (
+            <div className="py-12 flex flex-col items-center justify-center gap-2 text-[#6b7280] text-sm">
+              <Loader size={24} className="animate-spin text-[#E8612D]" />
+              <span>Cargando categorías...</span>
             </div>
-
-            {/* Contenido con Scroll */}
-            <div className="p-6 overflow-y-auto flex-1">
-
-            {loadingCategories ? (
-              <div className="py-12 flex flex-col items-center justify-center gap-2 text-[#6b7280] text-xs">
-                <Loader size={24} className="animate-spin text-[#E8612D]" />
-                <span>Cargando categorías...</span>
-              </div>
-            ) : (
-              <form onSubmit={handleSaveProduct} className="flex flex-col gap-4">
+          ) : (
+            <form onSubmit={handleSaveProduct} className="flex flex-col gap-5 w-full">
+              {/* Sección 1: Datos del producto */}
+              <div className="bg-white border border-[#e5e7eb] rounded-2xl p-6 shadow-sm flex flex-col gap-5">
+                <h3 className="text-base font-bold text-[#1a1a2e] border-b border-gray-100 pb-3">Datos del producto</h3>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                   {/* SKU */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-[#6b7280] font-bold uppercase">SKU (Código único)*</label>
+                    <label className="text-xs text-[#374151] font-semibold">SKU (Código único)*</label>
                     <input
                       type="text"
-                      required
                       placeholder="Ej: Cem-004"
                       value={formSku}
                       onChange={(e) => setFormSku(e.target.value)}
                       disabled={isEditing}
-                      className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-xs text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40 disabled:opacity-50"
+                      className={`bg-gray-50 border rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40 disabled:opacity-50 ${formErrors.sku ? "border-red-400" : "border-[#e5e7eb]"}`}
                     />
+                    {formErrors.sku && <span className="text-xs text-red-500">{formErrors.sku}</span>}
                   </div>
 
                   {/* Nombre */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-[#6b7280] font-bold uppercase">Nombre del Producto*</label>
+                    <label className="text-xs text-[#374151] font-semibold">Nombre del Producto*</label>
                     <input
                       type="text"
-                      required
                       placeholder="Ej: Cemento de Fraguado Rápido"
                       value={formName}
                       onChange={(e) => setFormName(e.target.value)}
-                      className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-xs text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40"
+                      className={`bg-gray-50 border rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40 ${formErrors.name ? "border-red-400" : "border-[#e5e7eb]"}`}
                     />
+                    {formErrors.name && <span className="text-xs text-red-500">{formErrors.name}</span>}
                   </div>
 
                   {/* Precio */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-[#6b7280] font-bold uppercase">Precio ($)*</label>
+                    <label className="text-xs text-[#374151] font-semibold">Precio ($)*</label>
                     <input
                       type="number"
-                      required
                       placeholder="Ej: 12500"
                       value={formPrice}
                       onChange={(e) => setFormPrice(e.target.value)}
-                      className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-xs text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40"
+                      className={`bg-gray-50 border rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40 ${formErrors.price ? "border-red-400" : "border-[#e5e7eb]"}`}
                     />
+                    {formErrors.price && <span className="text-xs text-red-500">{formErrors.price}</span>}
                   </div>
 
                   {/* Stock Inicial */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-[#6b7280] font-bold uppercase">Stock*</label>
+                    <label className="text-xs text-[#374151] font-semibold">Stock*</label>
                     <input
                       type="number"
-                      required
                       placeholder="Ej: 100"
                       value={formStock}
                       onChange={(e) => setFormStock(e.target.value)}
-                      className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-xs text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40"
+                      className={`bg-gray-50 border rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40 ${formErrors.stock ? "border-red-400" : "border-[#e5e7eb]"}`}
                     />
+                    {formErrors.stock && <span className="text-xs text-red-500">{formErrors.stock}</span>}
+                  </div>
+
+                  {/* Stock mínimo (umbral de stock bajo) */}
+                  <div className="flex flex-col gap-1">
+                    <label className="text-xs text-[#374151] font-semibold">Stock mínimo (alerta)</label>
+                    <input
+                      type="number"
+                      placeholder="Ej: 5"
+                      value={formMinStock}
+                      onChange={(e) => setFormMinStock(e.target.value)}
+                      className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40"
+                    />
+                    <span className="text-xs text-[#9ca3af]">Por debajo de este valor se marca "Stock bajo".</span>
                   </div>
 
                   {/* Peso */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-[#6b7280] font-bold uppercase">Peso (kg)*</label>
+                    <label className="text-xs text-[#374151] font-semibold">Peso (kg)*</label>
                     <input
                       type="number"
                       step="0.01"
@@ -757,13 +838,13 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                       placeholder="Ej: 50.0"
                       value={formWeight}
                       onChange={(e) => setFormWeight(e.target.value)}
-                      className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-xs text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40"
+                      className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40"
                     />
                   </div>
 
                   {/* URL de Imagen con carga de archivo */}
                   <div className="flex flex-col gap-1">
-                    <label className="text-[10px] text-[#6b7280] font-bold uppercase">Imagen del Producto</label>
+                    <label className="text-xs text-[#374151] font-semibold">Imagen del Producto</label>
                     <div className="flex items-center gap-3">
                       {formImageUrl && (
                         <div className="w-12 h-12 rounded-lg border border-[#e5e7eb] overflow-hidden shrink-0 bg-gray-50 flex items-center justify-center">
@@ -780,11 +861,11 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                           type="file"
                           accept="image/png, image/jpeg, image/jpg"
                           onChange={handleImageUpload}
-                          className="text-xs text-[#6b7280] file:mr-3 file:py-1 file:px-2.5 file:rounded-lg file:border-0 file:text-[10px] file:font-semibold file:bg-[#fff7ed] file:text-[#E8612D] hover:file:bg-[#E8612D]/20 cursor-pointer"
+                          className="text-xs text-[#6b7280] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#fff7ed] file:text-[#E8612D] hover:file:bg-[#E8612D]/20 cursor-pointer"
                         />
                         {uploadingImage ? (
-                          <span className="text-[9px] text-[#E8612D] flex items-center gap-1">
-                            <Loader size={10} className="animate-spin" /> Subiendo...
+                          <span className="text-xs text-[#E8612D] flex items-center gap-1">
+                            <Loader size={12} className="animate-spin" /> Subiendo...
                           </span>
                         ) : (
                           <input
@@ -792,7 +873,7 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                             placeholder="O pega la URL de la imagen..."
                             value={formImageUrl}
                             onChange={(e) => setFormImageUrl(e.target.value)}
-                            className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-[10px] text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40 w-full mt-1"
+                            className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40 w-full mt-1"
                           />
                         )}
                       </div>
@@ -802,21 +883,36 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
 
                 {/* Descripción */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-[#6b7280] font-bold uppercase">Descripción Detallada*</label>
+                  <label className="text-xs text-[#374151] font-semibold">Descripción Detallada*</label>
                   <textarea
-                    required
                     placeholder="Escribe el detalle técnico del producto..."
                     value={formDesc}
                     onChange={(e) => setFormDesc(e.target.value)}
-                    className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-xs text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40 h-20 resize-none"
+                    className={`bg-gray-50 border rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] placeholder-gray-400 outline-none focus:border-[#E8612D]/40 h-20 resize-none ${formErrors.description ? "border-red-400" : "border-[#e5e7eb]"}`}
                   />
+                  {formErrors.description && <span className="text-xs text-red-500">{formErrors.description}</span>}
                 </div>
+              </div>
+
+              {/* Sección 2: Categorización */}
+              <div className="bg-white border border-[#e5e7eb] rounded-2xl p-6 shadow-sm flex flex-col gap-5">
+                <h3 className="text-base font-bold text-[#1a1a2e] border-b border-gray-100 pb-3">Categorización</h3>
 
                 {/* Categoría Principal */}
                 <div className="flex flex-col gap-1">
-                  <label className="text-[10px] text-[#6b7280] font-bold uppercase">Categoría Principal de Venta*</label>
+                  <div className="flex items-center justify-between">
+                    <label className="text-xs text-[#374151] font-semibold">Categoría Principal de Venta*</label>
+                    {canCreate && (
+                      <button
+                        type="button"
+                        onClick={openCategoryModal}
+                        className="flex items-center gap-1 text-xs font-bold text-[#E8612D] hover:underline"
+                      >
+                        <FolderPlus size={13} /> Nueva categoría
+                      </button>
+                    )}
+                  </div>
                   <select
-                    required
                     value={formCategory}
                     onChange={(e) => {
                       const val = e.target.value ? parseInt(e.target.value, 10) : "";
@@ -825,59 +921,80 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                         setFormSubcategories(prev => [...prev, val]);
                       }
                     }}
-                    className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2 text-xs text-[#1a1a2e] outline-none focus:border-[#E8612D]/40"
+                    className={`bg-gray-50 border rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] outline-none focus:border-[#E8612D]/40 ${formErrors.category ? "border-red-400" : "border-[#e5e7eb]"}`}
                   >
                     <option value="">Seleccione una categoría...</option>
-                    {getAllSubcategories().map(sub => (
-                      <option key={sub.id} value={sub.id}>
-                        {sub.name}
-                      </option>
+                    {categories.map(parent => (
+                      (parent.subcategories && parent.subcategories.length > 0) ? (
+                        <optgroup key={parent.id} label={parent.name}>
+                          {parent.subcategories.map((sub: any) => (
+                            <option key={sub.id} value={sub.id}>{sub.name}</option>
+                          ))}
+                        </optgroup>
+                      ) : null
                     ))}
                   </select>
+                  {formErrors.category && <span className="text-xs text-red-500">{formErrors.category}</span>}
                 </div>
 
                 {/* Multicategorización (Subcategorías adicionales) */}
                 <div className="flex flex-col gap-2">
-                  <label className="text-[10px] text-[#6b7280] font-bold uppercase">Subcategorías Adicionales (Multicategorización)</label>
-                  <p className="text-[9px] text-[#9ca3af] mt-0.5">Seleccione todas las áreas donde desea que aparezca el producto:</p>
-                  <div className="grid grid-cols-2 gap-2 bg-gray-50 border border-[#e5e7eb] rounded-xl p-3 max-h-[120px] overflow-y-auto">
-                    {getAllSubcategories().map(sub => (
-                      <label key={sub.id} className="flex items-center gap-2.5 text-xs text-[#1a1a2e] hover:text-[#E8612D] cursor-pointer select-none">
-                        <input
-                          type="checkbox"
-                          checked={formSubcategories.includes(sub.id)}
-                          onChange={() => handleToggleSubcategory(sub.id)}
-                          disabled={formCategory === sub.id} // Obligatoria la seleccionada en el dropdown
-                          className="custom-checkbox shrink-0"
-                        />
-                        <span>{sub.name}</span>
-                      </label>
+                  <label className="text-xs text-[#374151] font-semibold">Subcategorías Adicionales (Multicategorización)</label>
+                  <p className="text-xs text-[#9ca3af] mt-0.5">Seleccione todas las áreas donde desea que aparezca el producto:</p>
+                  <div className="flex flex-col gap-3 bg-gray-50 border border-[#e5e7eb] rounded-xl p-3 max-h-[180px] overflow-y-auto">
+                    {categories.map(parent => (
+                      (parent.subcategories && parent.subcategories.length > 0) ? (
+                        <div key={parent.id} className="flex flex-col gap-1.5">
+                          <span className="text-[11px] font-bold text-[#9ca3af] uppercase tracking-wider">{parent.name}</span>
+                          <div className="grid grid-cols-2 gap-1.5 pl-1">
+                            {parent.subcategories.map((sub: any) => (
+                              <label key={sub.id} className="flex items-center gap-2 text-xs text-[#1a1a2e] hover:text-[#E8612D] cursor-pointer select-none">
+                                <input
+                                  type="checkbox"
+                                  checked={formSubcategories.includes(sub.id)}
+                                  onChange={() => handleToggleSubcategory(sub.id)}
+                                  disabled={formCategory === sub.id}
+                                  className="custom-checkbox shrink-0"
+                                />
+                                <span>{sub.name}</span>
+                              </label>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null
                     ))}
                   </div>
                 </div>
 
-                {/* Botones de Acción */}
-                <div className="flex justify-end gap-2 border-t border-[#e5e7eb] pt-4 mt-2">
+              </div>
+
+              {/* Acciones del formulario */}
+              <div className="flex flex-col items-end gap-2 pb-2">
+                <div className="flex justify-end gap-3">
                   <button
                     type="button"
-                    onClick={() => setShowModal(false)}
-                    className="bg-gray-50 hover:bg-gray-100 border border-[#e5e7eb] text-[#6b7280] hover:text-[#1a1a2e] px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
+                    onClick={() => setConfirmCancel(true)}
+                    className="bg-white hover:bg-gray-50 border border-[#e5e7eb] text-[#6b7280] hover:text-[#1a1a2e] px-5 py-2.5 rounded-xl text-sm font-bold transition-all"
                   >
                     Cancelar
                   </button>
                   <button
                     type="submit"
                     disabled={modalLoading}
-                    className="bg-[#E8612D] hover:bg-[#d4551f] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
+                    className="bg-[#E8612D] hover:bg-[#d4551f] text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all flex items-center gap-1.5 shadow-sm disabled:opacity-50"
                   >
                     {modalLoading && <Loader size={14} className="animate-spin" />}
-                    <span>{isEditing ? "Guardar Cambios" : "Crear Producto"}</span>
+                    <span>{isEditing ? "Guardar cambios" : "Crear producto"}</span>
                   </button>
                 </div>
-              </form>
-            )}
-            </div>
-          </div>
+                {Object.keys(formErrors).length > 0 && (
+                  <p className="text-sm font-medium text-red-500 flex items-center gap-1.5 animate-[fadeIn_0.2s_ease]">
+                    <AlertTriangle size={15} /> Revisá los campos marcados en rojo antes de continuar.
+                  </p>
+                )}
+              </div>
+            </form>
+          )}
         </div>
       )}
 
@@ -898,6 +1015,129 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
         onConfirm={doDeleteProduct}
         onCancel={() => setDeleteTarget(null)}
       />
+
+      {/* Confirmación de guardado */}
+      <ConfirmModal
+        open={confirmSave}
+        title={isEditing ? "Guardar cambios" : "Crear producto"}
+        message={isEditing
+          ? "¿Estás seguro de que querés guardar los cambios de este producto?"
+          : "¿Estás seguro de que querés crear este producto?"}
+        confirmText="Sí, guardar"
+        cancelText="Volver"
+        loading={modalLoading}
+        onConfirm={doSaveProduct}
+        onCancel={() => setConfirmSave(false)}
+      />
+
+      {/* Confirmación de cancelar/salir */}
+      <ConfirmModal
+        open={confirmCancel}
+        title="Descartar cambios"
+        message="¿Estás seguro de que querés salir? Se perderán los cambios que no hayas guardado."
+        confirmText="Sí, salir"
+        cancelText="Seguir editando"
+        tone="danger"
+        onConfirm={() => { setConfirmCancel(false); setShowModal(false); }}
+        onCancel={() => setConfirmCancel(false)}
+      />
+
+      {/* MODAL DE NUEVA CATEGORÍA */}
+      {showCatModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-[110] p-4 animate-[fadeIn_0.2s_ease]">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#e5e7eb] flex items-center justify-between">
+              <h3 className="font-bold text-[#1a1a2e] flex items-center gap-2">
+                <FolderPlus size={18} className="text-[#E8612D]" /> Nueva categoría
+              </h3>
+              <button onClick={() => setShowCatModal(false)} className="text-[#9ca3af] hover:text-[#1a1a2e] p-1 rounded-lg hover:bg-gray-100">
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6 flex flex-col gap-4">
+              {catNotice && (
+                <div className="bg-green-50 border border-green-200 text-green-700 text-xs rounded-xl px-3 py-2.5 leading-relaxed">
+                  {catNotice}
+                </div>
+              )}
+              {/* Tipo */}
+              <div className="flex flex-col gap-1.5">
+                <label className="text-xs text-[#374151] font-semibold">¿Qué querés crear?</label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCatMode("sub")}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${catMode === "sub" ? "bg-[#fff7ed] border-[#E8612D] text-[#E8612D]" : "border-[#e5e7eb] text-[#6b7280] hover:border-gray-400"}`}
+                  >
+                    Subcategoría
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCatMode("top")}
+                    className={`px-3 py-2 rounded-xl text-xs font-bold border transition-all ${catMode === "top" ? "bg-[#fff7ed] border-[#E8612D] text-[#E8612D]" : "border-[#e5e7eb] text-[#6b7280] hover:border-gray-400"}`}
+                  >
+                    Categoría principal
+                  </button>
+                </div>
+                <span className="text-xs text-[#9ca3af]">
+                  {catMode === "sub"
+                    ? "Se crea dentro de una categoría principal y queda disponible para asignar a productos."
+                    : "Categoría de nivel superior para agrupar subcategorías."}
+                </span>
+              </div>
+
+              {/* Padre (solo subcategoría) */}
+              {catMode === "sub" && (
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs text-[#374151] font-semibold">Categoría padre*</label>
+                  <select
+                    value={catParent}
+                    onChange={(e) => setCatParent(e.target.value ? parseInt(e.target.value, 10) : "")}
+                    className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] outline-none focus:border-[#E8612D]/40"
+                  >
+                    <option value="">Seleccione la categoría padre...</option>
+                    {categories.map(parent => (
+                      <option key={parent.id} value={parent.id}>{parent.name}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+
+              {/* Nombre */}
+              <div className="flex flex-col gap-1">
+                <label className="text-xs text-[#374151] font-semibold">Nombre*</label>
+                <input
+                  type="text"
+                  placeholder="Ej: Cementos especiales"
+                  value={catName}
+                  onChange={(e) => setCatName(e.target.value)}
+                  autoFocus
+                  className="bg-gray-50 border border-[#e5e7eb] rounded-xl px-3 py-2.5 text-sm text-[#1a1a2e] outline-none focus:border-[#E8612D]/40"
+                />
+              </div>
+
+              {catError && <p className="text-xs text-red-500">{catError}</p>}
+
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  onClick={() => setShowCatModal(false)}
+                  className="bg-gray-50 hover:bg-gray-100 border border-[#e5e7eb] text-[#6b7280] px-4 py-2.5 rounded-xl text-xs font-bold transition-all"
+                >
+                  {catNotice ? "Cerrar" : "Cancelar"}
+                </button>
+                <button
+                  onClick={handleCreateCategory}
+                  disabled={catLoading}
+                  className="bg-[#E8612D] hover:bg-[#d4551f] text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 disabled:opacity-50"
+                >
+                  {catLoading && <Loader size={14} className="animate-spin" />}
+                  {catNotice ? "Crear subcategoría" : "Crear categoría"}
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
