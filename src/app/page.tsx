@@ -74,13 +74,13 @@ function DashboardInner() {
        setGlobalModal({ isOpen: true, title, message: msg, type });
     };
   }, []);
-  const [activeTab, setActiveTab] = useState<"catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs">("catalog");
+  const [activeTab, setActiveTab] = useState<"catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs" | "g_embeddings">("catalog");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cart, setCart] = useState<{ product: any; quantity: number }[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
 
-  const handleTabChange = (newTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs") => {
+  const handleTabChange = (newTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs" | "g_embeddings") => {
     if (newTab === activeTab) return;
     
     // Si estamos interactuando con el chat y cambiamos de contexto
@@ -879,7 +879,8 @@ function DashboardInner() {
               section={({
                 g_dashboard: "dashboard", g_reportes: "reportes", g_stock: "stock",
                 g_banners: "banners", g_promos: "promociones", g_planes: "planes", g_subs: "suscripciones",
-              } as const)[activeTab as "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs"]}
+                g_embeddings: "embeddings",
+              } as const)[activeTab as "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs" | "g_embeddings"]}
             />
           )}
 

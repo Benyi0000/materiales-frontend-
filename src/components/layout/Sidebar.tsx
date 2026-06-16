@@ -1,13 +1,13 @@
 import React from "react";
-import { Building2, Bot, ShieldCheck, Users, Clock, ChevronRight, Package, Store, X, LayoutDashboard, FileText, PackageX, Image as ImageIcon, Ticket, CreditCard, Users2 } from "lucide-react";
+import { Building2, Bot, ShieldCheck, Users, Clock, ChevronRight, Package, Store, X, LayoutDashboard, FileText, PackageX, Image as ImageIcon, Ticket, CreditCard, Users2, Sparkles } from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   isAdmin: boolean;
   isPremium: boolean;
-  activeTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs";
-  setActiveTab: (tab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs") => void;
+  activeTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs" | "g_embeddings";
+  setActiveTab: (tab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs" | "g_embeddings") => void;
   currentUser: any;
 }
 
@@ -83,6 +83,9 @@ export default function Sidebar({
     { title: "Suscripciones", items: [
       { tab: "g_planes", label: "Planes", icon: <CreditCard size={18} />, show: !!gestionPerm("gestion.gestionar_planes") },
       { tab: "g_subs", label: "Suscripciones", icon: <Users2 size={18} />, show: !!gestionPerm("gestion.gestionar_suscripciones") },
+    ]},
+    { title: "Catálogo IA", items: [
+      { tab: "g_embeddings", label: "Embeddings (IA)", icon: <Sparkles size={18} />, show: !!gestionPerm("gestion.gestionar_embeddings") },
     ]},
     { title: "Seguridad y Usuarios", items: [
       { tab: "profiles", label: "Gestión de Perfiles", icon: <ShieldCheck size={18} />, show: !!showManageProfiles },

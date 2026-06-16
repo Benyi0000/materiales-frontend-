@@ -2,12 +2,12 @@
 
 import React, { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
-import { Plus, Trash2, Download, RefreshCw, Upload, Pencil, X, Check } from "lucide-react";
+import { Plus, Trash2, Download, RefreshCw, Upload, Pencil, X, Check, Sparkles, AlertTriangle } from "lucide-react";
 import ConfirmModal from "../common/ConfirmModal";
 
 export type GestionSection =
   | "dashboard" | "reportes" | "stock" | "banners"
-  | "promociones" | "planes" | "suscripciones";
+  | "promociones" | "planes" | "suscripciones" | "embeddings";
 
 interface Props {
   apiBaseUrl: string;
@@ -24,6 +24,7 @@ const TITLES: Record<GestionSection, string> = {
   promociones: "Promociones",
   planes: "Planes de suscripción",
   suscripciones: "Suscripciones",
+  embeddings: "Embeddings (IA del catálogo)",
 };
 
 /** Renderiza UNA sub-sección de Gestión Interna (cada una es su propio módulo del sidebar). */
@@ -40,12 +41,13 @@ export default function GestionPanel({ apiBaseUrl, section }: Props) {
       {section === "promociones" && <CuponesSub apiBaseUrl={apiBaseUrl} />}
       {section === "planes" && <PlanesSub apiBaseUrl={apiBaseUrl} />}
       {section === "suscripciones" && <SuscripcionesSub apiBaseUrl={apiBaseUrl} />}
+      {section === "embeddings" && <EmbeddingsSub apiBaseUrl={apiBaseUrl} />}
     </div>
   );
 }
 
-const Card = ({ children }: { children: React.ReactNode }) => (
-  <div className="bg-white border border-gray-200 rounded-xl p-4">{children}</div>
+const Card = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
+  <div className={`bg-white border border-gray-200 rounded-xl p-4 ${className}`}>{children}</div>
 );
 const ESTADOS: Record<string, string> = {
   pending: "Pendiente", preparing: "En preparación", shipped: "Enviado",
@@ -627,6 +629,140 @@ function SuscripcionesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
         </tbody>
       </table>
       </div>
+    </div>
+  );
+}
+
+/* ---------------- Embeddings (IA del catálogo) ---------------- */
+function EmbeddingsSub({ apiBaseUrl }: { apiBaseUrl: string }) {
+  const [stats, setStats] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [regeneratingId, setRegeneratingId] = useState<number | null>(null);
+  const [batchLoading, setBatchLoading] = useState(false);
+  const [batchResult, setBatchResult] = useState<string | null>(null);
+
+  const load = useCallback((opts?: { silent?: boolean }) => {
+    if (opts?.silent) setRefreshing(true); else setLoading(true);
+    apiFetch(`${apiBaseUrl}/catalog/products/embedding_stats/`)
+      .then((r) => r.json()).then(setStats).finally(() => { setLoading(false); setRefreshing(false); });
+  }, [apiBaseUrl]);
+  useEffect(() => { load(); }, [load]);
+
+  const regenerateOne = async (id: number) => {
+    setRegeneratingId(id);
+    try {
+      const r = await apiFetch(`${apiBaseUrl}/catalog/products/${id}/regenerate_embedding/`, { method: "POST" });
+      if (!r.ok) { const e = await r.json().catch(() => ({})); alert(e.embedding_error || "No se pudo generar el embedding."); }
+      load({ silent: true });
+    } finally { setRegeneratingId(null); }
+  };
+
+  const regenerateMissing = async () => {
+    setBatchLoading(true);
+    setBatchResult(null);
+    try {
+      const r = await apiFetch(`${apiBaseUrl}/catalog/products/regenerate_missing_embeddings/`, { method: "POST", body: JSON.stringify({ limit: 20 }) });
+      const d = await r.json();
+      setBatchResult(`Procesados ${d.processed}: ${d.succeeded} exitosos, ${d.failed} fallidos.`);
+      load({ silent: true });
+    } finally { setBatchLoading(false); }
+  };
+
+  if (loading) return <p className="text-gray-500">Cargando…</p>;
+  if (!stats) return <p className="text-red-500">No se pudo cargar el estado de los embeddings.</p>;
+
+  const pct = stats.total ? Math.round((stats.with_embedding / stats.total) * 100) : 0;
+
+  return (
+    <div className="space-y-5">
+      {!stats.api_key_configured && (
+        <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
+          <span>No hay una <code className="font-mono">GOOGLE_API_KEY</code> configurada en el servidor: la búsqueda semántica y la generación de embeddings no van a funcionar hasta configurarla.</span>
+        </div>
+      )}
+
+      <div className={`grid gap-4 sm:grid-cols-3 transition-opacity duration-300 ${refreshing ? "opacity-60" : "opacity-100"}`}>
+        <Card>
+          <p className="text-xs text-gray-500 uppercase">Productos totales</p>
+          <p className="text-3xl font-bold text-[#1a1a2e]">{stats.total}</p>
+        </Card>
+        <Card>
+          <p className="text-xs text-gray-500 uppercase">Con embedding</p>
+          <p className="text-3xl font-bold text-green-600">{stats.with_embedding}</p>
+        </Card>
+        <Card>
+          <p className="text-xs text-gray-500 uppercase">Sin embedding</p>
+          <p className="text-3xl font-bold text-red-500">{stats.without_embedding}</p>
+        </Card>
+      </div>
+
+      <Card className={`transition-opacity duration-300 ${refreshing ? "opacity-60" : "opacity-100"}`}>
+        <div className="flex justify-between text-xs text-gray-500 mb-1">
+          <span>Cobertura de búsqueda semántica</span><span className="font-semibold">{pct}%</span>
+        </div>
+        <div className="w-full bg-gray-100 rounded h-2.5">
+          <div className="bg-[#E8612D] h-2.5 rounded transition-all duration-500" style={{ width: `${pct}%` }} />
+        </div>
+      </Card>
+
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+        <div className="flex justify-between items-center p-3 border-b gap-2 flex-wrap">
+          <p className="font-semibold text-sm">Productos sin embedding ({stats.missing.length}{stats.without_embedding > stats.missing.length ? `, mostrando primeros ${stats.missing.length}` : ""})</p>
+          <div className="flex items-center gap-2">
+            {batchResult && <span className="text-xs text-gray-500">{batchResult}</span>}
+            <button onClick={regenerateMissing} disabled={batchLoading || !stats.missing.length} className="flex items-center gap-1 bg-[#E8612D] text-white px-3 py-2 rounded-lg text-sm font-medium transition active:scale-[0.98] hover:brightness-105 disabled:opacity-50">
+              <Sparkles size={14} /> {batchLoading ? "Generando…" : "Regenerar pendientes (20)"}
+            </button>
+            <button onClick={() => load({ silent: true })} className="text-gray-500 hover:text-[#E8612D]">
+              <RefreshCw size={15} className={refreshing ? "animate-spin" : ""} />
+            </button>
+          </div>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[420px] text-sm">
+            <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+              <tr><th className="text-left p-2">SKU</th><th className="text-left p-2">Producto</th><th className="text-right p-2"></th></tr>
+            </thead>
+            <tbody>
+              {stats.missing.map((p: any) => (
+                <tr key={p.id} className="border-t border-gray-100">
+                  <td className="p-2">{p.sku}</td>
+                  <td className="p-2">{p.name}</td>
+                  <td className="p-2 text-right">
+                    <button onClick={() => regenerateOne(p.id)} disabled={regeneratingId === p.id} className="text-xs px-2 py-1 rounded-lg bg-orange-50 text-[#E8612D] font-medium disabled:opacity-50">
+                      {regeneratingId === p.id ? "Generando…" : "Regenerar"}
+                    </button>
+                  </td>
+                </tr>
+              ))}
+              {!stats.missing.length && <tr><td colSpan={3} className="p-6 text-center text-gray-400">Todos los productos activos tienen embedding.</td></tr>}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {!!stats.recent_errors?.length && (
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden">
+          <p className="p-3 font-semibold text-sm border-b">Últimos errores de generación</p>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[420px] text-sm">
+              <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
+                <tr><th className="text-left p-2">SKU</th><th className="text-left p-2">Producto</th><th className="text-left p-2">Error</th></tr>
+              </thead>
+              <tbody>
+                {stats.recent_errors.map((p: any) => (
+                  <tr key={p.id} className="border-t border-gray-100">
+                    <td className="p-2">{p.sku}</td><td className="p-2">{p.name}</td>
+                    <td className="p-2 text-red-600">{p.error}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
