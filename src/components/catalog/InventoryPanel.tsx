@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Search, Plus, Pencil, Trash2, Loader, Sparkles, AlertTriangle, Check, X, RefreshCw } from "lucide-react";
+import ConfirmModal from "../common/ConfirmModal";
 
 interface Product {
   id: number;
@@ -53,6 +54,8 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
   const [newStockVal, setNewStockVal] = useState("");
   const [adjustReason, setAdjustReason] = useState("");
   const [adjustLoading, setAdjustLoading] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
+  const [deleteLoading, setDeleteLoading] = useState(false);
 
   // Obtener permisos y alcances del usuario actual
   const activePerms = currentUser?.active_permissions || {};
@@ -345,17 +348,17 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
     }
   };
 
-  // Eliminar/Desactivar producto
-  const handleDeleteProduct = async (p: Product) => {
-    const actionMsg = p.stock > 0 
-      ? `¿Estás seguro de que deseas eliminar/desactivar el producto '${p.name}'? Si tiene ventas históricas asociadas se desactivará lógicamente de forma automática.`
-      : `¿Eliminar físicamente el producto '${p.name}'?`;
+  // Eliminar/Desactivar producto — abre el modal de confirmación.
+  const handleDeleteProduct = (p: Product) => setDeleteTarget(p);
 
-    if (!confirm(actionMsg)) return;
-
+  // Ejecuta la eliminación tras confirmar en el modal.
+  const doDeleteProduct = async () => {
+    if (!deleteTarget) return;
+    const p = deleteTarget;
     const token = localStorage.getItem("access_token");
     if (!token) return;
 
+    setDeleteLoading(true);
     try {
       const res = await fetch(`${apiBaseUrl}/catalog/products/${p.id}/`, {
         method: "DELETE",
@@ -377,6 +380,9 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
       }
     } catch (err) {
       alert("Error de conexión al eliminar producto.");
+    } finally {
+      setDeleteLoading(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -874,6 +880,24 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
           </div>
         </div>
       )}
+
+      {/* Modal de confirmación de eliminación (reemplaza window.confirm) */}
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Eliminar producto"
+        message={
+          deleteTarget
+            ? (deleteTarget.stock > 0
+                ? `¿Eliminar/desactivar el producto "${deleteTarget.name}"? Si tiene ventas históricas asociadas se desactivará lógicamente de forma automática.`
+                : `¿Eliminar físicamente el producto "${deleteTarget.name}"?`)
+            : ''
+        }
+        confirmText="Eliminar"
+        tone="danger"
+        loading={deleteLoading}
+        onConfirm={doDeleteProduct}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import {
-  Building2, MapPin, Truck, CreditCard, Banknote, ShieldCheck,
+  MapPin, Truck, CreditCard, Banknote, ShieldCheck,
   ChevronLeft, Check, Loader, Pencil, Lock, ExternalLink,
 } from "lucide-react";
 
@@ -30,6 +30,9 @@ export default function CheckoutPage() {
   const [shipErrors, setShipErrors] = useState<Record<string, string>>({});
   const [delivery, setDelivery] = useState("standard");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("mercadopago");
+  // MercadoPago como medio de pago depende del permiso atómico 'pagos.mercadopago'.
+  // Optimista en true para no parpadear en el caso común (habilitado por defecto).
+  const [mpEnabled, setMpEnabled] = useState(true);
 
   useEffect(() => {
     new window.Image().src = "/mercadopago-logo.png";
@@ -42,6 +45,19 @@ export default function CheckoutPage() {
       .then((d) => setCart(d))
       .catch(() => setCart(null))
       .finally(() => setLoading(false));
+
+    // Resolver si MercadoPago está habilitado para este usuario.
+    apiFetch(`${API_BASE_URL}/users/auth/profile/`)
+      .then((r) => r.json())
+      .then((u) => {
+        const perms = u?.active_permissions;
+        const enabled =
+          !!u?.is_superuser ||
+          (perms && typeof perms === "object" && ("all" in perms || "pagos.mercadopago" in perms));
+        setMpEnabled(!!enabled);
+        if (!enabled) setPaymentMethod((m) => (m === "mercadopago" ? "cash" : m));
+      })
+      .catch(() => {});
   }, [router]);
 
   const shippingCost = delivery === "express" ? 4000 : 0;
@@ -187,7 +203,8 @@ export default function CheckoutPage() {
       {leaving && (
         <div className="fixed inset-0 z-[80] flex flex-col items-center justify-center bg-white animate-[fadeIn_0.4s_ease]">
           <div className="flex items-center gap-2 mb-6 animate-[fadeIn_0.5s_ease_0.1s_both]">
-            <div className="bg-[#E8612D] p-2 rounded-xl text-white"><Building2 size={26} /></div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="CraftIAr" className="h-11 w-11 object-contain" />
             <span className="text-2xl font-bold tracking-tight text-[#1a1a2e]">Craft<span className="text-[#E8612D]">IAr</span></span>
           </div>
           <div className="flex flex-col items-center gap-3 animate-[fadeIn_0.5s_ease_0.2s_both]">
@@ -210,7 +227,8 @@ export default function CheckoutPage() {
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <button onClick={() => router.push("/")} className="flex items-center gap-2" title="Ir al inicio">
-            <div className="bg-[#E8612D] p-1.5 rounded-lg text-white"><Building2 size={18} /></div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="CraftIAr" className="h-8 w-8 object-contain" />
             <span className="font-bold text-[#1a1a2e]">Craft<span className="text-[#E8612D]">IAr</span></span>
           </button>
           <div className="flex items-center gap-1 text-xs text-gray-500"><Lock size={13} /> Pago seguro</div>
@@ -323,16 +341,18 @@ export default function CheckoutPage() {
               summary={done.has("payment") ? (paymentMethod === "mercadopago" ? "MercadoPago" : paymentMethod === "card" ? "Tarjeta de crédito/débito" : "Efectivo") : ""}
               onEdit={() => setActive("payment")}>
               <div className="space-y-2">
-                {/* Opción MercadoPago */}
-                <label className={`flex items-center gap-3 border rounded-lg px-3 py-3 text-sm cursor-pointer transition-all duration-200 ${paymentMethod === "mercadopago" ? "border-[#009EE3] bg-blue-50" : "border-gray-200"}`}>
-                  <input type="radio" name="payment" checked={paymentMethod === "mercadopago"} onChange={() => setPaymentMethod("mercadopago")} />
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src="/mercadopago-logo.png" alt="MercadoPago" className="h-7 w-auto object-contain shrink-0" />
-                  <div>
-                    <p className="font-medium text-[#333]">MercadoPago</p>
-                    <p className="text-xs text-gray-500">Tarjeta, efectivo o cuotas</p>
-                  </div>
-                </label>
+                {/* Opción MercadoPago (sujeta al permiso 'pagos.mercadopago') */}
+                {mpEnabled && (
+                  <label className={`flex items-center gap-3 border rounded-lg px-3 py-3 text-sm cursor-pointer transition-all duration-200 ${paymentMethod === "mercadopago" ? "border-[#009EE3] bg-blue-50" : "border-gray-200"}`}>
+                    <input type="radio" name="payment" checked={paymentMethod === "mercadopago"} onChange={() => setPaymentMethod("mercadopago")} />
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src="/mercadopago-logo.png" alt="MercadoPago" className="h-7 w-auto object-contain shrink-0" />
+                    <div>
+                      <p className="font-medium text-[#333]">MercadoPago</p>
+                      <p className="text-xs text-gray-500">Tarjeta, efectivo o cuotas</p>
+                    </div>
+                  </label>
+                )}
 
                 {/* Opción Tarjeta */}
                 <label className={`flex items-center gap-3 border rounded-lg px-3 py-3 text-sm cursor-pointer transition-all duration-200 ${paymentMethod === "card" ? "border-[#E8612D] bg-orange-50" : "border-gray-200"}`}>

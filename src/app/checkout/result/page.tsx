@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { CheckCircle2, XCircle, Clock, Building2, Loader } from "lucide-react";
+import { CheckCircle2, XCircle, Clock, Loader } from "lucide-react";
 import { apiFetch } from "@/lib/api";
 import Link from "next/link";
 
@@ -66,7 +66,8 @@ function CheckoutResultContent() {
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center">
           <Link href="/" className="flex items-center gap-2">
-            <div className="bg-[#E8612D] p-1.5 rounded-lg text-white"><Building2 size={18} /></div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="CraftIAr" className="h-8 w-8 object-contain" />
             <span className="font-bold text-[#1a1a2e]">Craft<span className="text-[#E8612D]">IAr</span></span>
           </Link>
         </div>

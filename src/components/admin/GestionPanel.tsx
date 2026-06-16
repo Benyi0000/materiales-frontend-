@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { Plus, Trash2, Download, RefreshCw, Upload, Pencil, X, Check } from "lucide-react";
+import ConfirmModal from "../common/ConfirmModal";
 
 export type GestionSection =
   | "dashboard" | "reportes" | "stock" | "banners"
@@ -358,11 +359,21 @@ function BannerEditorModal({ apiBaseUrl, mode, initial, onClose, onSaved }: {
 function BannersSub({ apiBaseUrl }: { apiBaseUrl: string }) {
   const [rows, setRows] = useState<any[]>([]);
   const [editor, setEditor] = useState<{ mode: "new" | "edit"; value: any } | null>(null);
+  const [delId, setDelId] = useState<number | null>(null);
+  const [delLoading, setDelLoading] = useState(false);
   const load = useCallback(() => {
     apiFetch(`${apiBaseUrl}/catalog/banners/`).then((r) => r.json()).then((d) => setRows(d.results || d || []));
   }, [apiBaseUrl]);
   useEffect(() => { load(); }, [load]);
-  const del = async (id: number) => { if (!confirm("¿Eliminar este banner?")) return; await apiFetch(`${apiBaseUrl}/catalog/banners/${id}/`, { method: "DELETE" }); load(); };
+  const del = (id: number) => setDelId(id);
+  const doDel = async () => {
+    if (delId == null) return;
+    setDelLoading(true);
+    try {
+      await apiFetch(`${apiBaseUrl}/catalog/banners/${delId}/`, { method: "DELETE" });
+      load();
+    } finally { setDelLoading(false); setDelId(null); }
+  };
   const toggle = async (b: any) => { await apiFetch(`${apiBaseUrl}/catalog/banners/${b.id}/`, { method: "PATCH", body: JSON.stringify({ is_active: !b.is_active }) }); load(); };
 
   return (
@@ -401,6 +412,16 @@ function BannersSub({ apiBaseUrl }: { apiBaseUrl: string }) {
         <BannerEditorModal apiBaseUrl={apiBaseUrl} mode={editor.mode} initial={editor.value}
           onClose={() => setEditor(null)} onSaved={() => { setEditor(null); load(); }} />
       )}
+      <ConfirmModal
+        open={delId != null}
+        title="Eliminar banner"
+        message="¿Eliminar este banner? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        tone="danger"
+        loading={delLoading}
+        onConfirm={doDel}
+        onCancel={() => setDelId(null)}
+      />
     </div>
   );
 }
@@ -462,6 +483,8 @@ function PlanesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
   const [profiles, setProfiles] = useState<any[]>([]);
   const blank = { name: "", description: "", price: 0, duration_days: 30, trial_days: 0, auto_renew: true, profiles: [] as number[], is_active: true };
   const [form, setForm] = useState<any>(blank);
+  const [delId, setDelId] = useState<number | null>(null);
+  const [delLoading, setDelLoading] = useState(false);
   const load = useCallback(() => {
     apiFetch(`${apiBaseUrl}/orders/plans/`).then((r) => r.json()).then((d) => setRows(d.results || d || []));
     apiFetch(`${apiBaseUrl}/users/admin/profiles/`).then((r) => r.json()).then((d) => setProfiles(d.results || d || []));
@@ -482,7 +505,15 @@ function PlanesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
     if (!r.ok) { return alert(JSON.stringify(await r.json())); }
     setForm(blank); load();
   };
-  const del = async (id: number) => { if (!confirm("¿Eliminar este plan?")) return; await apiFetch(`${apiBaseUrl}/orders/plans/${id}/`, { method: "DELETE" }); load(); };
+  const del = (id: number) => setDelId(id);
+  const doDel = async () => {
+    if (delId == null) return;
+    setDelLoading(true);
+    try {
+      await apiFetch(`${apiBaseUrl}/orders/plans/${delId}/`, { method: "DELETE" });
+      load();
+    } finally { setDelLoading(false); setDelId(null); }
+  };
   const toggleProfile = (id: number) =>
     setForm((f: any) => ({ ...f, profiles: f.profiles.includes(id) ? f.profiles.filter((x: number) => x !== id) : [...f.profiles, id] }));
 
@@ -552,6 +583,17 @@ function PlanesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
         ))}
         {!rows.length && <p className="text-gray-400 text-sm">Sin planes.</p>}
       </div>
+
+      <ConfirmModal
+        open={delId != null}
+        title="Eliminar plan"
+        message="¿Eliminar este plan? Esta acción no se puede deshacer."
+        confirmText="Eliminar"
+        tone="danger"
+        loading={delLoading}
+        onConfirm={doDel}
+        onCancel={() => setDelId(null)}
+      />
     </div>
   );
 }

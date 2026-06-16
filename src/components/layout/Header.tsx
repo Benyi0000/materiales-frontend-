@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import { useRouter } from "next/navigation";
-import { Building2, Loader, User as UserIcon, LogOut, Menu, Bot } from "lucide-react";
+import { Loader, User as UserIcon, LogOut, Menu, Bot } from "lucide-react";
 
 interface UserProfile {
   username: string;
@@ -46,9 +46,8 @@ export default function Header({
         </button>
 
         <button type="button" onClick={() => router.push("/")} className="flex items-center gap-2 shrink-0" title="Ir al inicio">
-          <div className="bg-[#E8612D] p-1.5 rounded-lg text-white">
-            <Building2 size={22} />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="CraftIAr" className="h-9 w-9 object-contain" />
           <span className="text-lg font-bold tracking-tight select-none text-[#1a1a2e]">
             Craft<span className="text-[#E8612D]">IAr</span>
           </span>

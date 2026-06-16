@@ -10,7 +10,6 @@ import {
   ChevronRight,
   Menu,
   X,
-  Building2,
   LogOut,
   Sparkles,
   Bot,
@@ -410,9 +409,8 @@ export default function PublicLanding({
             className="flex items-center gap-2 shrink-0 cursor-pointer"
             onClick={() => selectProductHistory(null)}
           >
-            <div className="bg-[#E8612D] p-1.5 rounded-lg text-white">
-              <Building2 size={22} />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="CraftIAr" className="h-9 w-9 object-contain" />
             <span className="text-lg font-bold tracking-tight select-none">
               Craft<span className="text-[#E8612D]">IAr</span>
             </span>

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Store, ChevronDown, ChevronUp, Package, Ticket, ArrowRight, Filter, RefreshCw } from 'lucide-react';
+import ConfirmModal from '../common/ConfirmModal';
 
 interface OrderItem {
   id: number;
@@ -75,6 +76,7 @@ export default function SalesPanel({ apiBaseUrl, currentUser }: SalesPanelProps)
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState<number | null>(null);
   const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [confirmTarget, setConfirmTarget] = useState<{ order: Order; target: string } | null>(null);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const pageSize = 10;
@@ -121,12 +123,19 @@ export default function SalesPanel({ apiBaseUrl, currentUser }: SalesPanelProps)
     return () => { if (intervalRef.current) clearInterval(intervalRef.current); };
   }, [fetchSales]);
 
-  const handleAdvanceStatus = async (order: Order) => {
+  // Abre el modal de confirmación antes de avanzar el estado.
+  const handleAdvanceStatus = (order: Order) => {
     const target = nextStatus(order.status);
     if (!target) return;
+    setConfirmTarget({ order, target });
+  };
+
+  // Ejecuta el avance de estado tras confirmar en el modal.
+  const doAdvanceStatus = async () => {
+    if (!confirmTarget) return;
+    const { order, target } = confirmTarget;
     const token = localStorage.getItem('access_token');
     if (!token) return;
-    if (!window.confirm(`¿Avanzar el pedido #${order.id} a "${STATUS_LABELS[target]}"? Se notificará al cliente por email.`)) return;
     setUpdatingId(order.id);
     try {
       const res = await fetch(`${apiBaseUrl}/orders/orders/${order.id}/update_status/`, {
@@ -145,6 +154,7 @@ export default function SalesPanel({ apiBaseUrl, currentUser }: SalesPanelProps)
       alert('Error de conexión al actualizar el estado.');
     } finally {
       setUpdatingId(null);
+      setConfirmTarget(null);
     }
   };
 
@@ -351,6 +361,21 @@ export default function SalesPanel({ apiBaseUrl, currentUser }: SalesPanelProps)
           </button>
         </div>
       )}
+
+      {/* Modal de confirmación de avance de estado (reemplaza window.confirm) */}
+      <ConfirmModal
+        open={!!confirmTarget}
+        title="Avanzar estado del pedido"
+        message={
+          confirmTarget
+            ? `¿Avanzar el pedido #${confirmTarget.order.id} a "${STATUS_LABELS[confirmTarget.target]}"? Se notificará al cliente por email.`
+            : ''
+        }
+        confirmText="Avanzar"
+        loading={updatingId !== null}
+        onConfirm={doAdvanceStatus}
+        onCancel={() => setConfirmTarget(null)}
+      />
     </div>
   );
 }

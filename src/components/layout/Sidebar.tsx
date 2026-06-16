@@ -115,9 +115,8 @@ export default function Sidebar({
         {/* Header del sidebar */}
         <div className="h-16 flex items-center justify-between px-4 border-b border-[#e5e7eb] shrink-0">
           <div className="flex items-center gap-2">
-            <div className="bg-[#E8612D] p-1.5 rounded-lg text-white">
-              <Building2 size={20} />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="CraftIAr" className="h-9 w-9 object-contain" />
             <span className="text-base font-bold tracking-tight text-[#1a1a2e]">
               Craft<span className="text-[#E8612D]">IAr</span>
             </span>

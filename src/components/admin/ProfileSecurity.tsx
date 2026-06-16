@@ -41,7 +41,7 @@ interface ProfileSecurityProps {
   handleUpdatePermissionScope: (permissionId: number, newScope: "propios" | "todos") => void;
   handleCreateProfile: (name: string, description: string) => void;
   handleDeleteProfile: (profileId: number) => void;
-  handleSaveProfilePermissions: () => void;
+  handleSaveProfilePermissions: () => Promise<boolean>;
   handleCreateUserSubmit: (data: any) => Promise<boolean>;
   showCreateUserForm: boolean;
   setShowCreateUserForm: (show: boolean) => void;
@@ -51,7 +51,7 @@ interface ProfileSecurityProps {
 const CLIENT_CODES = new Set([
   "catalogo.ver_catalogo", "catalogo.busqueda_semantica", "pedidos.ver",
   "carrito.gestionar", "carrito.checkout", "tutor.acceder", "tutor.ver_historial",
-  "suscripciones.ver", "suscripciones.suscribirse",
+  "suscripciones.ver", "suscripciones.suscribirse", "pagos.mercadopago",
 ]);
 
 const moduleLabel = (raw: string) => {
@@ -62,6 +62,7 @@ const moduleLabel = (raw: string) => {
   if (m === "cart") return "Carrito";
   if (m === "tutor") return "TutorIA";
   if (m === "suscripciones") return "Suscripciones";
+  if (m === "pagos") return "Pagos";
   if (m === "gestion") return "Gestión Interna";
   if (m === "admin") return "Administración";
   if (m === "auth") return "Autenticación";
@@ -153,13 +154,51 @@ export default function ProfileSecurity({
     message: ""
   });
 
+  // Acción a ejecutar cuando se confirma el modal (asignaciones o permisos).
+  const confirmActionRef = React.useRef<null | (() => void)>(null);
+
   const requestSaveAssignments = () => {
     if (!selectedAdminUser) return;
+    confirmActionRef.current = executeSaveAssignments;
     setSaveModalState({
       isOpen: true,
       type: "confirm",
       message: `¿Estás seguro de que deseas confirmar y aplicar las nuevas asignaciones de perfiles para ${selectedAdminUser.first_name} ${selectedAdminUser.last_name}?`
     });
+  };
+
+  const requestSaveProfilePermissions = () => {
+    if (!editingProfile) return;
+    confirmActionRef.current = executeSaveProfilePermissions;
+    setSaveModalState({
+      isOpen: true,
+      type: "confirm",
+      message: `¿Confirmás guardar los cambios de permisos del perfil "${editingProfile.name}"?`
+    });
+  };
+
+  const executeSaveProfilePermissions = async () => {
+    if (!editingProfile) return;
+    setIsSavingAssignments(true);
+    try {
+      const ok = await handleSaveProfilePermissions();
+      setSaveModalState({
+        isOpen: true,
+        type: ok ? "success" : "error",
+        message: ok
+          ? "Los permisos del perfil se guardaron correctamente en la base de datos."
+          : "Ocurrió un error al guardar los permisos del perfil. Intentá nuevamente.",
+      });
+    } catch (err) {
+      console.error(err);
+      setSaveModalState({
+        isOpen: true,
+        type: "error",
+        message: "Ocurrió un error inesperado al intentar guardar los permisos.",
+      });
+    } finally {
+      setIsSavingAssignments(false);
+    }
   };
 
   const confirmDiscardAndNavigate = () => {
@@ -536,10 +575,11 @@ export default function ProfileSecurity({
                       </button>
                     )}
                     <button
-                      onClick={handleSaveProfilePermissions}
-                      className="bg-[#E8612D] hover:bg-[#d4551f] text-white px-5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-md hover:shadow-lg"
+                      onClick={requestSaveProfilePermissions}
+                      disabled={isSavingAssignments}
+                      className="bg-[#E8612D] hover:bg-[#d4551f] text-white px-5 py-2 rounded-xl text-sm font-bold transition-all flex items-center gap-2 shadow-md hover:shadow-lg disabled:opacity-50"
                     >
-                      <Save size={16} /> Guardar Cambios
+                      <Save size={16} /> {isSavingAssignments ? "Guardando..." : "Guardar Cambios"}
                     </button>
                   </div>
                 </div>
@@ -724,7 +764,7 @@ export default function ProfileSecurity({
                     Cancelar
                   </button>
                   <button
-                    onClick={executeSaveAssignments}
+                    onClick={() => confirmActionRef.current?.()}
                     disabled={isSavingAssignments}
                     className="flex-1 px-4 py-3.5 bg-[#E8612D] hover:bg-[#d4551f] text-white rounded-xl text-sm font-bold transition-all shadow-md disabled:opacity-50"
                   >

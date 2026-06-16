@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Users, CheckCircle2, AlertCircle, Info, X, Bot, Building2 } from "lucide-react";
+import { Users, CheckCircle2, AlertCircle, Info, X, Bot } from "lucide-react";
 
 
 // Componentes Modularizados
@@ -27,7 +27,7 @@ const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/
 const CLIENT_PERMS = [
   "catalogo.ver_catalogo", "catalogo.busqueda_semantica", "pedidos.ver",
   "carrito.gestionar", "carrito.checkout", "tutor.acceder", "tutor.ver_historial",
-  "suscripciones.ver", "suscripciones.suscribirse",
+  "suscripciones.ver", "suscripciones.suscribirse", "pagos.mercadopago",
 ];
 
 export default function Dashboard() {
@@ -698,8 +698,10 @@ function DashboardInner() {
     }
   };
 
-  const handleSaveProfilePermissions = async () => {
-    if (!editingProfile) return;
+  // Devuelve true si los cambios se guardaron correctamente. El feedback visual
+  // (modal de éxito/error) lo maneja ProfileSecurity, igual que las asignaciones.
+  const handleSaveProfilePermissions = async (): Promise<boolean> => {
+    if (!editingProfile) return false;
 
     const permissionsPayload = (editingProfile.permissions_detail || []).map((pd: any) => ({
       permission_id: pd.permission,
@@ -707,7 +709,7 @@ function DashboardInner() {
     }));
 
     const token = localStorage.getItem("access_token");
-    if (!token) return;
+    if (!token) return false;
     try {
       const res = await fetch(`${API_BASE_URL}/users/admin/profiles/${editingProfile.id}/`, {
         method: "PUT",
@@ -722,14 +724,12 @@ function DashboardInner() {
         })
       });
       if (res.ok) {
-        alert("Cambios guardados con éxito en el servidor.");
         checkBackendAPI();
-      } else {
-        const errData = await res.json();
-        alert(`Error: ${errData.error || "No se pudieron guardar los cambios."}`);
+        return true;
       }
+      return false;
     } catch (err) {
-      alert("Error de conexión al guardar cambios.");
+      return false;
     }
   };
 
@@ -774,9 +774,8 @@ function DashboardInner() {
     {isAuthenticated === null ? (
       <div className="min-h-screen flex flex-col items-center justify-center bg-[#f5f5f5] gap-5">
         <div className="flex items-center gap-2">
-          <div className="bg-[#E8612D] p-1.5 rounded-lg text-white">
-            <Building2 size={22} />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/logo.png" alt="CraftIAr" className="h-9 w-9 object-contain" />
           <span className="text-xl font-bold tracking-tight select-none text-[#1a1a2e]">
             Craft<span className="text-[#E8612D]">IAr</span>
           </span>

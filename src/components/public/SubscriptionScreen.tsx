@@ -4,9 +4,10 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { apiFetch } from "@/lib/api";
 import {
-  Building2, ChevronLeft, Check, CreditCard, Loader, CheckCircle2,
+  ChevronLeft, Check, CreditCard, Loader, CheckCircle2,
   Sparkles, Calendar, XCircle, Lock, ShieldCheck,
 } from "lucide-react";
+import ConfirmModal, { InfoModal } from "../common/ConfirmModal";
 
 const API = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 const money = (n: any) => `$${Number(n || 0).toLocaleString("es-AR")}`;
@@ -19,6 +20,19 @@ export default function SubscriptionScreen({ mode }: { mode: "planes" | "mi" }) 
   const [sub, setSub] = useState<any>(null);
   const [payments, setPayments] = useState<any[]>([]);
   const [checkoutPlan, setCheckoutPlan] = useState<any>(null);
+  const [cancelOpen, setCancelOpen] = useState(false);
+  const [cancelLoading, setCancelLoading] = useState(false);
+
+  const doCancelSubscription = async () => {
+    setCancelLoading(true);
+    try {
+      await apiFetch(`${API}/orders/subscription/cancel/`, { method: "POST" });
+      await reload();
+    } finally {
+      setCancelLoading(false);
+      setCancelOpen(false);
+    }
+  };
 
   const reload = useCallback(() => Promise.all([
     apiFetch(`${API}/users/auth/profile/`).then((r) => r.json()),
@@ -95,10 +109,21 @@ export default function SubscriptionScreen({ mode }: { mode: "planes" | "mi" }) 
         </>
       ) : (
         <MiSuscripcion sub={sub} payments={payments} isSubscribed={isSubscribed} canSub={canSub}
-          onCancel={async () => { if (!confirm("¿Cancelar tu suscripción? Seguirá activa hasta el vencimiento.")) return; await apiFetch(`${API}/orders/subscription/cancel/`, { method: "POST" }); await reload(); }}
+          onCancel={() => setCancelOpen(true)}
           onVerPlanes={() => router.push("/planes")} />
       )}
 
+      <ConfirmModal
+        open={cancelOpen}
+        title="Cancelar suscripción"
+        message="¿Cancelar tu suscripción? Seguirá activa hasta el vencimiento del período actual."
+        confirmText="Sí, cancelar"
+        cancelText="No, mantener"
+        tone="danger"
+        loading={cancelLoading}
+        onConfirm={doCancelSubscription}
+        onCancel={() => setCancelOpen(false)}
+      />
     </Shell>
   );
 }
@@ -110,7 +135,8 @@ function Shell({ router, title, children }: any) {
       <header className="bg-white border-b border-gray-200">
         <div className="max-w-6xl mx-auto px-4 h-14 flex items-center justify-between">
           <button onClick={() => router.push("/")} className="flex items-center gap-2" title="Ir al inicio">
-            <div className="bg-[#E8612D] p-1.5 rounded-lg text-white"><Building2 size={18} /></div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="CraftIAr" className="h-8 w-8 object-contain" />
             <span className="font-bold text-[#1a1a2e]">Craft<span className="text-[#E8612D]">IAr</span></span>
           </button>
           <button onClick={() => router.push("/")} className="flex items-center gap-1 text-sm text-gray-500 hover:text-[#E8612D]"><ChevronLeft size={16} /> Volver</button>
@@ -177,13 +203,14 @@ function PagoPlanScreen({ plan, router, onCancel, onDone }: any) {
   const [method, setMethod] = useState("card");
   const [card, setCard] = useState({ name: "", number: "", expiry: "", cvc: "" });
   const [step, setStep] = useState<"form" | "processing" | "done">("form");
+  const [payError, setPayError] = useState(false);
   const cardValid = method !== "card" || (card.name && card.number && card.expiry && card.cvc);
   const pay = async () => {
     setStep("processing");
     await new Promise((r) => setTimeout(r, 1600));
     const res = await apiFetch(`${API}/orders/subscription/checkout/`, { method: "POST", body: JSON.stringify({ plan_id: plan.id }) });
     if (res.ok) setStep("done");
-    else { alert("No se pudo completar la suscripción."); onCancel(); }
+    else { setStep("form"); setPayError(true); }
   };
 
   if (step === "done") {
@@ -212,6 +239,13 @@ function PagoPlanScreen({ plan, router, onCancel, onDone }: any) {
   }
   return (
     <Shell router={router} title="">
+      <InfoModal
+        open={payError}
+        title="No se pudo completar"
+        message="No se pudo completar la suscripción. Por favor, intentá nuevamente."
+        type="error"
+        onClose={() => setPayError(false)}
+      />
       <button onClick={onCancel} className="flex items-center gap-1 text-sm text-gray-500 hover:text-[#E8612D] mb-4"><ChevronLeft size={16} /> Volver a planes</button>
       <h1 className="text-2xl font-semibold text-[#1a1a2e] mb-5">Finalizá tu suscripción</h1>
       <div className="grid lg:grid-cols-[1fr_340px] gap-5 items-start">

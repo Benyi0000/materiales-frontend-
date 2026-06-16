@@ -2,7 +2,7 @@
 
 import { Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Mail, ArrowLeft, Building2 } from 'lucide-react';
+import { Mail, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
 function PasswordResetSentContent() {
@@ -15,9 +15,8 @@ function PasswordResetSentContent() {
       <header className="w-full bg-white border-b border-gray-200 h-16 shrink-0 flex items-center">
         <div className="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8">
           <Link href="/" className="flex items-center gap-2 shrink-0 w-fit">
-            <div className="bg-[#E8612D] p-1.5 rounded-lg text-white">
-              <Building2 size={22} />
-            </div>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="CraftIAr" className="h-9 w-9 object-contain" />
             <span className="text-lg font-bold tracking-tight select-none text-[#1a1a2e]">
               Craft<span className="text-[#E8612D]">IAr</span>
             </span>
