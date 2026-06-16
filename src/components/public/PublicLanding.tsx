@@ -912,10 +912,7 @@ export default function PublicLanding({
                 ) : (
                   <button
                     onClick={() => {
-                      const el = document.getElementById('catalogo');
-                      if (!el) return;
-                      const y = el.getBoundingClientRect().top + window.scrollY - 72;
-                      window.scrollTo({ top: y, behavior: 'smooth' });
+                      document.getElementById('catalogo')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                     }}
                     className="mt-6 inline-block bg-white text-[#1a1a2e] font-semibold px-7 py-3 rounded-full text-sm shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
                   >
@@ -932,7 +929,7 @@ export default function PublicLanding({
       {/* ============================================================ */}
       {/*  C) CATÁLOGO                                                  */}
       {/* ============================================================ */}
-      <section id="catalogo" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10">
+      <section id="catalogo" className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-10 scroll-mt-20">
         {/* Encabezado de sección */}
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-bold tracking-tight">Todos los Materiales</h2>
