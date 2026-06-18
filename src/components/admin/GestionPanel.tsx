@@ -634,6 +634,9 @@ function SuscripcionesSub({ apiBaseUrl }: { apiBaseUrl: string }) {
 }
 
 /* ---------------- Embeddings (IA del catálogo) ---------------- */
+type KeyStatus = { configured: boolean; source: string | null; updated_at: string | null };
+type Msg = { ok: boolean; text: string };
+
 function EmbeddingsSub({ apiBaseUrl }: { apiBaseUrl: string }) {
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -642,12 +645,70 @@ function EmbeddingsSub({ apiBaseUrl }: { apiBaseUrl: string }) {
   const [batchLoading, setBatchLoading] = useState(false);
   const [batchResult, setBatchResult] = useState<string | null>(null);
 
+  // API key management state
+  const [keyStatus, setKeyStatus] = useState<KeyStatus | null>(null);
+  const [newKey, setNewKey] = useState('');
+  const [keySaving, setKeySaving] = useState(false);
+  const [keySaveMsg, setKeySaveMsg] = useState<Msg | null>(null);
+  const [keyVerifying, setKeyVerifying] = useState(false);
+  const [keyVerifyMsg, setKeyVerifyMsg] = useState<Msg | null>(null);
+
   const load = useCallback((opts?: { silent?: boolean }) => {
     if (opts?.silent) setRefreshing(true); else setLoading(true);
     apiFetch(`${apiBaseUrl}/catalog/products/embedding_stats/`)
       .then((r) => r.json()).then(setStats).finally(() => { setLoading(false); setRefreshing(false); });
   }, [apiBaseUrl]);
-  useEffect(() => { load(); }, [load]);
+
+  const loadKeyStatus = useCallback(() => {
+    apiFetch(`${apiBaseUrl}/catalog/products/api_key_status/`)
+      .then((r) => r.json())
+      .then((d) => setKeyStatus(d))
+      .catch(() => setKeyStatus(null));
+  }, [apiBaseUrl]);
+
+  useEffect(() => { load(); loadKeyStatus(); }, [load, loadKeyStatus]);
+
+  const saveKey = async () => {
+    if (!newKey.trim()) return;
+    setKeySaving(true);
+    setKeySaveMsg(null);
+    try {
+      const r = await apiFetch(`${apiBaseUrl}/catalog/products/update_api_key/`, {
+        method: 'POST',
+        body: JSON.stringify({ api_key: newKey }),
+      });
+      const d = await r.json();
+      if (r.ok && d.success) {
+        setKeySaveMsg({ ok: true, text: 'Key guardada correctamente.' });
+        setNewKey('');
+        loadKeyStatus();
+        load({ silent: true });
+      } else {
+        setKeySaveMsg({ ok: false, text: d.error || 'No se pudo guardar.' });
+      }
+    } catch {
+      setKeySaveMsg({ ok: false, text: 'Error de red.' });
+    } finally {
+      setKeySaving(false);
+    }
+  };
+
+  const verifyKey = async () => {
+    setKeyVerifying(true);
+    setKeyVerifyMsg(null);
+    try {
+      const r = await apiFetch(`${apiBaseUrl}/catalog/products/verify_api_key/`, { method: 'POST' });
+      const d = await r.json();
+      setKeyVerifyMsg({
+        ok: d.success,
+        text: d.success ? 'Conexion con Gemini exitosa.' : (d.error || 'Fallo la verificacion.'),
+      });
+    } catch {
+      setKeyVerifyMsg({ ok: false, text: 'Error de red.' });
+    } finally {
+      setKeyVerifying(false);
+    }
+  };
 
   const regenerateOne = async (id: number) => {
     setRegeneratingId(id);
@@ -676,12 +737,71 @@ function EmbeddingsSub({ apiBaseUrl }: { apiBaseUrl: string }) {
 
   return (
     <div className="space-y-5">
-      {!stats.api_key_configured && (
-        <div className="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
-          <AlertTriangle size={16} className="mt-0.5 shrink-0" />
-          <span>No hay una <code className="font-mono">GOOGLE_API_KEY</code> configurada en el servidor: la búsqueda semántica y la generación de embeddings no van a funcionar hasta configurarla.</span>
+      {/* Configuración de API Key */}
+      <Card>
+        <p className="font-semibold text-sm mb-3">Configuracion de API</p>
+
+        {/* Estado actual */}
+        <div className="flex items-center gap-2 mb-4">
+          {keyStatus === null ? (
+            <span className="text-sm text-gray-400">Verificando…</span>
+          ) : keyStatus.configured ? (
+            <>
+              <span className="w-2 h-2 rounded-full bg-green-500 inline-block shrink-0" />
+              <span className="text-sm text-gray-700">
+                Configurada
+                {keyStatus.source && (
+                  <span className="text-gray-400"> · Origen: {keyStatus.source === 'database' ? 'base de datos' : 'entorno'}</span>
+                )}
+                {keyStatus.updated_at && (
+                  <span className="text-gray-400"> · {keyStatus.updated_at}</span>
+                )}
+              </span>
+            </>
+          ) : (
+            <>
+              <span className="w-2 h-2 rounded-full bg-red-500 inline-block shrink-0" />
+              <span className="text-sm text-red-600">No configurada — los embeddings y la busqueda semantica no funcionaran.</span>
+            </>
+          )}
         </div>
-      )}
+
+        {/* Input nueva key */}
+        <p className="text-xs text-gray-500 mb-1">Nueva key</p>
+        <div className="flex gap-2 mb-1">
+          <input
+            type="password"
+            value={newKey}
+            onChange={(e) => setNewKey(e.target.value)}
+            placeholder="AIza..."
+            className="flex-1 border border-gray-300 rounded-lg px-3 py-2 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#E8612D]"
+          />
+          <button
+            onClick={saveKey}
+            disabled={keySaving || !newKey.trim()}
+            className="bg-[#E8612D] text-white px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 hover:brightness-105 active:scale-[0.98] transition"
+          >
+            {keySaving ? 'Guardando…' : 'Guardar key'}
+          </button>
+        </div>
+        <p className="text-xs text-gray-400 mb-3">La key actual nunca se muestra por seguridad.</p>
+
+        {keySaveMsg && (
+          <p className={`text-xs mb-3 ${keySaveMsg.ok ? 'text-green-600' : 'text-red-600'}`}>{keySaveMsg.text}</p>
+        )}
+
+        {/* Verificar conexión */}
+        <button
+          onClick={verifyKey}
+          disabled={keyVerifying}
+          className="border border-gray-300 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium disabled:opacity-50 hover:bg-gray-50 active:scale-[0.98] transition"
+        >
+          {keyVerifying ? 'Verificando…' : 'Verificar conexion'}
+        </button>
+        {keyVerifyMsg && (
+          <p className={`text-xs mt-2 ${keyVerifyMsg.ok ? 'text-green-600' : 'text-red-600'}`}>{keyVerifyMsg.text}</p>
+        )}
+      </Card>
 
       <div className={`grid gap-4 sm:grid-cols-3 transition-opacity duration-300 ${refreshing ? "opacity-60" : "opacity-100"}`}>
         <Card>
