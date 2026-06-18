@@ -15,6 +15,7 @@ interface PermissionAtom {
   code: string;
   module: string;
   description: string;
+  scope_aplica?: boolean;
 }
 
 interface User {
@@ -535,7 +536,7 @@ export default function ProfileSecurity({
                                   />
                                 </div>
                                 
-                                {hasPerm && (
+                                {hasPerm && perm.scope_aplica !== false && (
                                   <div className="flex items-center justify-between border-t border-gray-100 pt-4 mt-2 animate-[fadeIn_0.2s_ease]">
                                     <span className="text-xs font-semibold text-gray-500">Nivel de Alcance:</span>
                                     <div className="flex bg-gray-100 border border-gray-200 rounded-lg p-1">

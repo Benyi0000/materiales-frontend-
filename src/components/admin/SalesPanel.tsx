@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ArrowLeft, ChevronRight, ChevronDown, ChevronUp, Package, Ticket, XCircle } from 'lucide-react';
+import { Store, ChevronDown, ChevronUp, Package, Ticket, ArrowRight, Filter } from 'lucide-react';
 
 interface OrderItem {
   id: number;
@@ -21,9 +21,9 @@ interface Order {
   items: OrderItem[];
 }
 
-interface OrdersViewProps {
+interface SalesPanelProps {
   apiBaseUrl: string;
-  onBack: () => void;
+  currentUser: any;
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -42,25 +42,43 @@ const STATUS_STYLES: Record<string, string> = {
   cancelled: 'bg-gray-100 text-gray-500 border-gray-200',
 };
 
-export default function OrdersView({ apiBaseUrl, onBack }: OrdersViewProps) {
+// Secuencia lineal de avance (RN4). 'cancelled' no avanza.
+const STATUS_SEQUENCE = ['pending', 'preparing', 'shipped', 'delivered'];
+const nextStatus = (status: string): string | null => {
+  const idx = STATUS_SEQUENCE.indexOf(status);
+  if (idx === -1 || idx + 1 >= STATUS_SEQUENCE.length) return null;
+  return STATUS_SEQUENCE[idx + 1];
+};
+
+export default function SalesPanel({ apiBaseUrl, currentUser }: SalesPanelProps) {
   const [orders, setOrders] = useState<Order[]>([]);
   const [count, setCount] = useState(0);
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState<string>('');
+  const [dateFrom, setDateFrom] = useState<string>('');
+  const [dateTo, setDateTo] = useState<string>('');
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [cancellingId, setCancellingId] = useState<number | null>(null);
+  const [updatingId, setUpdatingId] = useState<number | null>(null);
 
   const pageSize = 10;
   const totalPages = Math.max(1, Math.ceil(count / pageSize));
 
-  const fetchOrders = useCallback(async () => {
+  const canChangeStatus =
+    currentUser?.is_superuser ||
+    (currentUser?.active_permissions &&
+      typeof currentUser.active_permissions === 'object' &&
+      'pedidosventas.cambiar_estado' in currentUser.active_permissions);
+
+  const fetchSales = useCallback(async () => {
     const token = localStorage.getItem('access_token');
     if (!token) return;
     setLoading(true);
     try {
-      const params = new URLSearchParams({ page: String(page) });
+      const params = new URLSearchParams({ view: 'ventas', page: String(page) });
       if (statusFilter) params.set('status', statusFilter);
+      if (dateFrom) params.set('date_from', dateFrom);
+      if (dateTo) params.set('date_to', dateTo);
       const res = await fetch(`${apiBaseUrl}/orders/orders/?${params}`, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -74,33 +92,36 @@ export default function OrdersView({ apiBaseUrl, onBack }: OrdersViewProps) {
     } finally {
       setLoading(false);
     }
-  }, [apiBaseUrl, page, statusFilter]);
+  }, [apiBaseUrl, page, statusFilter, dateFrom, dateTo]);
 
   useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+    fetchSales();
+  }, [fetchSales]);
 
-  const handleCancel = async (orderId: number) => {
+  const handleAdvanceStatus = async (order: Order) => {
+    const target = nextStatus(order.status);
+    if (!target) return;
     const token = localStorage.getItem('access_token');
     if (!token) return;
-    if (!window.confirm(`¿Cancelar el pedido #${orderId}? El stock será repuesto.`)) return;
-    setCancellingId(orderId);
+    if (!window.confirm(`¿Avanzar el pedido #${order.id} a "${STATUS_LABELS[target]}"? Se notificará al cliente por email.`)) return;
+    setUpdatingId(order.id);
     try {
-      const res = await fetch(`${apiBaseUrl}/orders/orders/${orderId}/cancel/`, {
+      const res = await fetch(`${apiBaseUrl}/orders/orders/${order.id}/update_status/`, {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: target }),
       });
       const data = await res.json();
       if (res.ok) {
-        alert('Pedido cancelado con éxito. El stock fue repuesto.');
-        fetchOrders();
+        alert(`Estado actualizado a "${STATUS_LABELS[target]}" con éxito.`);
+        fetchSales();
       } else {
-        alert(`Error: ${data.error || 'No se pudo cancelar el pedido.'}`);
+        alert(`Error: ${data.error || 'No se pudo actualizar el estado.'}`);
       }
     } catch {
-      alert('Error de conexión al cancelar el pedido.');
+      alert('Error de conexión al actualizar el estado.');
     } finally {
-      setCancellingId(null);
+      setUpdatingId(null);
     }
   };
 
@@ -109,38 +130,67 @@ export default function OrdersView({ apiBaseUrl, onBack }: OrdersViewProps) {
     new Date(iso).toLocaleDateString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-8 animate-[fadeIn_0.3s_ease] w-full">
-      {/* Breadcrumb */}
-      <div className="flex items-center gap-2 text-sm text-gray-500 mb-6">
-        <button onClick={onBack} className="hover:text-[#E8612D] flex items-center gap-1 font-medium transition-colors">
-          <ArrowLeft size={16} /> Volver al catálogo
-        </button>
-        <ChevronRight size={14} className="text-gray-300" />
-        <span className="text-[#1a1a2e] font-semibold">Mis pedidos</span>
+    <div className="flex-grow flex flex-col gap-6 text-left max-w-5xl mx-auto w-full animate-[fadeIn_0.3s_ease]">
+      {/* Header */}
+      <div>
+        <h2 className="text-3xl font-bold tracking-tight flex items-center gap-3 text-[#1a1a2e]">
+          <div className="p-2 bg-[#E8612D]/10 rounded-xl">
+            <Store className="text-[#E8612D]" size={28} />
+          </div>
+          <span>Ventas</span>
+        </h2>
+        <p className="text-sm text-[#6b7280] mt-2">
+          Listado de ventas del ecommerce. Filtra por estado y fecha
+          {canChangeStatus ? ', y avanza el estado de cada pedido (notifica al cliente).' : '.'}
+        </p>
       </div>
 
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-[#1a1a2e] flex items-center gap-2">
-          <Package className="text-[#E8612D]" size={26} /> Mis pedidos
-        </h1>
-        <span className="text-sm text-gray-400">{count} {count === 1 ? 'pedido' : 'pedidos'}</span>
-      </div>
-
-      {/* Filtro por estado */}
-      <div className="flex flex-wrap gap-2 mb-6">
-        {[['', 'Todos'], ...Object.entries(STATUS_LABELS)].map(([value, label]) => (
-          <button
-            key={value}
-            onClick={() => { setStatusFilter(value); setPage(1); }}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
-              statusFilter === value
-                ? 'bg-[#1a1a2e] text-white border-[#1a1a2e]'
-                : 'bg-white text-gray-600 border-[#e5e7eb] hover:border-gray-400'
-            }`}
-          >
-            {label}
-          </button>
-        ))}
+      {/* Filtros */}
+      <div className="bg-white border border-[#e5e7eb] rounded-2xl p-4 flex flex-col gap-4 shadow-sm">
+        <div className="flex flex-wrap gap-2">
+          {[['', 'Todos'], ...Object.entries(STATUS_LABELS)].map(([value, label]) => (
+            <button
+              key={value}
+              onClick={() => { setStatusFilter(value); setPage(1); }}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-all ${
+                statusFilter === value
+                  ? 'bg-[#1a1a2e] text-white border-[#1a1a2e]'
+                  : 'bg-white text-gray-600 border-[#e5e7eb] hover:border-gray-400'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="flex flex-wrap items-end gap-4">
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Desde</label>
+            <input
+              type="date"
+              value={dateFrom}
+              onChange={(e) => { setDateFrom(e.target.value); setPage(1); }}
+              className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-3 py-1.5 text-[#1a1a2e] outline-none focus:border-[#E8612D] focus:ring-1 focus:ring-[#E8612D]"
+            />
+          </div>
+          <div className="flex flex-col gap-1">
+            <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider">Hasta</label>
+            <input
+              type="date"
+              value={dateTo}
+              onChange={(e) => { setDateTo(e.target.value); setPage(1); }}
+              className="bg-gray-50 border border-gray-200 text-sm rounded-lg px-3 py-1.5 text-[#1a1a2e] outline-none focus:border-[#E8612D] focus:ring-1 focus:ring-[#E8612D]"
+            />
+          </div>
+          {(dateFrom || dateTo || statusFilter) && (
+            <button
+              onClick={() => { setDateFrom(''); setDateTo(''); setStatusFilter(''); setPage(1); }}
+              className="flex items-center gap-1.5 text-sm font-semibold text-gray-500 hover:text-[#E8612D] px-3 py-1.5 rounded-lg transition-all"
+            >
+              <Filter size={14} /> Limpiar filtros
+            </button>
+          )}
+          <span className="ml-auto text-sm text-gray-400 self-center">{count} {count === 1 ? 'venta' : 'ventas'}</span>
+        </div>
       </div>
 
       {loading ? (
@@ -150,24 +200,24 @@ export default function OrdersView({ apiBaseUrl, onBack }: OrdersViewProps) {
       ) : orders.length === 0 ? (
         <div className="bg-white border border-dashed border-[#e5e7eb] rounded-2xl py-16 flex flex-col items-center">
           <Package size={40} className="text-gray-300 mb-3" />
-          <p className="text-gray-500">No tenés pedidos {statusFilter ? `en estado "${STATUS_LABELS[statusFilter]}"` : 'todavía'}.</p>
+          <p className="text-gray-500">No hay ventas que coincidan con los filtros.</p>
         </div>
       ) : (
         <div className="flex flex-col gap-3">
           {orders.map((order) => {
             const expanded = expandedId === order.id;
+            const target = nextStatus(order.status);
             return (
               <div key={order.id} className="bg-white border border-[#e5e7eb] rounded-2xl overflow-hidden shadow-sm">
-                {/* Fila resumen */}
                 <button
                   onClick={() => setExpandedId(expanded ? null : order.id)}
                   className="w-full p-5 flex items-center justify-between gap-4 hover:bg-gray-50/60 transition-colors text-left"
                 >
-                  <div className="flex items-center gap-4 min-w-0">
-                    <div>
-                      <p className="font-bold text-[#1a1a2e]">Pedido #{order.id}</p>
-                      <p className="text-xs text-gray-400 mt-0.5">{formatDate(order.created_at)}</p>
-                    </div>
+                  <div className="min-w-0">
+                    <p className="font-bold text-[#1a1a2e]">Pedido #{order.id}</p>
+                    <p className="text-xs text-gray-400 mt-0.5">
+                      {formatDate(order.created_at)} · Cliente: @{order.username}
+                    </p>
                   </div>
                   <div className="flex items-center gap-4 shrink-0">
                     <span className={`text-xs font-bold px-2.5 py-1 rounded-full border ${STATUS_STYLES[order.status]}`}>
@@ -178,7 +228,6 @@ export default function OrdersView({ apiBaseUrl, onBack }: OrdersViewProps) {
                   </div>
                 </button>
 
-                {/* Detalle expandible */}
                 {expanded && (
                   <div className="border-t border-gray-100 px-5 py-4 bg-gray-50/40">
                     <div className="divide-y divide-gray-100">
@@ -209,18 +258,20 @@ export default function OrdersView({ apiBaseUrl, onBack }: OrdersViewProps) {
                       <span className="font-black text-lg text-[#1a1a2e]">{formatPrice(order.total)}</span>
                     </div>
 
-                    {/* RN-15: cancelación solo para pedidos pendientes */}
-                    {order.status === 'pending' && (
+                    {/* Avanzar estado (RN4): solo con permiso y si hay un siguiente estado */}
+                    {canChangeStatus && target && (
                       <div className="mt-4 flex justify-end">
                         <button
-                          onClick={() => handleCancel(order.id)}
-                          disabled={cancellingId === order.id}
-                          className="flex items-center gap-1.5 text-sm font-semibold text-red-500 hover:text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-lg transition-all disabled:opacity-50"
+                          onClick={() => handleAdvanceStatus(order)}
+                          disabled={updatingId === order.id}
+                          className="flex items-center gap-1.5 text-sm font-semibold text-white bg-[#E8612D] hover:bg-[#d4551f] px-4 py-2 rounded-lg transition-all shadow-sm disabled:opacity-50"
                         >
-                          <XCircle size={16} />
-                          {cancellingId === order.id ? 'Cancelando…' : 'Cancelar pedido'}
+                          {updatingId === order.id ? 'Actualizando…' : <>Avanzar a "{STATUS_LABELS[target]}" <ArrowRight size={16} /></>}
                         </button>
                       </div>
+                    )}
+                    {canChangeStatus && !target && order.status !== 'cancelled' && (
+                      <p className="mt-4 text-right text-xs text-gray-400 italic">El pedido alcanzó el estado final.</p>
                     )}
                   </div>
                 )}
@@ -232,7 +283,7 @@ export default function OrdersView({ apiBaseUrl, onBack }: OrdersViewProps) {
 
       {/* Paginación */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-center gap-4 mt-8">
+        <div className="flex items-center justify-center gap-4 mt-2">
           <button
             onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page <= 1}

@@ -1,13 +1,13 @@
 import React from "react";
-import { Building2, Bot, ShieldCheck, Users, Clock, ChevronRight, Package, X } from "lucide-react";
+import { Building2, Bot, ShieldCheck, Users, Clock, ChevronRight, Package, Store, X } from "lucide-react";
 
 interface SidebarProps {
   isOpen: boolean;
   onClose: () => void;
   isAdmin: boolean;
   isPremium: boolean;
-  activeTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory";
-  setActiveTab: (tab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory") => void;
+  activeTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales";
+  setActiveTab: (tab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales") => void;
   currentUser: any;
 }
 
@@ -31,6 +31,12 @@ export default function Sidebar({
     currentUser?.active_permissions &&
     typeof currentUser.active_permissions === "object" &&
     "catalogo.ver_catalogo" in currentUser.active_permissions
+  );
+
+  const canViewSales = currentUser?.is_superuser || (
+    currentUser?.active_permissions &&
+    typeof currentUser.active_permissions === "object" &&
+    "pedidosventas.ver" in currentUser.active_permissions
   );
 
   const permissions = currentUser?.active_permissions && typeof currentUser.active_permissions === "object" 
@@ -143,6 +149,24 @@ export default function Sidebar({
               <div className="flex items-center gap-3">
                 <Package size={18} />
                 <span>Gestión de Inventario</span>
+              </div>
+              <ChevronRight size={14} className="opacity-50" />
+            </button>
+          )}
+
+          {canViewSales && (
+            <button
+              type="button"
+              onClick={() => handleTabClick("sales")}
+              className={`w-full flex items-center justify-between px-3 py-3 rounded-lg text-sm font-medium transition-all ${
+                activeTab === "sales"
+                  ? "bg-[#fff7ed] text-[#E8612D] border border-[#E8612D]/20"
+                  : "text-[#6b7280] hover:bg-gray-50 hover:text-[#1a1a2e]"
+              }`}
+            >
+              <div className="flex items-center gap-3">
+                <Store size={18} />
+                <span>Ventas</span>
               </div>
               <ChevronRight size={14} className="opacity-50" />
             </button>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Building2, Sparkles, AlertCircle, Loader, Eye, EyeOff } from "lucide-react";
@@ -14,6 +14,16 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+
+  // Aviso cuando la sesión fue cerrada por un login en otro dispositivo (sesión única)
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get("session") === "revoked") {
+        setError("Tu sesión se cerró porque iniciaste sesión en otro dispositivo.");
+      }
+    }
+  }, []);
 
   // Solo validamos formato de correo si detectamos que está intentando escribir uno (tiene un '@')
   const isEmailInvalid = email.length > 0 && email.includes('@') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);

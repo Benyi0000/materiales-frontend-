@@ -40,6 +40,14 @@ export async function apiFetch(url: string, options: RequestInit = {}): Promise<
           // Reintentamos la petición original con el nuevo access token
           headers.set("Authorization", `Bearer ${data.access}`);
           response = await fetch(url, { ...options, headers });
+
+          // Si sigue 401 tras refrescar, la sesión fue revocada (login en otro
+          // dispositivo): limpiamos y mandamos al login. Fallback del SSE.
+          if (response.status === 401) {
+            localStorage.removeItem("access_token");
+            localStorage.removeItem("refresh_token");
+            window.location.href = "/auth/login?session=revoked";
+          }
         } else {
           // El refresh token expiró o es inválido. Forzar re-login
           localStorage.removeItem("access_token");
