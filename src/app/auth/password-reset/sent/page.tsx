@@ -26,7 +26,7 @@ function PasswordResetSentContent() {
       </header>
 
       <div className="flex-1 flex items-start pt-[15vh] justify-center p-4 sm:p-8">
-        <div className="w-full max-w-[400px] bg-white border border-gray-200 p-8 sm:p-10 rounded-xl flex flex-col gap-6 shadow-sm text-center">
+        <div className="w-full max-w-[400px] bg-white border border-gray-200 p-5 sm:p-8 rounded-xl flex flex-col gap-6 shadow-sm text-center">
           <div className="w-16 h-16 bg-[#E8612D]/10 rounded-full flex items-center justify-center mx-auto mb-2">
             <Mail size={32} className="text-[#E8612D]" />
           </div>

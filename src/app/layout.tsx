@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Materiales Inteligentes | E-Commerce & Tutor IA",
+  title: "Craftiar",
   description: "Plataforma premium para la compra y estimación de materiales de construcción con soporte de IA.",
 };
 

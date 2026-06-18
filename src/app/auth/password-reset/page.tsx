@@ -73,8 +73,8 @@ export default function PasswordReset() {
       </header>
 
       <div className="flex-1 flex items-start pt-[15vh] justify-center p-4 sm:p-8">
-        <div className="w-full max-w-[400px] bg-white border border-gray-200 p-8 sm:p-10 rounded-xl flex flex-col gap-6 shadow-sm relative">
-          <Link href="/auth/login" className="absolute top-8 right-8 text-gray-400 hover:text-gray-600 transition-colors" title="Volver">
+        <div className="w-full max-w-[400px] bg-white border border-gray-200 p-5 sm:p-8 rounded-xl flex flex-col gap-6 shadow-sm relative">
+          <Link href="/auth/login" className="absolute top-5 right-5 sm:top-8 sm:right-8 text-gray-400 hover:text-gray-600 transition-colors" title="Volver">
             <ArrowLeft size={20} />
           </Link>
           

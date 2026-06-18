@@ -237,7 +237,7 @@ export default function RegisterPage() {
 
       {/* Contenedor del formulario */}
       <div className="flex-1 flex items-start pt-[8vh] justify-center p-4 sm:p-8">
-        <div className="w-full max-w-[420px] bg-white border border-gray-200 p-8 sm:p-10 rounded-xl flex flex-col gap-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
+        <div className="w-full max-w-[420px] bg-white border border-gray-200 p-5 sm:p-8 rounded-xl flex flex-col gap-6 shadow-[0_1px_3px_rgba(0,0,0,0.05)]">
           <div className="flex flex-col gap-1 text-left">
             <h2 className="text-2xl font-semibold text-[#1a1a2e] tracking-tight">
               Creá tu cuenta
@@ -246,7 +246,7 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleRegister} className="flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs text-gray-600 font-medium">Nombre</label>
                 <input

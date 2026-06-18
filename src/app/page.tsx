@@ -3,7 +3,7 @@
 
 import React, { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Users, CheckCircle2, AlertCircle, Info, X, Bot } from "lucide-react";
+import { Users, CheckCircle2, AlertCircle, Info, X, Bot, Building2 } from "lucide-react";
 
 
 // Componentes Modularizados
@@ -17,11 +17,18 @@ import AuditLogTable from "@/components/admin/AuditLogTable";
 import UserCreateForm from "@/components/admin/UserCreateForm";
 import InventoryPanel from "@/components/catalog/InventoryPanel";
 import SalesPanel from "@/components/admin/SalesPanel";
+import GestionPanel from "@/components/admin/GestionPanel";
 import PublicLanding from "@/components/public/PublicLanding";
 import { startSessionWatch, stopSessionWatch } from "@/lib/session";
 
 // URL Base de la API de Django
 const API_BASE_URL = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api");
+
+const CLIENT_PERMS = [
+  "catalogo.ver_catalogo", "catalogo.busqueda_semantica", "pedidos.ver",
+  "carrito.gestionar", "carrito.checkout", "tutor.acceder", "tutor.ver_historial",
+  "suscripciones.ver", "suscripciones.suscribirse",
+];
 
 export default function Dashboard() {
   return (
@@ -67,13 +74,13 @@ function DashboardInner() {
        setGlobalModal({ isOpen: true, title, message: msg, type });
     };
   }, []);
-  const [activeTab, setActiveTab] = useState<"catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales">("catalog");
+  const [activeTab, setActiveTab] = useState<"catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs">("catalog");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [cart, setCart] = useState<{ product: any; quantity: number }[]>([]);
   const [products, setProducts] = useState<any[]>([]);
   const [users, setUsers] = useState<any[]>([]);
 
-  const handleTabChange = (newTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales") => {
+  const handleTabChange = (newTab: "catalog" | "tutor" | "profiles" | "audits" | "create-user" | "inventory" | "sales" | "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs") => {
     if (newTab === activeTab) return;
     
     // Si estamos interactuando con el chat y cambiamos de contexto
@@ -128,6 +135,7 @@ function DashboardInner() {
   // Estado de conexión a la API Django
   const [apiOnline, setApiOnline] = useState(false);
   const [loadingAPI, setLoadingAPI] = useState(false);
+  const [heroBannerData, setHeroBannerData] = useState<any>(undefined);
 
   // ----------------------------------------------------
   // CONEXIÓN CON EL BACKEND
@@ -135,72 +143,133 @@ function DashboardInner() {
   const checkBackendAPI = async () => {
     setLoadingAPI(true);
     const token = localStorage.getItem("access_token");
+
     if (!token) {
-      // Sin token: mostrar la landing pública en lugar de redirigir al login
+      // Sin token: cargar catálogo y banner antes de mostrar la landing
+      try {
+        const [prodResult, bannerResult] = await Promise.allSettled([
+          fetch(`${API_BASE_URL}/catalog/products/`),
+          fetch(`${API_BASE_URL}/catalog/banners/public/?slot=hero`),
+        ]);
+        if (prodResult.status === "fulfilled" && prodResult.value.ok) {
+          const prodData = await prodResult.value.json();
+          setProducts(Array.isArray(prodData) ? prodData : (prodData.results ?? []));
+        }
+        if (bannerResult.status === "fulfilled" && bannerResult.value.ok) {
+          const d = await bannerResult.value.json();
+          const list = Array.isArray(d) ? d : (d.results || []);
+          setHeroBannerData(list[0] || null);
+        } else {
+          setHeroBannerData(null);
+        }
+      } catch (err) {
+        console.error("Error loading public catalog:", err);
+        setHeroBannerData(null);
+      }
       setIsAuthenticated(false);
       setLoadingAPI(false);
       return;
     }
+
     const headers = { "Authorization": `Bearer ${token}` };
 
     try {
-      // 1. Cargar perfil del usuario logueado
+      // 1. Verificar token y cargar perfil del usuario
       const profUserRes = await fetch(`${API_BASE_URL}/users/auth/profile/`, { headers });
-      if (profUserRes.ok) {
-        const userData = await profUserRes.json();
-        setCurrentUser(userData);
-        setApiOnline(true);
-        setIsAuthenticated(true);
-      } else {
+      if (!profUserRes.ok) {
         localStorage.removeItem("access_token");
         localStorage.removeItem("refresh_token");
+        // Token inválido: cargar catálogo y banner antes de mostrar la landing pública
+        try {
+          const [prodResult, bannerResult] = await Promise.allSettled([
+            fetch(`${API_BASE_URL}/catalog/products/`),
+            fetch(`${API_BASE_URL}/catalog/banners/public/?slot=hero`),
+          ]);
+          if (prodResult.status === "fulfilled" && prodResult.value.ok) {
+            const prodData = await prodResult.value.json();
+            setProducts(Array.isArray(prodData) ? prodData : (prodData.results ?? []));
+          }
+          if (bannerResult.status === "fulfilled" && bannerResult.value.ok) {
+            const d = await bannerResult.value.json();
+            const list = Array.isArray(d) ? d : (d.results || []);
+            setHeroBannerData(list[0] || null);
+          } else {
+            setHeroBannerData(null);
+          }
+        } catch {}
         setIsAuthenticated(false);
         return;
       }
 
-      // 2. Cargar catálogo de productos
-      const prodRes = await fetch(`${API_BASE_URL}/catalog/products/`);
-      if (prodRes.ok) {
-        const prodData = await prodRes.json();
-        setProducts(Array.isArray(prodData) ? prodData : (prodData.results ?? []));
-      }
+      const userData = await profUserRes.json();
+      setCurrentUser(userData);
+      setApiOnline(true);
 
-      // 3. Cargar perfiles
-      const profRes = await fetch(`${API_BASE_URL}/users/admin/profiles/`, { headers });
-      if (profRes.ok) {
-        const profData = await profRes.json();
-        setProfiles(profData);
-        if (profData.length > 0) {
-          setEditingProfile(profData[0]);
+      // Determinar si el usuario necesita datos de gestión interna
+      const userIsDashboard = userData.is_superuser || (
+        userData.active_permissions && typeof userData.active_permissions === "object" &&
+        Object.keys(userData.active_permissions).some(
+          (code) => code !== "all" && !CLIENT_PERMS.includes(code)
+        )
+      );
+
+      if (userIsDashboard) {
+        // Dashboard: cargar todo en paralelo
+        const [prodResult, profResult, permResult, userResult, auditResult] = await Promise.allSettled([
+          fetch(`${API_BASE_URL}/catalog/products/`),
+          fetch(`${API_BASE_URL}/users/admin/profiles/`, { headers }),
+          fetch(`${API_BASE_URL}/users/admin/permissions/`, { headers }),
+          fetch(`${API_BASE_URL}/users/admin/users/`, { headers }),
+          fetch(`${API_BASE_URL}/users/admin/audit-logs/`, { headers }),
+        ]);
+
+        if (prodResult.status === "fulfilled" && prodResult.value.ok) {
+          const prodData = await prodResult.value.json();
+          setProducts(Array.isArray(prodData) ? prodData : (prodData.results ?? []));
         }
-      }
-
-      // 4. Cargar permisos
-      const permRes = await fetch(`${API_BASE_URL}/users/admin/permissions/`, { headers });
-      if (permRes.ok) {
-        const permData = await permRes.json();
-        setPermissions(permData);
-      }
-
-      // 5. Cargar usuarios (ABM)
-      const userRes = await fetch(`${API_BASE_URL}/users/admin/users/`, { headers });
-      if (userRes.ok) {
-        const userData = await userRes.json();
-        setUsers(userData);
-        if (userData.length > 0) {
-          setSelectedAdminUser(userData[0]);
+        if (profResult.status === "fulfilled" && profResult.value.ok) {
+          const profData = await profResult.value.json();
+          setProfiles(profData);
+          if (profData.length > 0) setEditingProfile(profData[0]);
         }
+        if (permResult.status === "fulfilled" && permResult.value.ok) {
+          setPermissions(await permResult.value.json());
+        }
+        if (userResult.status === "fulfilled" && userResult.value.ok) {
+          const usersData = await userResult.value.json();
+          setUsers(usersData);
+          if (usersData.length > 0) setSelectedAdminUser(usersData[0]);
+        }
+        if (auditResult.status === "fulfilled" && auditResult.value.ok) {
+          setAuditLogs(await auditResult.value.json());
+        }
+      } else {
+        // Cliente: cargar catálogo y banner en paralelo
+        try {
+          const [prodResult, bannerResult] = await Promise.allSettled([
+            fetch(`${API_BASE_URL}/catalog/products/`),
+            fetch(`${API_BASE_URL}/catalog/banners/public/?slot=hero`),
+          ]);
+          if (prodResult.status === "fulfilled" && prodResult.value.ok) {
+            const prodData = await prodResult.value.json();
+            setProducts(Array.isArray(prodData) ? prodData : (prodData.results ?? []));
+          }
+          if (bannerResult.status === "fulfilled" && bannerResult.value.ok) {
+            const d = await bannerResult.value.json();
+            const list = Array.isArray(d) ? d : (d.results || []);
+            setHeroBannerData(list[0] || null);
+          } else {
+            setHeroBannerData(null);
+          }
+        } catch {}
       }
 
-      // 6. Cargar logs de auditoría
-      const auditRes = await fetch(`${API_BASE_URL}/users/admin/audit-logs/`, { headers });
-      if (auditRes.ok) {
-        const auditData = await auditRes.json();
-        setAuditLogs(auditData);
-      }
+      // Solo mostrar la página cuando todos los datos están listos
+      setIsAuthenticated(true);
     } catch (err) {
       console.error("Error connecting to backend API:", err);
       setApiOnline(false);
+      setIsAuthenticated(false);
     } finally {
       setLoadingAPI(false);
     }
@@ -231,15 +300,13 @@ function DashboardInner() {
     )
   );
 
-  // Determinar si el usuario debe entrar al Dashboard Interno (tiene algún perfil aparte de los de cliente o es superuser)
+  // Entra al Dashboard Interno solo si es superuser o tiene al menos un permiso
+  // que NO es de cliente (es decir, algún permiso de gestión interna/staff).
+  // Quien solo tiene permisos de cliente ve la tienda (PublicLanding), sin sidebar interno.
   const isDashboardUser = currentUser && (
     currentUser.is_superuser ||
-    (currentUser.assignments || []).some(
-      (asg: any) => {
-        const pName = (asg.profile_name || "").toLowerCase();
-        return pName !== "comprar en la tienda" && pName !== "chat bot" && asg.is_active && !asg.has_expired;
-      }
-    )
+    (currentUser.active_permissions && typeof currentUser.active_permissions === "object" &&
+      Object.keys(currentUser.active_permissions).some((code) => code !== "all" && !CLIENT_PERMS.includes(code)))
   );
 
   const canViewCatalog = currentUser?.is_superuser || (
@@ -442,39 +509,10 @@ function DashboardInner() {
     }
   };
 
-  const handleCheckout = async () => {
+  // Dirige a la página dedicada de checkout (estilo Mercado Libre)
+  const openCheckout = () => {
     if (cart.length === 0) return;
-    const headers = authHeaders();
-    if (!headers) return;
-
-    try {
-      // El pedido se crea desde el carrito persistido en el servidor (spec Carrito y Pedidos)
-      const res = await fetch(`${API_BASE_URL}/orders/orders/`, {
-        method: "POST",
-        headers,
-        body: JSON.stringify({})
-      });
-      if (res.ok) {
-        const order = await res.json();
-        const discountMsg = order.discount_amount && parseFloat(order.discount_amount) > 0
-          ? ` Descuento aplicado: $${order.discount_amount}.`
-          : "";
-        alert(`¡Pedido #${order.id} creado con éxito (Pendiente de Pago)!${discountMsg} Recibirás un email de confirmación.`);
-        clearCart();
-        checkBackendAPI(); // Refrescar stock de productos y auditorías
-      } else {
-        const errData = await res.json();
-        // Mostrar errores de stock (RN-11) o cupón (RN-09) de forma legible
-        const messages: string[] = [];
-        if (errData.stock) messages.push(...[].concat(errData.stock));
-        if (errData.coupon) messages.push(...[].concat(errData.coupon));
-        if (errData.non_field_errors) messages.push(...[].concat(errData.non_field_errors));
-        alert(`Error al realizar el pedido: ${messages.length ? messages.join(" ") : JSON.stringify(errData)}`);
-        loadServerCart();
-      }
-    } catch (err) {
-      alert("Error de conexión al procesar la compra.");
-    }
+    router.push("/checkout");
   };
 
   // ----------------------------------------------------
@@ -734,11 +772,16 @@ function DashboardInner() {
     <>
     {/* BIFURCACIÓN: Landing Pública vs Dashboard Interno */}
     {isAuthenticated === null ? (
-      <div className="min-h-screen flex items-center justify-center bg-[#f5f5f5]">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-8 h-8 border-2 border-[#E8612D] border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm text-[#6b7280]">Cargando...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-[#f5f5f5] gap-5">
+        <div className="flex items-center gap-2">
+          <div className="bg-[#E8612D] p-1.5 rounded-lg text-white">
+            <Building2 size={22} />
+          </div>
+          <span className="text-xl font-bold tracking-tight select-none text-[#1a1a2e]">
+            Craft<span className="text-[#E8612D]">IAr</span>
+          </span>
         </div>
+        <div className="w-7 h-7 border-2 border-[#E8612D] border-t-transparent rounded-full animate-spin"></div>
       </div>
     ) : isAuthenticated === false || !isDashboardUser ? (
       <PublicLanding
@@ -749,11 +792,12 @@ function DashboardInner() {
         addToCart={addToCart}
         updateCartQty={updateCartQty}
         removeFromCart={removeFromCart}
-        handleCheckout={handleCheckout}
+        handleCheckout={openCheckout}
         applyCoupon={applyCoupon}
         removeCoupon={removeCoupon}
         isPremium={isPremium}
         apiBaseUrl={API_BASE_URL}
+        initialHeroBanner={heroBannerData}
       />
     ) : (
     <div className="min-h-screen flex flex-col bg-[#f5f5f5]">
@@ -783,7 +827,7 @@ function DashboardInner() {
       {/* DASHBOARD PRINCIPAL */}
       <div className="flex-1 flex">
         {/* CONTENIDO PRINCIPAL */}
-        <main className={`flex-1 p-6 sm:p-8 flex flex-col max-h-[calc(100vh-64px)] w-full ${activeTab === 'tutor' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
+        <main className={`flex-1 p-4 sm:p-6 lg:p-8 flex flex-col max-h-[calc(100vh-64px)] w-full ${activeTab === 'tutor' ? 'overflow-hidden' : 'overflow-y-auto'}`}>
           {/* TAB 1: CATÁLOGO DE PRODUCTOS (E-COMMERCE) */}
           {activeTab === "catalog" && (
             <CatalogView
@@ -793,7 +837,7 @@ function DashboardInner() {
               cartMeta={cartMeta}
               updateCartQty={updateCartQty}
               removeFromCart={removeFromCart}
-              handleCheckout={handleCheckout}
+              handleCheckout={openCheckout}
               applyCoupon={applyCoupon}
               removeCoupon={removeCoupon}
             />
@@ -826,6 +870,17 @@ function DashboardInner() {
             <SalesPanel
               apiBaseUrl={API_BASE_URL}
               currentUser={currentUser}
+            />
+          )}
+
+          {/* MÓDULOS DE GESTIÓN INTERNA (cada uno su propia entrada en el sidebar) */}
+          {activeTab.startsWith("g_") && (
+            <GestionPanel
+              apiBaseUrl={API_BASE_URL}
+              section={({
+                g_dashboard: "dashboard", g_reportes: "reportes", g_stock: "stock",
+                g_banners: "banners", g_promos: "promociones", g_planes: "planes", g_subs: "suscripciones",
+              } as const)[activeTab as "g_dashboard" | "g_reportes" | "g_stock" | "g_banners" | "g_promos" | "g_planes" | "g_subs"]}
             />
           )}
 
@@ -864,7 +919,7 @@ function DashboardInner() {
                 <p className="text-xs text-[#6b7280]">Creación de usuarios internos del sistema y asignación de perfiles iniciales con expiración.</p>
               </div>
 
-              <div className="bg-white border border-[#e5e7eb] rounded-xl p-8 flex flex-col gap-6 shadow-sm">
+              <div className="bg-white border border-[#e5e7eb] rounded-xl p-4 sm:p-8 flex flex-col gap-6 shadow-sm">
                 <UserCreateForm
                   profiles={profiles}
                   onSubmit={handleCreateUserSubmit}
@@ -882,7 +937,7 @@ function DashboardInner() {
           {/* GLOBAL ALERT MODAL */}
           {globalModal.isOpen && (
             <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[200] p-4 animate-[fadeIn_0.2s_ease]">
-              <div className="bg-white rounded-3xl p-8 w-full max-w-sm shadow-2xl relative text-center flex flex-col items-center">
+              <div className="bg-white rounded-3xl p-5 sm:p-8 w-full max-w-sm shadow-2xl relative text-center flex flex-col items-center">
                 {(globalModal.type === "confirm" || globalModal.type === "custom_confirm") && (
                   <div className="bg-orange-50 text-[#E8612D] p-4 rounded-full mb-4">
                     <AlertCircle size={32} />
@@ -938,7 +993,7 @@ function DashboardInner() {
 
           {/* FLOATING WIDGET (TutorIA) */}
           {isPremium && isWidgetOpen && activeTab !== "tutor" && (
-            <div className="fixed bottom-4 right-4 w-[350px] h-[500px] z-50 flex flex-col shadow-2xl rounded-xl overflow-hidden border border-[#e5e7eb] bg-white animate-[fadeIn_0.3s_ease-out]">
+            <div className="fixed bottom-4 right-4 w-[350px] max-w-[calc(100vw-32px)] h-[500px] max-h-[calc(100vh-100px)] z-50 flex flex-col shadow-2xl rounded-xl overflow-hidden border border-[#e5e7eb] bg-white animate-[fadeIn_0.3s_ease-out]">
               {/* Header del Chat Flotante */}
               <div className="flex items-center justify-between p-3 border-b border-[#E8612D]/20 bg-[#E8612D] text-white shrink-0">
                 <div className="flex items-center gap-2 font-semibold">
@@ -967,9 +1022,8 @@ function DashboardInner() {
       </div>
 
       {/* FOOTER */}
-      <footer className="border-t border-[#e5e7eb] py-4 px-6 flex items-center justify-between text-xs text-[#9ca3af] bg-white mt-auto">
-        <p>© 2026 CraftIAr. Todos los derechos reservados.</p>
-        <p className="font-mono">Next.js 15.1 + Django REST Framework + pgvector</p>
+      <footer className="border-t border-[#e5e7eb] py-4 px-6 text-xs text-[#9ca3af] bg-white mt-auto text-center">
+        <p>© {new Date().getFullYear()} Craftiar. Todos los derechos reservados.</p>
       </footer>
     </div>
     )}

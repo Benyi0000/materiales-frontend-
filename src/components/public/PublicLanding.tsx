@@ -23,6 +23,9 @@ import ProductDetail from './ProductDetail';
 import CartView from './CartView';
 import OrdersView from './OrdersView';
 import TutorVisualChat from '@/components/tutor/TutorVisualChat';
+import BannerCarousel from './BannerCarousel';
+
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
 
 /* ------------------------------------------------------------------ */
 /*  Tipos                                                              */
@@ -69,6 +72,7 @@ interface PublicLandingProps {
   removeCoupon?: () => void;
   isPremium?: boolean;
   apiBaseUrl?: string;
+  initialHeroBanner?: any;
 }
 
 /* ------------------------------------------------------------------ */
@@ -90,6 +94,7 @@ export default function PublicLanding({
   removeCoupon = () => {},
   isPremium = false,
   apiBaseUrl = (process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api"),
+  initialHeroBanner,
 }: PublicLandingProps) {
   const router = useRouter();
 
@@ -113,6 +118,22 @@ export default function PublicLanding({
   const [tutorWidgetOpen, setTutorWidgetOpen] = useState(false);
   const [lastAddedItem, setLastAddedItem] = useState<{product: Product, quantity: number} | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [heroBanner, setHeroBanner] = useState<any>(initialHeroBanner ?? null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+
+  const canVerSubs = currentUser?.is_superuser || (
+    currentUser?.active_permissions && typeof currentUser.active_permissions === "object" &&
+    "suscripciones.ver" in currentUser.active_permissions
+  );
+
+  // Fetch del banner solo si no fue provisto por el padre (recarga en background al cambiar de vista)
+  useEffect(() => {
+    if (initialHeroBanner !== undefined) return;
+    fetch(`${API_BASE}/catalog/banners/public/?slot=hero`)
+      .then((r) => (r.ok ? r.json() : []))
+      .then((d) => { const list = Array.isArray(d) ? d : d.results || []; setHeroBanner(list[0] || null); })
+      .catch(() => {});
+  }, []);
 
   /* ---- Fetch inicial ---- */
   useEffect(() => {
@@ -470,38 +491,68 @@ export default function PublicLanding({
           <div className="hidden md:flex items-center gap-3">
             {currentUser ? (
               <>
-                {/* 1. Usuario */}
-                <div className="flex items-center gap-2 px-2 py-1 bg-orange-50 rounded-lg text-[#E8612D]">
-                  <User size={18} />
-                  <span className="text-sm font-semibold">{currentUser.username}</span>
+                {/* 1. Usuario (con menú) */}
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setUserMenuOpen(o => !o)}
+                    className="flex items-center gap-2 px-2 py-2 text-sm font-medium text-[#1a1a2e]/80 hover:text-[#E8612D] transition-colors"
+                  >
+                    <User size={18} />
+                    <span className="text-sm font-semibold">{currentUser.username}</span>
+                    <ChevronDown size={14} className={`transition-transform ${userMenuOpen ? "rotate-180" : ""}`} />
+                  </button>
+                  {userMenuOpen && (
+                    <>
+                      <div className="fixed inset-0 z-30" onClick={() => setUserMenuOpen(false)} />
+                      <div className="absolute right-0 mt-2 w-56 bg-white border border-gray-100 rounded-xl shadow-lg z-40 overflow-hidden ck-fade-in">
+                        {canVerSubs && (
+                          <button onClick={() => { setUserMenuOpen(false); router.push("/mis-suscripciones"); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-[#1a1a2e] hover:bg-orange-50 text-left">
+                            <Sparkles size={16} className="text-[#E8612D]" /> Ver mis suscripciones
+                          </button>
+                        )}
+                        <button onClick={() => { setUserMenuOpen(false); onLogout && onLogout(); }} className="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-500 hover:bg-red-50 text-left border-t border-gray-100">
+                          <LogOut size={16} /> Cerrar sesión
+                        </button>
+                      </div>
+                    </>
+                  )}
                 </div>
 
-                {/* 2. Tutor IA */}
-                {isPremium && (
+                {/* 2. Tutoría: activo si suscripto; gris si tiene permiso pero no suscripto */}
+                {isPremium ? (
                   <button
                     type="button"
                     onClick={openTutorView}
-                    className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-                      showTutorView ? 'bg-amber-100 text-amber-700' : 'text-amber-600 bg-amber-50 hover:bg-amber-100'
-                    }`}
+                    className={`flex items-center gap-2 px-2 py-2 text-sm font-medium transition-colors ${showTutorView ? 'text-amber-700' : 'text-amber-600 hover:text-amber-700'}`}
                     title="Tutor de IA"
                   >
-                    <Sparkles size={18} className="text-amber-500" />
-                    <span className="hidden lg:inline text-sm">Tutor IA</span>
+                    <Sparkles size={18} />
+                    <span className="hidden lg:inline">Tutoría</span>
                   </button>
-                )}
+                ) : canVerSubs ? (
+                  <button
+                    type="button"
+                    onClick={() => router.push("/planes")}
+                    className="flex items-center gap-2 px-2 py-2 text-sm font-medium text-gray-400 hover:text-[#E8612D] transition-colors"
+                    title="Suscribite para acceder al Tutor"
+                  >
+                    <Sparkles size={18} />
+                    <span className="hidden lg:inline">Tutoría</span>
+                  </button>
+                ) : null}
 
                 {/* 3. Mis Pedidos */}
                 <button
                   type="button"
                   onClick={openOrdersView}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-lg font-medium transition-colors ${
-                    showOrdersView ? 'bg-orange-100 text-[#E8612D]' : 'text-[#1a1a2e]/70 hover:text-[#E8612D] hover:bg-orange-50'
+                  className={`flex items-center gap-2 px-2 py-2 text-sm font-medium transition-colors ${
+                    showOrdersView ? 'text-[#E8612D]' : 'text-[#1a1a2e]/70 hover:text-[#E8612D]'
                   }`}
                   title="Mis pedidos"
                 >
                   <PackageSearch size={20} />
-                  <span className="hidden lg:inline text-sm">Mis pedidos</span>
+                  <span className="hidden lg:inline">Mis pedidos</span>
                 </button>
 
                 {/* 4. Carrito */}
@@ -522,7 +573,7 @@ export default function PublicLanding({
                 <button
                   type="button"
                   onClick={onLogout}
-                  className="p-2 rounded-lg text-[#1a1a2e]/60 hover:text-red-500 hover:bg-red-50 transition-colors"
+                  className="p-2 text-[#1a1a2e]/60 hover:text-red-500 transition-colors"
                   title="Cerrar sesión"
                 >
                   <LogOut size={20} />
@@ -815,26 +866,31 @@ export default function PublicLanding({
           {/*  HERO BANNER                                                  */}
           {/* ============================================================ */}
           {appliedSearch.trim() === '' && !selectedCategory && (
-            <section className="relative w-full h-[380px] md:h-[440px] flex items-center justify-center overflow-hidden">
+            <section className="relative w-full h-[260px] sm:h-[340px] md:h-[440px] flex items-center justify-center overflow-hidden">
               {/* Imagen de fondo */}
               <div
-                className="absolute inset-0 bg-cover bg-center"
-                style={{ backgroundImage: "url('/hero_banner.png')" }}
+                className="absolute inset-0 bg-cover bg-center transition-all duration-500"
+                style={{ backgroundImage: `url('${heroBanner?.image_url || "/hero_banner.png"}')` }}
               />
-              {/* Overlay oscuro */}
-              <div className="absolute inset-0 bg-black/55" />
+              {/* Overlay oscuro (opacidad configurable del banner) */}
+              <div className="absolute inset-0" style={{ backgroundColor: `rgba(0,0,0,${(heroBanner?.overlay_opacity ?? 55) / 100})` }} />
 
               {/* Contenido */}
-              <div className="relative z-10 text-center px-6 max-w-2xl">
-                <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white leading-tight">
-                  Construye mejor con{' '}
-                  <span className="text-[#E8612D]">CraftIAr</span>
+              <div className="relative z-10 text-center px-4 sm:px-6 max-w-2xl">
+                <h1 className="text-2xl sm:text-3xl md:text-5xl font-bold text-white leading-tight">
+                  {heroBanner?.title ? (
+                    heroBanner.title
+                  ) : (
+                    <>Construye mejor con{' '}<span className="text-[#E8612D]">CraftIAr</span></>
+                  )}
                 </h1>
-                <p className="mt-4 text-base sm:text-lg text-gray-200 leading-relaxed">
-                  Materiales de construcción premium con herramientas de estimación basadas en IA.
+                <p className="mt-3 text-sm sm:text-base md:text-lg text-gray-200 leading-relaxed">
+                  {heroBanner?.subtitle || "Materiales de construcción premium con herramientas de estimación basadas en IA."}
                 </p>
                 <a
-                  href="#catalogo"
+                  href={heroBanner?.link || "#catalogo"}
+                  target={heroBanner?.link ? "_blank" : undefined}
+                  rel={heroBanner?.link ? "noreferrer" : undefined}
                   className="mt-6 inline-block bg-white text-[#1a1a2e] font-semibold px-7 py-3 rounded-full text-sm shadow-lg hover:shadow-xl hover:scale-105 transition-all duration-200"
                 >
                   Ver Promociones
@@ -842,6 +898,9 @@ export default function PublicLanding({
               </div>
             </section>
           )}
+
+          {/* Banners promocionales dinámicos (Gestión Interna) */}
+          {appliedSearch.trim() === '' && !selectedCategory && <BannerCarousel />}
 
       {/* ============================================================ */}
       {/*  C) CATÁLOGO                                                  */}
@@ -891,7 +950,7 @@ export default function PublicLanding({
                       className="group border border-gray-200 rounded-2xl overflow-hidden bg-white flex flex-col transition-shadow duration-200 hover:shadow-lg cursor-pointer"
                     >
                       {/* Imagen */}
-                      <div className="relative h-48 bg-gray-100 overflow-hidden p-4">
+                      <div className="relative h-40 sm:h-48 bg-gray-100 overflow-hidden p-4">
                         <img
                           src={prod.image_url || `https://placehold.co/400x300/f5f5f5/999?text=${encodeURIComponent(prod.name)}`}
                           alt={prod.name}
@@ -1078,10 +1137,7 @@ export default function PublicLanding({
         <footer className="bg-[#1a1a2e] mt-auto">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 text-center">
             <p className="text-sm text-gray-400">
-              © 2026 CraftIAr. Todos los derechos reservados.
-            </p>
-            <p className="mt-2 text-xs text-gray-500 font-mono">
-              Next.js 15.1 + Django REST Framework + pgvector
+              © {new Date().getFullYear()} Craftiar. Todos los derechos reservados.
             </p>
           </div>
         </footer>

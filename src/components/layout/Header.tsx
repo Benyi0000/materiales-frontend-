@@ -1,4 +1,6 @@
+"use client";
 import React from "react";
+import { useRouter } from "next/navigation";
 import { Building2, Loader, User as UserIcon, LogOut, Menu, Bot } from "lucide-react";
 
 interface UserProfile {
@@ -29,6 +31,7 @@ export default function Header({
   onToggleSidebar,
   onOpenTutor,
 }: HeaderProps) {
+  const router = useRouter();
   return (
     <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
       {/* Lado izquierdo: Hamburguesa + Logo */}
@@ -42,14 +45,14 @@ export default function Header({
           <Menu size={22} />
         </button>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <button type="button" onClick={() => router.push("/")} className="flex items-center gap-2 shrink-0" title="Ir al inicio">
           <div className="bg-[#E8612D] p-1.5 rounded-lg text-white">
             <Building2 size={22} />
           </div>
           <span className="text-lg font-bold tracking-tight select-none text-[#1a1a2e]">
             Craft<span className="text-[#E8612D]">IAr</span>
           </span>
-        </div>
+        </button>
       </div>
 
       {/* Lado derecho: Estado API + Usuario + Logout */}
@@ -76,7 +79,7 @@ export default function Header({
           <button
             type="button"
             onClick={onOpenTutor}
-            className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-bold bg-[#E8612D]/10 text-[#E8612D] hover:bg-[#E8612D]/20 transition-all border border-[#E8612D]/20"
+            className="hidden sm:flex items-center gap-2 px-2 py-2 text-sm font-medium text-[#E8612D] hover:text-[#d4551f] transition-colors"
           >
             <Bot size={16} />
             TutorIA
@@ -85,7 +88,7 @@ export default function Header({
 
         {currentUser && (
           <>
-            <div className="flex items-center gap-3 bg-gray-50 px-3 py-1.5 rounded-lg border border-[#e5e7eb]">
+            <div className="flex items-center gap-2 px-2">
               <UserIcon size={16} className="text-[#E8612D]" />
               <div className="text-left hidden sm:block">
                 <p className="text-xs font-semibold text-[#1a1a2e]">{currentUser?.first_name} {currentUser?.last_name}</p>
@@ -95,7 +98,7 @@ export default function Header({
             <button
               type="button"
               onClick={onLogout}
-              className="p-2 bg-white border border-[#e5e7eb] rounded-lg text-[#6b7280] hover:text-red-500 hover:border-red-200 transition-all flex items-center justify-center"
+              className="p-2 text-[#6b7280] hover:text-red-500 transition-colors flex items-center justify-center"
               title="Cerrar Sesión"
             >
               <LogOut size={16} />

@@ -101,11 +101,57 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
     return subs;
   };
 
-  // Filtrar productos según búsqueda
-  const filteredProducts = products.filter(p => {
-    return p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-           p.sku.toLowerCase().includes(searchQuery.toLowerCase());
-  });
+  // Paginación y búsqueda real
+  const [localProducts, setLocalProducts] = useState<Product[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [appliedSearch, setAppliedSearch] = useState("");
+  const [loadingProducts, setLoadingProducts] = useState(false);
+
+  const fetchProducts = async (page: number, search: string) => {
+    setLoadingProducts(true);
+    const token = localStorage.getItem("access_token");
+    try {
+      const url = new URL(`${apiBaseUrl}/catalog/products/`);
+      url.searchParams.append("page", page.toString());
+      if (search) url.searchParams.append("search", search);
+
+      const res = await fetch(url.toString(), {
+        headers: token ? { "Authorization": `Bearer ${token}` } : {}
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.results) {
+          setLocalProducts(data.results);
+          setTotalCount(data.count);
+          setTotalPages(Math.ceil(data.count / 12));
+        } else {
+          setLocalProducts(Array.isArray(data) ? data : []);
+          setTotalPages(1);
+          setTotalCount(Array.isArray(data) ? data.length : 0);
+        }
+      }
+    } catch (err) {
+      console.error("Error fetching products", err);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchProducts(currentPage, appliedSearch);
+  }, [apiBaseUrl, currentPage, appliedSearch]);
+
+  const handleSearchClick = () => {
+    setCurrentPage(1);
+    setAppliedSearch(searchQuery);
+  };
+  
+  const handleRefresh = () => {
+    refreshCatalog();
+    fetchProducts(currentPage, appliedSearch);
+  };
 
   // Abrir modal para crear
   const handleOpenCreate = () => {
@@ -378,8 +424,15 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
           placeholder="Buscar producto por nombre o SKU..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSearchClick()}
           className="bg-transparent border-none outline-none text-xs text-[#1a1a2e] placeholder-gray-400 w-full"
         />
+        <button 
+          onClick={handleSearchClick}
+          className="ml-2 text-xs font-bold text-[#E8612D] hover:underline"
+        >
+          Buscar
+        </button>
       </div>
 
       {/* Tabla de Productos */}
@@ -398,14 +451,21 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
               </tr>
             </thead>
             <tbody className="divide-y divide-[#e5e7eb]">
-              {filteredProducts.length === 0 ? (
+              {loadingProducts ? (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center text-[#9ca3af]">
+                    <Loader size={24} className="mx-auto mb-2 animate-spin" />
+                    Cargando productos...
+                  </td>
+                </tr>
+              ) : localProducts.length === 0 ? (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center text-[#9ca3af]">
                     No se encontraron productos en el inventario.
                   </td>
                 </tr>
               ) : (
-                filteredProducts.map(p => {
+                localProducts.map(p => {
                   const isOwner = checkProductOwnership(p);
                   const isProductActive = p.is_active !== false;
 
@@ -443,7 +503,7 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                         ${parseFloat(p.price.toString()).toLocaleString('es-AR', { minimumFractionDigits: 0 })}
                       </td>
 
-                      {/* Stock (con ajuste rápido) */}
+                      {/* Stock */}
                       <td className="px-6 py-4">
                         {adjustingStockId === p.id ? (
                           <div className="flex flex-col gap-1.5 max-w-[140px] bg-gray-50 p-2 rounded-lg border border-[#e5e7eb]">
@@ -518,7 +578,6 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                             <button
                               onClick={() => handleOpenEdit(p)}
                               disabled={!isOwner}
-                              title={isOwner ? "Editar producto" : "No tienes permisos sobre este producto ajeno"}
                               className={`p-1.5 rounded transition-all ${
                                 isOwner 
                                   ? "text-blue-500 hover:bg-blue-50 hover:text-blue-600" 
@@ -531,7 +590,6 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
                           {canDelete && (
                             <button
                               onClick={() => handleDeleteProduct(p)}
-                              title="Eliminar o desactivar producto"
                               className="text-red-400 hover:bg-red-50 hover:text-red-500 p-1.5 rounded transition-all"
                             >
                               <Trash2 size={14} />
@@ -546,6 +604,58 @@ export default function InventoryPanel({ products, apiBaseUrl, currentUser, refr
             </tbody>
           </table>
         </div>
+        
+        {/* Controles de Paginación */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 border-t border-[#e5e7eb] flex items-center justify-between bg-gray-50">
+            <span className="text-xs text-gray-500">
+              Mostrando {localProducts.length} de {totalCount} productos
+            </span>
+            <div className="flex items-center gap-1">
+              <button
+                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-white disabled:opacity-50"
+              >
+                Previo
+              </button>
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(pageNum => {
+                if (
+                  pageNum === 1 ||
+                  pageNum === totalPages ||
+                  (pageNum >= currentPage - 2 && pageNum <= currentPage + 2)
+                ) {
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setCurrentPage(pageNum)}
+                      className={`px-3 py-1 text-xs border rounded ${
+                        currentPage === pageNum 
+                          ? 'bg-[#E8612D] text-white border-[#E8612D]' 
+                          : 'border-gray-300 hover:bg-white text-gray-700'
+                      }`}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                } else if (
+                  pageNum === currentPage - 3 ||
+                  pageNum === currentPage + 3
+                ) {
+                  return <span key={pageNum} className="px-2 text-gray-400">...</span>;
+                }
+                return null;
+              })}
+              <button
+                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1 text-xs border border-gray-300 rounded hover:bg-white disabled:opacity-50"
+              >
+                Siguiente
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* MODAL DE CREACIÓN / EDICIÓN */}
