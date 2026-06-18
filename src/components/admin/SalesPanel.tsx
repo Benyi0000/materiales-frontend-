@@ -11,6 +11,25 @@ interface OrderItem {
   price_at_purchase: string;
 }
 
+interface MpPaymentData {
+  payment_id?: string;
+  status?: string;
+  status_detail?: string;
+  payment_type?: string;
+  payment_method?: string;
+  installments?: number;
+  transaction_amount?: string | number;
+  net_received_amount?: string | number;
+  fee_details?: { type: string; amount: number }[];
+  currency_id?: string;
+  payer_email?: string | null;
+  payer_id?: string;
+  card_last_four?: string | null;
+  card_holder?: string | null;
+  date_approved?: string | null;
+  date_created?: string | null;
+}
+
 interface Order {
   id: number;
   username: string;
@@ -20,6 +39,9 @@ interface Order {
   discount_amount: string;
   shipping_cost: string;
   checkout_payment_method: string;
+  mp_payment_id: string | null;
+  mp_payment_data: MpPaymentData | null;
+  mp_paid_at: string | null;
   created_at: string;
   items: OrderItem[];
 }
@@ -317,6 +339,119 @@ export default function SalesPanel({ apiBaseUrl, currentUser }: SalesPanelProps)
                         </span>
                       </div>
                     )}
+
+                    {/* Bloque de datos de MercadoPago (solo si el pago fue procesado) */}
+                    {order.mp_payment_data && (() => {
+                      const mp = order.mp_payment_data;
+                      const bruto = parseFloat(String(mp.transaction_amount ?? 0));
+                      const neto  = parseFloat(String(mp.net_received_amount ?? 0));
+                      const fee   = mp.fee_details?.reduce((s, f) => s + (f.amount ?? 0), 0) ?? 0;
+                      const mpDate = (iso: string | null | undefined) => {
+                        if (!iso) return '—';
+                        try { return new Date(iso).toLocaleString('es-AR', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
+                        catch { return iso; }
+                      };
+                      const statusColors: Record<string, string> = {
+                        approved:  'text-green-600 bg-green-50 border-green-200',
+                        rejected:  'text-red-600 bg-red-50 border-red-200',
+                        cancelled: 'text-gray-500 bg-gray-100 border-gray-200',
+                        pending:   'text-amber-600 bg-amber-50 border-amber-200',
+                        in_process:'text-blue-600 bg-blue-50 border-blue-200',
+                      };
+                      const mpStatusColor = statusColors[mp.status ?? ''] ?? 'text-gray-600 bg-gray-100 border-gray-200';
+                      return (
+                        <div className="mt-4 border border-blue-100 rounded-xl overflow-hidden">
+                          {/* Header */}
+                          <div className="flex items-center justify-between px-4 py-2.5 bg-blue-50 border-b border-blue-100">
+                            <p className="text-xs font-bold text-blue-700 uppercase tracking-wide">Pago MercadoPago</p>
+                            <div className="flex items-center gap-2">
+                              {mp.status && (
+                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full border ${mpStatusColor}`}>
+                                  {mp.status}
+                                </span>
+                              )}
+                              {mp.status_detail && (
+                                <span className="text-xs text-gray-400">{mp.status_detail}</span>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="px-4 py-3 bg-white grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2.5 text-sm">
+                            {/* ID */}
+                            {mp.payment_id && (
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">ID de pago</p>
+                                <p className="font-mono text-[#1a1a2e]">{mp.payment_id}</p>
+                              </div>
+                            )}
+
+                            {/* Tipo de pago */}
+                            {(mp.payment_type || mp.payment_method) && (
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Instrumento</p>
+                                <p className="text-[#1a1a2e] capitalize">
+                                  {[mp.payment_method, mp.payment_type].filter(Boolean).join(' · ')}
+                                  {mp.installments && mp.installments > 1 ? ` · ${mp.installments} cuotas` : ''}
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Montos */}
+                            {bruto > 0 && (
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Monto bruto</p>
+                                <p className="font-semibold text-[#1a1a2e]">{formatPrice(bruto)}</p>
+                              </div>
+                            )}
+                            {neto > 0 && (
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Neto recibido</p>
+                                <p className="font-semibold text-green-600">{formatPrice(neto)}</p>
+                              </div>
+                            )}
+                            {fee > 0 && (
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Comisión MP</p>
+                                <p className="text-red-500">-{formatPrice(fee)}</p>
+                              </div>
+                            )}
+
+                            {/* Tarjeta */}
+                            {(mp.card_last_four || mp.card_holder) && (
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Tarjeta</p>
+                                <p className="text-[#1a1a2e]">
+                                  {mp.card_last_four ? `···· ${mp.card_last_four}` : ''}
+                                  {mp.card_holder ? ` · ${mp.card_holder}` : ''}
+                                </p>
+                              </div>
+                            )}
+
+                            {/* Pagador */}
+                            {mp.payer_email && (
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Email pagador</p>
+                                <p className="text-[#1a1a2e] break-all">{mp.payer_email}</p>
+                              </div>
+                            )}
+
+                            {/* Fechas */}
+                            {mp.date_approved && (
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Aprobado por MP</p>
+                                <p className="text-[#1a1a2e]">{mpDate(mp.date_approved)}</p>
+                              </div>
+                            )}
+                            {order.mp_paid_at && (
+                              <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wide mb-0.5">Confirmado en sistema</p>
+                                <p className="text-[#1a1a2e]">{mpDate(order.mp_paid_at)}</p>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })()}
 
                     {/* Avanzar estado (RN4): solo con permiso y si hay un siguiente estado */}
                     {canChangeStatus && target && (
